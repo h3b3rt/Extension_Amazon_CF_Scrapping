@@ -1,0 +1,38 @@
+# Al crear una etiqueta "vX.Y.Z" empaqueta la extensión y publica una Release
+# con el .zip adjunto. La versión de la etiqueta debe coincidir con manifest.json.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validar versión
+        run: |
+          MANIFEST_VERSION=$(jq -r .version manifest.json)
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$MANIFEST_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::La etiqueta ($TAG_VERSION) no coincide con manifest.json ($MANIFEST_VERSION)"
+            exit 1
+          fi
+          jq empty config.default.json config.json
+
+      - name: Empaquetar
+        run: |
+          mkdir -p dist
+          zip "dist/amazon-product-scraper-${GITHUB_REF_NAME#v}.zip" \
+            manifest.json config.default.json *.js *.html
+
+      - name: Publicar Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true

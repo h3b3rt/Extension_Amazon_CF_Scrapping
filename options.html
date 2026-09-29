@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opciones · Amazon Scraper</title>
+<style>
+body{max-width:640px;margin:0 auto;padding:28px 16px;font-family:Arial,sans-serif;background:#f7f8fa;color:#111827}
+h1{font-size:20px;margin:0 0 4px}
+.subtitle{font-size:13px;color:#6b7280;margin-bottom:22px}
+section{background:#fff;border-radius:9px;padding:18px;margin-bottom:16px}
+h2{font-size:15px;margin:0 0 10px}
+p.help{font-size:12px;color:#6b7280;line-height:1.5;margin:0 0 12px}
+input[type=url]{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button{border:0;border-radius:7px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;background:#ff9900;color:#111}
+button.secondary{background:#232f3e;color:#fff}
+button.ghost{background:#e5e7eb;color:#111}
+button:disabled{opacity:.5;cursor:not-allowed}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:13px;margin:0}
+dt{color:#6b7280}
+dd{margin:0;word-break:break-all}
+#msg{font-size:13px;margin-top:12px;white-space:pre-line}
+.ok{color:#15803d}
+.err{color:#b91c1c}
+</style>
+</head>
+<body>
+<h1>Amazon Product Scraper</h1>
+<div class="subtitle">Opciones · versión <span id="version"></span></div>
+
+<section>
+  <h2>Configuración remota</h2>
+  <p class="help">URL de un archivo JSON con los selectores, columnas del CSV y avisos de versión. La extensión lo descarga al iniciar el navegador y cada 3 horas. Si falla, sigue usando la última configuración válida o la incluida en la extensión.</p>
+  <input type="url" id="configUrl" placeholder="https://tu-dominio.com/scraper/config.json">
+  <div class="row">
+    <button id="save">Guardar y comprobar</button>
+    <button id="check" class="secondary">Comprobar ahora</button>
+    <button id="reset" class="ghost">Borrar caché remota</button>
+  </div>
+  <div id="msg"></div>
+</section>
+
+<section>
+  <h2>Estado</h2>
+  <dl>
+    <dt>Versión de la extensión</dt><dd id="extVersion"></dd>
+    <dt>Configuración en uso</dt><dd id="source"></dd>
+    <dt>Revisión</dt><dd id="revision"></dd>
+    <dt>Última comprobación</dt><dd id="checkedAt"></dd>
+    <dt>Resultado</dt><dd id="result"></dd>
+  </dl>
+  <div class="row">
+    <button id="export" class="ghost">Descargar configuración actual (plantilla)</button>
+    <button id="reload" class="ghost">Recargar extensión</button>
+  </div>
+</section>
+
+<script type="module" src="options.js"></script>
+</body>
+</html>

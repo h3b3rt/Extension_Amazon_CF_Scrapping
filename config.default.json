@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "updatedAt": "2026-09-29",
+  "remoteConfigUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/config.json",
+  "minExtensionVersion": "1.1.0",
+  "latestVersion": "1.1.0",
+  "downloadUrl": "https://github.com/h3b3rt/Extension_Amazon_CF_Scrapping/releases/latest",
+  "notice": "",
+
+  "productUrl": "https://www.amazon.com/dp/{asin}",
+
+  "scroll": { "stepDelayMs": 350, "maxSteps": 80 },
+
+  "image": { "fullSize": true },
+
+  "price": {
+    "offscreen": [".a-price:not(.a-text-price) .a-offscreen", ".a-price .a-offscreen"],
+    "whole": ".a-price:not(.a-text-price) .a-price-whole",
+    "fraction": ".a-price:not(.a-text-price) .a-price-fraction",
+    "attr": "data-csa-c-price-to-pay"
+  },
+
+  "layouts": [
+    {
+      "id": "search",
+      "label": "Resultados de búsqueda",
+      "item": "div[data-component-type=\"s-search-result\"]",
+      "asinFrom": ["attr", "child", "link"],
+      "link": ["[data-cy=\"title-recipe\"] a[href*=\"/dp/\"]", "a.s-no-outline[href*=\"/dp/\"]", "a[href*=\"/dp/\"]", "[data-cy=\"title-recipe\"] a[href]"],
+      "title": ["[data-cy=\"title-recipe\"] h2 span", "[data-cy=\"title-recipe\"] h2", "h2 span", "h2"],
+      "brand": [],
+      "image": ["[data-cy=\"image-container\"] img.s-image", "img.s-image"]
+    },
+    {
+      "id": "nuevos",
+      "label": "ProductUIRender",
+      "item": "li[class*=\"ProductUIRender__grid-item\"]",
+      "asinFrom": ["attr", "child", "link"],
+      "link": ["[data-cy=\"title-recipe\"] a[href*=\"/dp/\"]", "a.s-no-outline[href*=\"/dp/\"]", "a[href*=\"/dp/\"]", "[data-cy=\"title-recipe\"] a[href]"],
+      "title": ["[data-cy=\"title-recipe\"] h2 span", "[data-cy=\"title-recipe\"] h2", "h2.a-size-base span", "h2.a-size-mini span"],
+      "brand": [],
+      "image": ["[data-cy=\"image-container\"] picture img", "[data-cy=\"image-container\"] img.s-image", "picture img.s-image", "img.s-image"]
+    },
+    {
+      "id": "antiguos",
+      "label": "ProductGridItem",
+      "item": "li[class*=\"ProductGridItem__itemOuter\"]",
+      "asinFrom": ["link"],
+      "link": ["a[title][href*=\"/dp/\"]", "a[href*=\"/dp/\"]"],
+      "title": ["a[title][href*=\"/dp/\"]", "h2", "[data-testid=\"product-title\"]"],
+      "brand": [],
+      "image": ["picture img[data-testid=\"image\"]", "picture img", "img[data-testid=\"image\"]", "img"],
+      "priceWhole": ["[class*=\"Price__whole\"]"],
+      "priceFraction": ["[class*=\"Price__fractional\"]"]
+    },
+    {
+      "id": "showcases",
+      "label": "ProductShowcase",
+      "item": "div[data-testid=\"product-showcase-container\"]",
+      "asinFrom": ["csaItemId", "link"],
+      "link": ["a[data-testid=\"product-showcase-title\"][href*=\"/dp/\"]", "h2#asin-title a[href*=\"/dp/\"]", "a[href*=\"/dp/\"]"],
+      "title": ["a[data-testid=\"product-showcase-title\"]", "h2#asin-title a", "a[class*=\"ProductShowcase__title\"]"],
+      "brand": [],
+      "image": [
+        "[data-testid=\"product-showcase-carousel\"] img[data-testid=\"image\"][data-feature=\"af\"]",
+        "[data-testid=\"product-showcase-carousel\"] [role=\"group\"][aria-label^=\"1 /\"] img",
+        "[data-testid=\"product-showcase-carousel\"] [role=\"group\"][data-index=\"1\"] img",
+        "[data-testid=\"product-showcase-carousel\"] img[data-testid=\"image\"]",
+        "img[class*=\"ImageVideoCarousel__image\"]"
+      ],
+      "priceText": ["[class*=\"price\"]", "[class*=\"Price\"]", "[data-testid*=\"price\"]"]
+    }
+  ],
+
+  "csv": {
+    "filenamePrefix": "productos_amazon",
+    "headers": ["PUBLICAR", "SKU HIJOS", "SKU PADRE", "MARCA", "NOMBRE AMAZON", "NOMBRE PROPUESTO", "CATEGORIA PRINCIPAL", "COD CATEGORIA", "LINK", "LINK DE IMAGEN", "IMAGEN", "PESO APROX", "PRECIO USD", "PRECIO PEN S/", "PRECIO COMPETENCIA", "STOCK SCRAPING", "PRECIO SCRAPING", "PRECIO FIJO", "SUBIDO A SISTEMA", "SUBIDO WEB", "SUBIDO RIPLEY", "SUBIDO AGORA", "SUBIDO JUNTOZ"],
+    "fields": {
+      "SKU PADRE": "asin",
+      "MARCA": "marca",
+      "NOMBRE AMAZON": "nombre",
+      "LINK": "link",
+      "LINK DE IMAGEN": "imagen",
+      "PRECIO USD": "precio"
+    },
+    "defaults": {
+      "PESO APROX": "1"
+    }
+  }
+}
