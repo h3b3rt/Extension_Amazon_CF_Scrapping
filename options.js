@@ -2,6 +2,7 @@ import {
   getConfig, getConfigMeta, getSettings, saveSettings, refreshRemoteConfig, resetRemoteConfig, extensionVersion,
 } from './config.js';
 import { getHistory, removeHistoryEntry, clearHistory, formatDate } from './history.js';
+import { getPrefs, setPref } from './prefs.js';
 
 const $ = id => document.getElementById(id);
 
@@ -90,6 +91,11 @@ async function init() {
     await clearHistory();
     renderHistory();
   });
+  const prefs = await getPrefs();
+  for (const key of ['autoScroll', 'accumulate']) {
+    $(key).checked = prefs[key];
+    $(key).addEventListener('change', () => setPref(key, $(key).checked));
+  }
   renderStatus();
   renderHistory();
 }

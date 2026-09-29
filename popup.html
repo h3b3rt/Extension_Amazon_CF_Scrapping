@@ -15,7 +15,6 @@ button.secondary{background:#232f3e;color:#fff;padding:10px}
 button.ghost{background:#e5e7eb;color:#111;padding:10px;width:auto;flex:0 0 auto}
 .check{display:flex;gap:8px;align-items:flex-start;font-size:12px;margin-bottom:8px;cursor:pointer;line-height:1.35}
 .check input{margin:1px 0 0}
-.options{margin-bottom:12px}
 #status{margin-top:12px;padding:11px;background:#fff;border-radius:7px;font-size:12px;line-height:1.55;white-space:pre-line}
 .success{color:#15803d}
 .error{color:#b91c1c}
@@ -52,11 +51,6 @@ footer a{color:#6b7280}
 <div class="subtitle">Exportador CSV de productos · v<span id="version"></span></div>
 
 <div id="update" class="banner" hidden></div>
-
-<div class="options">
-  <label class="check"><input type="checkbox" id="autoScroll"> Desplazar la página para cargar todos los productos</label>
-  <label class="check"><input type="checkbox" id="accumulate"> Acumular varias páginas y descargar al final</label>
-</div>
 
 <button id="scrape">Extraer productos</button>
 

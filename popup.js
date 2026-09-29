@@ -1,5 +1,6 @@
 import { getConfig, getConfigMeta, refreshRemoteConfig, compareVersions, extensionVersion } from './config.js';
 import { normalizeUrl, getHistory, saveHistoryEntry, formatDate } from './history.js';
+import { getPrefs } from './prefs.js';
 
 const $ = id => document.getElementById(id);
 const AMAZON_RE = /^https:\/\/([a-z0-9-]+\.)*amazon\.com\//i;
@@ -20,8 +21,8 @@ function showStatus(message, type = '') {
 }
 
 async function getState() {
-  const { collected = {}, prefs = {} } = await chrome.storage.local.get(['collected', 'prefs']);
-  return { collected, prefs: { autoScroll: false, accumulate: false, ...prefs } };
+  const { collected = {} } = await chrome.storage.local.get('collected');
+  return { collected, prefs: await getPrefs() };
 }
 
 async function renderCollection() {
@@ -285,15 +286,6 @@ async function scrape(categoria) {
 
 async function init() {
   $('version').textContent = extensionVersion();
-  const { prefs } = await getState();
-  for (const key of ['autoScroll', 'accumulate']) {
-    $(key).checked = prefs[key];
-    $(key).addEventListener('change', async () => {
-      const { prefs: current } = await getState();
-      await chrome.storage.local.set({ prefs: { ...current, [key]: $(key).checked } });
-      renderCollection();
-    });
-  }
 
   $('scrape').addEventListener('click', startExtraction);
   $('replaceData').addEventListener('click', () => {
