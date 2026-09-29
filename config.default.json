@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "revision": 5,
+  "revision": 7,
   "updatedAt": "2026-09-29",
   "remoteConfigUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/config.json",
   "minExtensionVersion": "1.1.0",
-  "latestVersion": "1.4.0",
+  "latestVersion": "1.5.0",
   "downloadUrl": "https://github.com/h3b3rt/Extension_Amazon_CF_Scrapping/releases/latest",
   "notice": "",
 
-  "categoriesApiUrl": "https://api.comprafacil.pics",
+  "categoriesUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/categories.json",
 
   "productUrl": "https://www.amazon.com/dp/{asin}",
 

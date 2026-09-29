@@ -1,7 +1,10 @@
 import { getConfig, getConfigMeta, refreshRemoteConfig, compareVersions, extensionVersion } from './config.js';
 import { normalizeUrl, getHistory, saveHistoryEntry, formatDate } from './history.js';
 import { getPrefs } from './prefs.js';
-import { getCachedCategories, getCategories, findCategory } from './categories.js';
+import {
+  getCachedCategories, getCategories, refreshCategories, findCategory, searchCategories, categoryLabel, normalizeText,
+  sourceLabel,
+} from './categories.js';
 
 const $ = id => document.getElementById(id);
 const AMAZON_RE = /^https:\/\/([a-z0-9-]+\.)*amazon\.com\//i;
@@ -202,17 +205,8 @@ async function askCategory() {
   $('multiCategory').checked = previous ? !previous.categoria : multiCategory;
 
   const catalog = catalogCache.items;
-  const option = (value, label) => Object.assign(document.createElement('option'), { value, label: label || '' });
-  let options;
-  if (catalog.length) {
-    const recientes = recentCategories.map(r => findCategory(catalog, r)).filter(Boolean);
-    const resto = catalog.filter(c => !recientes.includes(c));
-    options = [...recientes, ...resto].map(c => option(c.ruta, c.codigo));
-  } else {
-    options = recentCategories.map(c => option(c));
-  }
-  $('recentCategories').replaceChildren(...options);
-  $('category').placeholder = catalog.length ? 'Busca: ollas, audífonos, CF010101…' : 'Ej: Audífonos inalámbricos';
+  combo.recent = recentCategories;
+  $('category').placeholder = catalog.length ? 'Escribe para buscar: ollas, audífonos, CF0101…' : 'Ej: Audífonos inalámbricos';
   $('scrape').hidden = true;
   $('categoryForm').hidden = false;
   // En modo acumular el nombre se pide al descargar, no en cada extracción.
@@ -222,31 +216,200 @@ async function askCategory() {
   updateFileNamePreview();
   const input = $('category');
   const sugerida = previous?.categoria || recentCategories[0] || '';
-  input.value = !catalog.length || findCategory(catalog, sugerida) ? sugerida : '';
+  combo.selected = catalog.length ? findCategory(catalog, sugerida) : null;
+  input.value = catalog.length ? (combo.selected ? categoryLabel(combo.selected) : '') : sugerida;
   syncMultiCategory();
   updateCategoryHint();
   if (!input.disabled) {
     input.focus();
     input.select();
+    renderComboList();
+  }
+}
+
+// ---- Buscador de categorías (lista desplegable que filtra mientras se escribe) ----
+
+const combo = { selected: null, recent: [], items: [], active: -1 };
+
+const comboLabel = item => (typeof item === 'string' ? item : categoryLabel(item));
+
+// Qué mostrar: resultados de la búsqueda o, con el campo vacío, las recientes.
+function comboEntries() {
+  const catalog = catalogCache.items;
+  const input = $('category');
+  const typed = combo.selected && input.value === categoryLabel(combo.selected) ? '' : input.value.trim();
+  if (catalog.length) {
+    if (typed) return { query: typed, groups: [{ title: '', items: searchCategories(catalog, typed, 50) }] };
+    const recientes = combo.recent.map(r => findCategory(catalog, r)).filter(Boolean);
+    return {
+      query: '',
+      groups: recientes.length ? [{ title: 'Usadas recientemente', items: recientes }] : [],
+      emptyText: recientes.length ? '' : `Escribe para buscar entre ${catalog.length} categorías.`,
+    };
+  }
+  // Sin categorías del sistema: sugerir las escritas antes.
+  const t = normalizeText(typed);
+  const recientes = combo.recent.filter(r => !t || normalizeText(r).includes(t));
+  return { query: typed, groups: recientes.length ? [{ title: 'Usadas recientemente', items: recientes }] : [] };
+}
+
+// Resalta (con <mark>) las partes del texto que coinciden, ignorando tildes.
+function highlight(text, terms) {
+  const frag = document.createDocumentFragment();
+  if (!terms.length) { frag.append(text); return frag; }
+  let norm = '';
+  const map = [];
+  for (let i = 0; i < text.length; i++) {
+    for (const ch of text[i].normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()) {
+      norm += ch;
+      map.push(i);
+    }
+  }
+  const marked = new Array(text.length).fill(false);
+  for (const t of terms) {
+    for (let idx = norm.indexOf(t); idx !== -1; idx = norm.indexOf(t, idx + t.length)) {
+      for (let k = idx; k < idx + t.length; k++) marked[map[k]] = true;
+    }
+  }
+  let buf = '';
+  let on = false;
+  const flush = () => {
+    if (!buf) return;
+    if (on) frag.append(Object.assign(document.createElement('mark'), { textContent: buf }));
+    else frag.append(buf);
+    buf = '';
+  };
+  for (let i = 0; i < text.length; i++) {
+    if (marked[i] !== on) { flush(); on = marked[i]; }
+    buf += text[i];
+  }
+  flush();
+  return frag;
+}
+
+function comboOption(item, index, terms) {
+  const li = document.createElement('li');
+  li.setAttribute('role', 'option');
+  li.id = `cat-opt-${index}`;
+  const path = document.createElement('span');
+  path.className = 'path';
+  if (typeof item === 'string') {
+    path.append(highlight(item, terms));
+    li.append(path);
+  } else {
+    const ultimo = document.createElement('b');
+    ultimo.append(highlight(item.terciaria, terms));
+    path.append(highlight(`${item.primaria} / ${item.secundaria} / `, terms), ultimo);
+    const code = document.createElement('span');
+    code.className = 'code';
+    code.append(highlight(item.codigo, terms));
+    li.append(path, code);
+  }
+  // mousedown (no click) para elegir antes de que el campo pierda el foco.
+  li.addEventListener('mousedown', e => { e.preventDefault(); chooseComboItem(index); });
+  li.addEventListener('mousemove', () => { if (combo.active !== index) { combo.active = index; highlightActive(); } });
+  return li;
+}
+
+function renderComboList() {
+  const { query, groups, emptyText = '' } = comboEntries();
+  combo.items = groups.flatMap(g => g.items);
+  const terms = normalizeText(query).split(' ').filter(t => t && t !== '/');
+  const nodes = [];
+  let index = 0;
+  for (const g of groups) {
+    if (g.title) nodes.push(Object.assign(document.createElement('li'), { className: 'group', textContent: g.title }));
+    for (const item of g.items) nodes.push(comboOption(item, index++, terms));
+  }
+  if (!combo.items.length && catalogCache.items.length) {
+    const text = query ? 'Sin resultados. Prueba con otra palabra o con el código.' : emptyText;
+    if (text) nodes.push(Object.assign(document.createElement('li'), { className: 'empty', textContent: text }));
+  }
+  $('categoryList').replaceChildren(...nodes);
+  combo.active = query && combo.items.length ? 0 : -1;
+  highlightActive();
+  setComboOpen(nodes.length > 0);
+}
+
+function highlightActive() {
+  const input = $('category');
+  $('categoryList').querySelectorAll('[role=option]').forEach(li => {
+    const on = li.id === `cat-opt-${combo.active}`;
+    li.classList.toggle('active', on);
+    li.setAttribute('aria-selected', String(on));
+    if (on) li.scrollIntoView({ block: 'nearest' });
+  });
+  if (combo.active >= 0) input.setAttribute('aria-activedescendant', `cat-opt-${combo.active}`);
+  else input.removeAttribute('aria-activedescendant');
+}
+
+function setComboOpen(open) {
+  $('categoryList').hidden = !open;
+  $('category').setAttribute('aria-expanded', String(open));
+}
+
+function chooseComboItem(index) {
+  const item = combo.items[index];
+  if (item === undefined) return;
+  combo.selected = typeof item === 'string' ? null : item;
+  $('category').value = comboLabel(item);
+  setComboOpen(false);
+  updateCategoryHint();
+}
+
+function onComboKeydown(e) {
+  const open = !$('categoryList').hidden;
+  const count = combo.items.length;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!open) return renderComboList();
+    if (!count) return;
+    const step = e.key === 'ArrowDown' ? 1 : -1;
+    combo.active = combo.active < 0 ? (step > 0 ? 0 : count - 1) : (combo.active + step + count) % count;
+    highlightActive();
+  } else if (e.key === 'Enter' && open && combo.active >= 0) {
+    e.preventDefault();
+    chooseComboItem(combo.active);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    if (open) setComboOpen(false);
+    else hideCategoryForm();
   }
 }
 
 // Debajo del campo: código de la categoría elegida, o el estado de la lista.
-function updateCategoryHint(errorText = '') {
+// `message` (p. ej. un error de validación o el resultado de "Actualizar") tiene prioridad.
+function updateCategoryHint(message = '', type = 'error') {
   const hint = $('categoryHint');
   const catalog = catalogCache.items;
-  let text = errorText;
-  if (!text && !$('multiCategory').checked && catalog.length) {
-    const c = findCategory(catalog, $('category').value);
-    text = c ? `Código: ${c.codigo}` : `Elige una de las ${catalog.length} categorías del sistema.`;
+  const multi = $('multiCategory').checked;
+  let text = message;
+  if (!text && !multi && catalog.length) {
+    const c = combo.selected || findCategory(catalog, $('category').value);
+    if (c) text = `Código: ${c.codigo}`;
   }
-  if (!text && catalogCache.error) text = `⚠ ${catalogCache.error}`;
-  if (catalogCache.error && catalog.length && !errorText) {
-    text += `\n⚠ No se pudo actualizar la lista (${catalogCache.error}). Se usa la del ${formatDate(catalogCache.fetchedAt)}.`;
-  }
+  if (!text && !multi && !catalog.length) text = 'Aún no hay categorías cargadas. Pulsa "↻ Actualizar".';
   hint.textContent = text;
-  hint.className = `hint${errorText ? ' error' : ''}`;
+  hint.className = `hint${message ? ` ${type}` : ''}`;
   hint.hidden = !text;
+}
+
+async function onRefreshCategories() {
+  const btn = $('refreshCats');
+  btn.disabled = true;
+  btn.textContent = '↻ Actualizando…';
+  catalogCache = await refreshCategories();
+  btn.disabled = false;
+  btn.textContent = '↻ Actualizar';
+  // Si la categoría escrita existe en la lista nueva, queda elegida.
+  combo.selected = findCategory(catalogCache.items, $('category').value) || null;
+  if (catalogCache.error) {
+    const respaldo = catalogCache.items.length ? ` Se sigue usando la lista anterior (${catalogCache.items.length} categorías).` : '';
+    updateCategoryHint(`⚠ No se pudo actualizar.${respaldo}\n${catalogCache.error}`, 'error');
+  } else {
+    updateCategoryHint(`✓ ${catalogCache.items.length} categorías actualizadas (${sourceLabel(catalogCache.source)}).`, 'ok');
+  }
+  if (document.activeElement === $('category')) renderComboList();
 }
 
 // Categoría elegida en el formulario, con los 3 niveles y el código.
@@ -259,9 +422,9 @@ function readCategory() {
   if (!catalog.length) {
     return { ok: true, cat: { principal: text, secundaria: '', terciaria: '', codigo: '', ruta: text } };
   }
-  const c = findCategory(catalog, text);
-  if (!c) return { ok: false, error: 'Esa categoría no existe en el sistema. Elígela de la lista.' };
-  return { ok: true, cat: { principal: c.primaria, secundaria: c.secundaria, terciaria: c.terciaria, codigo: c.codigo, ruta: c.ruta } };
+  const c = combo.selected || findCategory(catalog, text);
+  if (!c) return { ok: false, error: 'Elige una categoría de la lista.' };
+  return { ok: true, cat: { principal: c.primaria, secundaria: c.secundaria, terciaria: c.terciaria, codigo: c.codigo, ruta: categoryLabel(c) } };
 }
 
 // "Múltiples categorías": la columna queda vacía para completarla a mano.
@@ -278,7 +441,8 @@ function hideCategoryForm() {
 
 async function rememberCategory(categoria) {
   const { recentCategories = [] } = await chrome.storage.local.get('recentCategories');
-  const next = [categoria, ...recentCategories.filter(c => c.toLowerCase() !== categoria.toLowerCase())];
+  const key = normalizeText(categoria);
+  const next = [categoria, ...recentCategories.filter(c => normalizeText(c) !== key)];
   await chrome.storage.local.set({ recentCategories: next.slice(0, MAX_RECENT_CATEGORIES) });
 }
 
@@ -384,9 +548,16 @@ async function init() {
     updateCategoryHint();
     if (!$('category').disabled) $('category').focus();
   });
-  $('category').addEventListener('input', () => updateCategoryHint());
+  $('category').addEventListener('input', () => {
+    combo.selected = null;
+    renderComboList();
+    updateCategoryHint();
+  });
   $('cancelCategory').addEventListener('click', hideCategoryForm);
-  $('category').addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); hideCategoryForm(); } });
+  $('refreshCats').addEventListener('click', onRefreshCategories);
+  $('category').addEventListener('keydown', onComboKeydown);
+  $('category').addEventListener('focus', renderComboList);
+  $('category').addEventListener('blur', () => setComboOpen(false));
   updateFileNamePreview = bindFileNamePreview('fileName', 'fileNamePreview');
   updateExportNamePreview = bindFileNamePreview('exportName', 'exportNamePreview');
   const hideExportForm = () => { $('exportForm').hidden = true; $('download').parentElement.hidden = false; };
@@ -424,6 +595,7 @@ async function init() {
   getCategories().then(fresh => {
     catalogCache = fresh;
     if (!$('categoryForm').hidden) updateCategoryHint();
+    if (document.activeElement === $('category')) renderComboList();
   });
 
   // Si la última comprobación es antigua, refrescar en segundo plano.

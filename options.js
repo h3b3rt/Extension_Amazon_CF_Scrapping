@@ -3,7 +3,7 @@ import {
 } from './config.js';
 import { getHistory, removeHistoryEntry, clearHistory, formatDate } from './history.js';
 import { getPrefs, setPref } from './prefs.js';
-import { getApiSettings, saveApiSettings, getCachedCategories, fetchCategories } from './categories.js';
+import { getCachedCategories, refreshCategories, sourceLabel } from './categories.js';
 
 const $ = id => document.getElementById(id);
 
@@ -54,42 +54,25 @@ function showApiMsg(text, cls = '') {
   $('apiMsg').textContent = text;
 }
 
+function describeCategories(cache) {
+  if (!cache.items.length) return 'Sin categorías cargadas. Mientras tanto, la categoría se escribe a mano.';
+  const cuando = cache.fetchedAt ? `actualizadas el ${formatDate(cache.fetchedAt)}` : 'sin actualizar todavía';
+  return `${cache.items.length} categorías · fuente: ${sourceLabel(cache.source)} · ${cuando}`;
+}
+
 async function renderCategoriesStatus() {
   const cache = await getCachedCategories();
-  if (cache.items.length) {
-    const lines = [`${cache.items.length} categorías · actualizadas el ${formatDate(cache.fetchedAt)}`];
-    if (cache.error) lines.push(`Último intento fallido: ${cache.error}`);
-    showApiMsg(lines.join('\n'), cache.error ? 'err' : 'ok');
-  } else {
-    showApiMsg(cache.error || 'Sin categorías descargadas. Mientras tanto, la categoría se escribe a mano.', cache.error ? 'err' : '');
-  }
+  const lines = [describeCategories(cache)];
+  if (cache.error) lines.push(`Último intento fallido: ${cache.error}`);
+  showApiMsg(lines.join('\n'), cache.error ? 'err' : cache.items.length ? 'ok' : '');
 }
 
 async function loadCategories() {
-  showApiMsg('Descargando categorías...');
-  try {
-    const cache = await fetchCategories();
-    showApiMsg(`✓ ${cache.items.length} categorías descargadas.`, 'ok');
-  } catch (e) {
-    showApiMsg(e.message, 'err');
-  }
-}
-
-async function saveApi() {
-  const apiUrl = $('apiUrl').value.trim().replace(/\/+$/, '');
-  const token = $('apiToken').value.trim();
-  if (apiUrl) {
-    let origin;
-    try { origin = new URL(apiUrl).origin; } catch { return showApiMsg('La URL de la API no es válida.', 'err'); }
-    // El token viaja en cada petición: solo por conexión cifrada.
-    if (!apiUrl.startsWith('https://')) return showApiMsg('La URL debe empezar con https://', 'err');
-    // Permiso para llamar a ese dominio desde la extensión (evita bloqueos CORS).
-    const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
-    if (!granted) return showApiMsg('Sin permiso para acceder a ese dominio.', 'err');
-  }
-  await saveApiSettings({ apiUrl, token });
-  if (apiUrl && token) await loadCategories();
-  else showApiMsg('Guardado. Faltan la URL o el token para descargar las categorías.');
+  showApiMsg('Actualizando categorías...');
+  const cache = await refreshCategories();
+  const lines = [cache.error ? describeCategories(cache) : `✓ ${describeCategories(cache)}`];
+  if (cache.error) lines.push(`No se pudo actualizar: ${cache.error}`);
+  showApiMsg(lines.join('\n'), cache.error ? 'err' : 'ok');
 }
 
 async function check() {
@@ -135,10 +118,6 @@ async function init() {
     await clearHistory();
     renderHistory();
   });
-  const api = await getApiSettings();
-  $('apiUrl').value = api.apiUrl;
-  $('apiToken').value = api.token;
-  $('saveApi').addEventListener('click', saveApi);
   $('refreshCategories').addEventListener('click', loadCategories);
   renderCategoriesStatus();
 

@@ -1,71 +1,71 @@
 // Categorías del sistema COMPRAFACIL (3 niveles + código).
-// GET {apiUrl}/category/list/full-path  con  Authorization: <JWT> (sin "Bearer").
-// La lista se guarda en caché y se refresca una vez al día; si la API falla se
-// sigue usando la última lista descargada.
+//
+// Fuentes:
+//   1. categories.json publicado en GitHub (config.categoriesUrl). Lo mantiene al
+//      día el workflow "Actualizar categorías", que consulta la API del sistema
+//      con un token guardado como secret del repositorio (nunca en la extensión).
+//   2. categories.json incluido en la extensión: respaldo sin conexión.
+// La lista se guarda en caché y se refresca cada hora o con el botón "Actualizar".
+// Si la descarga falla, se sigue usando la última lista válida.
 
 import { getConfig } from './config.js';
 
-const SETTINGS_KEY = 'cfApi';
 const CACHE_KEY = 'cfCategories';
-const MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const MAX_AGE_MS = 60 * 60 * 1000;
 
-// La URL viene de la configuración (categoriesApiUrl) salvo que se cambie en Opciones.
-export async function getApiSettings() {
-  const { [SETTINGS_KEY]: s = {} } = await chrome.storage.local.get(SETTINGS_KEY);
-  const { categoriesApiUrl = '' } = await getConfig();
-  return { token: '', ...s, apiUrl: s.apiUrl || categoriesApiUrl };
+const SOURCE_LABELS = { github: 'GitHub', incluida: 'incluida en la extensión' };
+export const sourceLabel = source => SOURCE_LABELS[source] || source || '—';
+
+// Acepta la respuesta de la API ({ status, data: [...] }) o directamente la lista.
+function parseList(body) {
+  const data = Array.isArray(body) ? body : body?.data;
+  if (!Array.isArray(data)) return null;
+  return data
+    .filter(c => c?.codigo && c.primaria && c.secundaria && c.terciaria)
+    .map(({ codigo, primaria, secundaria, terciaria }) => ({ codigo, primaria, secundaria, terciaria }));
 }
 
-export async function saveApiSettings(patch) {
-  const current = await getApiSettings();
-  await chrome.storage.local.set({ [SETTINGS_KEY]: { ...current, ...patch } });
+let bundled;
+function loadBundled() {
+  bundled ??= fetch(chrome.runtime.getURL('categories.json'))
+    .then(res => res.json())
+    .then(body => parseList(body) || [])
+    .catch(() => []);
+  return bundled;
 }
 
-export async function getCachedCategories() {
-  const { [CACHE_KEY]: cache } = await chrome.storage.local.get(CACHE_KEY);
-  return cache || { items: [], fetchedAt: null, error: null };
-}
-
-export async function fetchCategories() {
-  const { apiUrl, token } = await getApiSettings();
-  if (!apiUrl) throw new Error('Falta la URL de la API en Opciones.');
-  if (!token) throw new Error('Falta el token de acceso en Opciones.');
-
+async function fetchFromGithub() {
+  const { categoriesUrl } = await getConfig();
+  if (!categoriesUrl) throw new Error('Sin URL de categorías en la configuración.');
   let res;
   try {
-    res = await fetch(`${apiUrl.replace(/\/+$/, '')}/category/list/full-path`, {
-      headers: { Authorization: token.replace(/^Bearer\s+/i, '').trim() },
-      cache: 'no-store',
-    });
+    res = await fetch(categoriesUrl, { cache: 'no-store' });
   } catch {
-    throw new Error('No se pudo conectar con la API.');
+    throw new Error('Sin conexión con GitHub.');
   }
-  if (res.status === 401) throw new Error('Token inválido o caducado. Inicia sesión de nuevo y actualiza el token.');
-  const body = await res.json().catch(() => null);
-  if (!res.ok || !body?.status || !Array.isArray(body.data)) {
-    throw new Error(body?.message || `La API respondió HTTP ${res.status}.`);
-  }
-
-  const items = body.data
-    .filter(c => c?.codigo && c.primaria && c.secundaria && c.terciaria)
-    .map(({ codigo, primaria, secundaria, terciaria, ruta }) => ({
-      codigo, primaria, secundaria, terciaria,
-      ruta: ruta || `${primaria} > ${secundaria} > ${terciaria}`,
-    }));
-  const cache = { items, fetchedAt: new Date().toISOString(), error: null };
-  await chrome.storage.local.set({ [CACHE_KEY]: cache });
-  return cache;
+  if (res.status === 404) throw new Error('La lista de categorías todavía no está publicada.');
+  if (!res.ok) throw new Error(`GitHub respondió HTTP ${res.status}.`);
+  const items = parseList(await res.json().catch(() => null));
+  if (!items) throw new Error('El archivo de categorías no es válido.');
+  if (!items.length) throw new Error('La lista de categorías publicada está vacía.');
+  return items;
 }
 
-// Devuelve la lista en caché y la refresca si está vencida. Nunca lanza error:
-// si falla, conserva la última lista y anota el motivo en `error`.
-export async function getCategories({ force = false } = {}) {
+// Caché actual; si nunca se descargó nada, la lista incluida en la extensión.
+export async function getCachedCategories() {
+  const { [CACHE_KEY]: cache } = await chrome.storage.local.get(CACHE_KEY);
+  if (cache?.items?.length) return cache;
+  return { items: await loadBundled(), fetchedAt: null, source: 'incluida', error: cache?.error || null };
+}
+
+// Descarga la lista de GitHub. Nunca lanza error: si falla, conserva la última
+// lista y anota el motivo en `error`.
+export async function refreshCategories() {
   const cache = await getCachedCategories();
-  const stale = !cache.fetchedAt || Date.now() - Date.parse(cache.fetchedAt) > MAX_AGE_MS;
-  const { apiUrl, token } = await getApiSettings();
-  if (!(force || stale) || !apiUrl || !token) return cache;
   try {
-    return await fetchCategories();
+    const fresh = { items: await fetchFromGithub(), fetchedAt: new Date().toISOString(), source: 'github', error: null };
+    await chrome.storage.local.set({ [CACHE_KEY]: fresh });
+    return fresh;
   } catch (e) {
     const failed = { ...cache, error: e.message };
     await chrome.storage.local.set({ [CACHE_KEY]: failed });
@@ -73,9 +73,47 @@ export async function getCategories({ force = false } = {}) {
   }
 }
 
-// Acepta la ruta completa ("Hogar > Menaje de Cocina > Juegos de ollas") o el código.
+// Lista en caché, refrescada si está vencida (o siempre, con force).
+export async function getCategories({ force = false } = {}) {
+  const cache = await getCachedCategories();
+  const stale = !cache.fetchedAt || Date.now() - Date.parse(cache.fetchedAt) > MAX_AGE_MS;
+  return force || stale ? refreshCategories() : cache;
+}
+
+// Texto sin tildes, en minúsculas y con los separadores ">" o "/" unificados.
+export function normalizeText(s) {
+  return (s || '')
+    .normalize('NFD').replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/\s*[>/]\s*/g, ' / ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// "Hogar / Menaje de Cocina / Juegos de ollas"
+export function categoryLabel(c) {
+  return `${c.primaria} / ${c.secundaria} / ${c.terciaria}`;
+}
+
+// Acepta la ruta con ">" o "/" (con o sin tildes) o el código.
 export function findCategory(items, text) {
-  const t = (text || '').trim().toLowerCase();
+  const t = normalizeText(text);
   if (!t) return null;
-  return items.find(c => c.ruta.toLowerCase() === t || c.codigo.toLowerCase() === t) || null;
+  return items.find(c => normalizeText(categoryLabel(c)) === t || c.codigo.toLowerCase() === t) || null;
+}
+
+// Búsqueda mientras se escribe: todas las palabras deben aparecer (en cualquier
+// orden) en la ruta o el código. Primero las que coinciden en el último nivel.
+export function searchCategories(items, query, limit = 50) {
+  const terms = normalizeText(query).split(' ').filter(t => t && t !== '/');
+  if (!terms.length) return [];
+  const results = [];
+  for (const c of items) {
+    const hay = `${normalizeText(categoryLabel(c))} ${c.codigo.toLowerCase()}`;
+    if (!terms.every(t => hay.includes(t))) continue;
+    const ultimo = normalizeText(c.terciaria);
+    const score = terms.filter(t => ultimo.includes(t)).length * 2 + (ultimo.startsWith(terms[0]) ? 1 : 0);
+    results.push({ c, score });
+  }
+  return results.sort((a, b) => b.score - a.score).slice(0, limit).map(r => r.c);
 }

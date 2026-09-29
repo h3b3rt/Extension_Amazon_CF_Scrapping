@@ -11,8 +11,7 @@ h1{font-size:20px;margin:0 0 4px}
 section{background:#fff;border-radius:9px;padding:18px;margin-bottom:16px}
 h2{font-size:15px;margin:0 0 10px}
 p.help{font-size:12px;color:#6b7280;line-height:1.5;margin:0 0 12px}
-input[type=url],input[type=password]{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px}
-label.field{display:block;font-size:12px;font-weight:700;margin:12px 0 5px}
+input[type=url]{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px}
 .msg{font-size:13px;margin-top:12px;white-space:pre-line}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 button{border:0;border-radius:7px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;background:#ff9900;color:#111}
@@ -68,13 +67,8 @@ td button{padding:4px 8px;font-size:11px}
 
 <section>
   <h2>Categorías del sistema COMPRAFACIL</h2>
-  <p class="help">Con esto, al extraer se elige la categoría de la lista del sistema y el CSV lleva la primaria, la secundaria, la terciaria y el código. La lista se actualiza una vez al día. El token es el mismo que usa el sistema después del login y solo se guarda en este navegador.</p>
-  <label class="field" for="apiUrl">URL de la API</label>
-  <input type="url" id="apiUrl" placeholder="https://api.comprafacil.pics">
-  <label class="field" for="apiToken">Token de acceso (JWT)</label>
-  <input type="password" id="apiToken" placeholder="eyJhbGciOi…" autocomplete="off">
+  <p class="help">La lista se actualiza sola: GitHub la copia del sistema cada 3 horas y la extensión la revisa cada hora. Si acaban de crear una categoría, usa este botón o "↻ Actualizar" en el popup.</p>
   <div class="row">
-    <button id="saveApi">Guardar y probar</button>
     <button id="refreshCategories" class="secondary">Actualizar categorías</button>
   </div>
   <div id="apiMsg" class="msg"></div>

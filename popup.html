@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Amazon Scraper</title>
 <style>
-body{width:340px;margin:0;padding:18px;box-sizing:border-box;font-family:Arial,sans-serif;background:#f7f8fa;color:#111827}
+body{width:420px;margin:0;padding:18px;box-sizing:border-box;font-family:Arial,sans-serif;background:#f7f8fa;color:#111827}
 h1{font-size:18px;margin:0 0 4px}
 .subtitle{font-size:12px;color:#6b7280;margin-bottom:14px}
 button{width:100%;border:0;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;background:#ff9900;color:#111}
@@ -38,6 +38,19 @@ button.ghost{background:#e5e7eb;color:#111;padding:10px;width:auto;flex:0 0 auto
 .hint{font-size:11px;color:#6b7280;margin:5px 0 10px;word-break:break-all}
 .panel .check{margin:8px 0 10px}
 #categoryHint{margin-bottom:0;white-space:pre-line;word-break:normal}
+.hint.ok{color:#15803d}
+.label-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.link-btn{width:auto;background:none;padding:0 0 6px;font-size:12px;font-weight:700;color:#b45309;border-radius:0}
+.link-btn:hover{text-decoration:underline;opacity:1}
+.combo-list{list-style:none;margin:4px 0 0;padding:4px 0;max-height:260px;overflow-y:auto;border:1px solid #d1d5db;border-radius:7px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.combo-list li{display:flex;gap:8px;align-items:baseline;justify-content:space-between;padding:7px 10px;font-size:12px;line-height:1.35;cursor:pointer}
+.combo-list li.active{background:#fff3e0}
+.combo-list li .path{color:#374151}
+.combo-list li .path b{color:#111827}
+.combo-list li .code{flex:0 0 auto;font-size:10px;color:#9ca3af;font-family:Consolas,monospace}
+.combo-list li mark{background:#ffe0a3;color:inherit;border-radius:2px;padding:0}
+.combo-list .group{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em;padding:6px 10px 3px;cursor:default}
+.combo-list .empty{color:#6b7280;cursor:default}
 .hint.error{color:#b91c1c}
 #exportForm{margin-top:10px}
 #duplicatePanel{background:#fff7e6;border:1px solid #fcd34d;border-radius:7px;padding:12px;margin-bottom:10px}
@@ -66,9 +79,16 @@ footer a{color:#6b7280}
 </div>
 
 <form id="categoryForm" class="panel" hidden>
-  <label class="field-label" for="category">Categoría principal de estos productos</label>
-  <input id="category" class="text-input" list="recentCategories" autocomplete="off" required placeholder="Ej: Audífonos inalámbricos">
-  <datalist id="recentCategories"></datalist>
+  <div class="label-row">
+    <label class="field-label" for="category">Categoría de estos productos</label>
+    <button type="button" id="refreshCats" class="link-btn" title="Volver a descargar la lista de categorías">↻ Actualizar</button>
+  </div>
+  <div class="combo">
+    <input id="category" class="text-input" autocomplete="off" spellcheck="false" required
+           role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="categoryList"
+           placeholder="Ej: Audífonos inalámbricos">
+    <ul id="categoryList" class="combo-list" role="listbox" hidden></ul>
+  </div>
   <div class="hint" id="categoryHint" hidden></div>
   <label class="check"><input type="checkbox" id="multiCategory"> Múltiples categorías (dejar vacío y completar a mano)</label>
   <div id="fileNameGroup">

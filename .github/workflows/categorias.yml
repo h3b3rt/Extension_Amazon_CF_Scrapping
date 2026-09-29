@@ -1,0 +1,60 @@
+# Descarga las categorías del sistema COMPRAFACIL y actualiza categories.json.
+# Las extensiones leen ese archivo desde GitHub, así que ningún usuario necesita
+# token. El token vive solo en el secret API_TOKEN del repositorio.
+name: Actualizar categorías
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'   # cada 3 horas (el backend pide consultas poco frecuentes)
+  workflow_dispatch:        # botón "Run workflow" para forzarlo al momento
+  push:
+    branches: [main]
+    paths: ['.github/workflows/categorias.yml']
+
+permissions:
+  contents: write
+
+concurrency: categorias
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Descargar categorías
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          if [ -z "$API_TOKEN" ]; then
+            echo "::error::Falta el secret API_TOKEN (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          status=$(curl -sS -o resp.json -w '%{http_code}' \
+            -H "Authorization: $API_TOKEN" \
+            https://api.comprafacil.pics/category/list/full-path)
+          case "$status" in
+            200) ;;
+            401) echo "::error::401: falta el header Authorization."; exit 1 ;;
+            403) echo "::error::403: el token API_TOKEN es incorrecto."; exit 1 ;;
+            *)   echo "::error::La API respondió HTTP $status. Avisar a backend."; exit 1 ;;
+          esac
+          if ! jq -e '.status == true and (.data | type == "array") and (.data | length) > 0' resp.json > /dev/null; then
+            echo "::error::Respuesta inesperada de la API; categories.json no se modifica."
+            exit 1
+          fi
+          echo "Categorías recibidas: $(jq '.data | length' resp.json)"
+
+      - name: Guardar si hubo cambios
+        run: |
+          if jq -e --slurpfile nuevo resp.json '.data == $nuevo[0].data' categories.json > /dev/null 2>&1; then
+            echo "Sin cambios en las categorías."
+            exit 0
+          fi
+          jq '{updatedAt: (now | todate), data: .data}' resp.json > categories.json
+          total=$(jq '.data | length' categories.json)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add categories.json
+          git commit -m "Categorías actualizadas ($total)"
+          git push

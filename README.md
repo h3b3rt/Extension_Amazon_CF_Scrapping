@@ -12,9 +12,16 @@ Extensión para Chrome, Edge y otros navegadores Chromium (Manifest V3). Extrae 
 - **Extraer productos**: analiza la pestaña actual de Amazon y descarga el CSV.
 - **Desplazar la página…**: recorre la página hasta el final antes de extraer, para cargar los productos que aparecen al hacer scroll.
 - **Acumular varias páginas**: cada extracción se suma a una lista (sin repetir ASIN). Recorre las páginas de resultados y pulsa **Descargar CSV** al final. El panel muestra las páginas agregadas con su categoría y un enlace a cada una. Las que no tienen categoría aparecen como "Multicategoría N".
-- **Categoría**: se pide antes de cada extracción. Con la API del sistema configurada (**Opciones → Categorías del sistema COMPRAFACIL**), se busca en la lista oficial por cualquier parte de la ruta o por código. El CSV lleva `CATEGORIA PRINCIPAL`, `CATEGORIA SECUNDARIA`, `CATEGORIA TERCIARIA` y `COD CATEGORIA`. Sin API, la categoría se escribe a mano y solo se llena `CATEGORIA PRINCIPAL`. Con "Múltiples categorías" las columnas quedan vacías para llenarlas a mano.
+- **Categoría**: se pide antes de cada extracción. El buscador filtra mientras escribes, por cualquier parte de la ruta (`Hogar / Menaje de Cocina / Juegos de ollas`) o por el código. El CSV lleva `CATEGORIA PRINCIPAL`, `CATEGORIA SECUNDARIA`, `CATEGORIA TERCIARIA` y `COD CATEGORIA`. Con "Múltiples categorías" las columnas quedan vacías para llenarlas a mano.
 - **Nombre del archivo**: opcional. `Audifonos Hyperx` genera `Audifonos_Hyperx_2026-09-29_14-35.csv`. Si se deja vacío, se usa `Plantilla_Scrapping_<fecha>_<hora>.csv`.
 - **Historial**: si vuelves a extraer una página ya extraída, la extensión avisa y ofrece reemplazar los datos anteriores. La URL se compara sin parámetros de rastreo, que se configuran en `history.keepParams`. El historial completo está en **Opciones**.
+
+### Lista de categorías (automática)
+
+1. El workflow [`categorias.yml`](.github/workflows/categorias.yml) consulta la API del sistema cada 3 horas y, si hubo cambios, actualiza [`categories.json`](categories.json) en este repositorio. Usa el token del secret **`API_TOKEN`** (Settings → Secrets and variables → Actions). El token nunca va en el código ni en la extensión.
+2. Cada extensión lee `categories.json` de GitHub cada hora, o al pulsar **↻ Actualizar** en el popup. Si no hay conexión, usa la copia incluida en la extensión.
+
+Si se crea una categoría y se necesita ya: **Actions → Actualizar categorías → Run workflow**. Al terminar, pulsa **↻ Actualizar** en la extensión.
 
 Páginas compatibles: resultados de búsqueda, grillas `ProductUIRender`, grillas `ProductGridItem` (tiendas de marca), `ProductShowcase` y `EditorialTile` (mosaicos de producto en tiendas de marca).
 

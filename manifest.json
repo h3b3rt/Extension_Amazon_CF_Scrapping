@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Amazon Product Scraper",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Extrae productos de Amazon y los exporta al formato CSV de COMPRAFACIL.",
   "permissions": ["activeTab", "scripting", "storage", "alarms", "downloads"],
-  "host_permissions": ["https://*.amazon.com/*", "https://raw.githubusercontent.com/*", "https://api.comprafacil.pics/*"],
+  "host_permissions": ["https://*.amazon.com/*", "https://raw.githubusercontent.com/*"],
   "optional_host_permissions": ["https://*/*"],
   "background": {
     "service_worker": "background.js",
