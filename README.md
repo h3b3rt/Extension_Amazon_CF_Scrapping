@@ -13,7 +13,7 @@ Extensión para Chrome, Edge y otros navegadores Chromium (Manifest V3). Extrae 
 - **Desplazar la página…**: recorre la página hasta el final antes de extraer, para cargar los productos que aparecen al hacer scroll.
 - **Acumular varias páginas**: cada extracción se suma a una lista (sin repetir ASIN). Recorre las páginas de resultados y pulsa **Descargar CSV** al final.
 
-Páginas compatibles: resultados de búsqueda, grillas `ProductUIRender`, grillas `ProductGridItem` (tiendas de marca) y `ProductShowcase`.
+Páginas compatibles: resultados de búsqueda, grillas `ProductUIRender`, grillas `ProductGridItem` (tiendas de marca), `ProductShowcase` y `EditorialTile` (mosaicos de producto en tiendas de marca).
 
 ## Actualización remota
 

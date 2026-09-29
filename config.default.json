@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "revision": 1,
+  "revision": 2,
   "updatedAt": "2026-09-29",
   "remoteConfigUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/config.json",
   "minExtensionVersion": "1.1.0",
-  "latestVersion": "1.1.0",
+  "latestVersion": "1.2.0",
   "downloadUrl": "https://github.com/h3b3rt/Extension_Amazon_CF_Scrapping/releases/latest",
   "notice": "",
 
@@ -70,16 +70,47 @@
         "img[class*=\"ImageVideoCarousel__image\"]"
       ],
       "priceText": ["[class*=\"price\"]", "[class*=\"Price\"]", "[data-testid*=\"price\"]"]
+    },
+    {
+      "id": "editorial",
+      "label": "EditorialTile",
+      "item": "div[data-testid=\"editorial-tile-Overlay\"][data-csa-c-item-type=\"asin\"], div[class*=\"EditorialTile__content\"][data-csa-c-item-type=\"asin\"]",
+      "asinFrom": ["csaItemId", "link"],
+      "link": [
+        "a[href*=\"/dp/\"]"
+      ],
+      "title": [
+        "a[title][href*=\"/dp/\"]",
+        "[class*=\"EditorialTileProduct__title\"]",
+        "h2"
+      ],
+      "brand": [],
+      "image": [
+        "[data-testid=\"editorial-tile-product-image\"] img",
+        "img[data-testid=\"image\"]",
+        "img"
+      ],
+      "priceWhole": [
+        "[class*=\"Price__whole\"]"
+      ],
+      "priceFraction": [
+        "[class*=\"Price__fractional\"]"
+      ],
+      "priceText": [
+        "[data-testid=\"editorial-tile-product-price\"]"
+      ]
     }
   ],
 
   "csv": {
-    "filenamePrefix": "productos_amazon",
+    "filenamePrefix": "Plantilla_Scrapping",
     "headers": ["PUBLICAR", "SKU HIJOS", "SKU PADRE", "MARCA", "NOMBRE AMAZON", "NOMBRE PROPUESTO", "CATEGORIA PRINCIPAL", "COD CATEGORIA", "LINK", "LINK DE IMAGEN", "IMAGEN", "PESO APROX", "PRECIO USD", "PRECIO PEN S/", "PRECIO COMPETENCIA", "STOCK SCRAPING", "PRECIO SCRAPING", "PRECIO FIJO", "SUBIDO A SISTEMA", "SUBIDO WEB", "SUBIDO RIPLEY", "SUBIDO AGORA", "SUBIDO JUNTOZ"],
     "fields": {
       "SKU PADRE": "asin",
       "MARCA": "marca",
       "NOMBRE AMAZON": "nombre",
+      "CATEGORIA PRINCIPAL": "categoria",
+      "COD CATEGORIA": "codCategoria",
       "LINK": "link",
       "LINK DE IMAGEN": "imagen",
       "PRECIO USD": "precio"

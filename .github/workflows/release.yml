@@ -29,7 +29,7 @@ jobs:
         run: |
           mkdir -p dist
           zip "dist/amazon-product-scraper-${GITHUB_REF_NAME#v}.zip" \
-            manifest.json config.default.json *.js *.html
+            manifest.json config.default.json *.js *.html icons/*.png
 
       - name: Publicar Release
         uses: softprops/action-gh-release@v2

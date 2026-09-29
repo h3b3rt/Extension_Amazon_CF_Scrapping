@@ -12,11 +12,24 @@ $zip = Join-Path $dist "amazon-product-scraper-$version.zip"
 if (Test-Path $zip) { Remove-Item $zip -Confirm:$false }
 
 # config.json es la configuración remota (se sirve desde GitHub), no va en el paquete.
-$files = Get-ChildItem $root -File | Where-Object { $_.Extension -in '.json', '.js', '.html', '.png' -and $_.Name -ne 'config.json' }
-Compress-Archive -Path $files.FullName -DestinationPath $zip
+$files = @(Get-ChildItem $root -File | Where-Object { $_.Extension -in '.json', '.js', '.html' -and $_.Name -ne 'config.json' })
+$files += Get-ChildItem (Join-Path $root 'icons') -File -Filter '*.png'
+
+# Se arma el zip a mano porque Compress-Archive (PowerShell 5.1) guarda rutas con "\",
+# y Chrome Web Store espera "/".
+Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+$archive = [System.IO.Compression.ZipFile]::Open($zip, 'Create')
+try {
+  foreach ($f in $files) {
+    $entry = $f.FullName.Substring($root.Length + 1).Replace('\', '/')
+    [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $f.FullName, $entry) | Out-Null
+  }
+} finally {
+  $archive.Dispose()
+}
 
 Write-Host "Paquete creado: $zip"
 Write-Host ""
 Write-Host "Siguientes pasos:"
-Write-Host "  1. Sube el .zip a tu servidor (o a Chrome Web Store)."
-Write-Host "  2. En el config.json remoto actualiza: latestVersion = `"$version`" y downloadUrl = <URL del .zip>."
+Write-Host "  - Chrome Web Store: sube este .zip en el panel de desarrollador."
+Write-Host "  - GitHub: crea la Release v$version (el workflow genera su propio .zip)."

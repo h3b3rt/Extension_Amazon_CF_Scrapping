@@ -3,6 +3,7 @@ import { getConfig, getConfigMeta, refreshRemoteConfig, compareVersions, extensi
 const $ = id => document.getElementById(id);
 const AMAZON_RE = /^https:\/\/([a-z0-9-]+\.)*amazon\.com\//i;
 const STALE_MS = 30 * 60 * 1000;
+const MAX_RECENT_CATEGORIES = 15;
 
 function showStatus(message, type = '') {
   const status = $('status');
@@ -67,19 +68,56 @@ function buildCsv(products, { headers, fields, defaults = {} }) {
 function timestamp() {
   const d = new Date();
   const pad = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
 }
 
 async function downloadCsv(products, config) {
   const csv = buildCsv(products, config.csv);
   const url = 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + csv);
-  const prefix = config.csv.filenamePrefix || 'productos_amazon';
+  const prefix = config.csv.filenamePrefix || 'Plantilla_Scrapping';
   await chrome.downloads.download({ url, filename: `${prefix}_${timestamp()}.csv` });
 }
 
-async function scrape() {
+// Pide la categoría antes de cada extracción. Propone la última usada y
+// sugiere las recientes. (Más adelante se enlazará con las categorías del sistema.)
+async function askCategory() {
+  const { recentCategories = [], multiCategory = false } = await chrome.storage.local.get(['recentCategories', 'multiCategory']);
+  $('multiCategory').checked = multiCategory;
+  const datalist = $('recentCategories');
+  datalist.replaceChildren(...recentCategories.map(c => Object.assign(document.createElement('option'), { value: c })));
+  $('scrape').hidden = true;
+  $('categoryForm').hidden = false;
+  const input = $('category');
+  input.value = recentCategories[0] || '';
+  syncMultiCategory();
+  if (!input.disabled) {
+    input.focus();
+    input.select();
+  }
+}
+
+// "Múltiples categorías": la columna queda vacía para completarla a mano.
+function syncMultiCategory() {
+  const multi = $('multiCategory').checked;
+  $('category').disabled = multi;
+  $('category').required = !multi;
+}
+
+function hideCategoryForm() {
+  $('categoryForm').hidden = true;
+  $('scrape').hidden = false;
+}
+
+async function rememberCategory(categoria) {
+  const { recentCategories = [] } = await chrome.storage.local.get('recentCategories');
+  const next = [categoria, ...recentCategories.filter(c => c.toLowerCase() !== categoria.toLowerCase())];
+  await chrome.storage.local.set({ recentCategories: next.slice(0, MAX_RECENT_CATEGORIES) });
+}
+
+async function scrape(categoria) {
   const button = $('scrape');
   button.disabled = true;
+  if (categoria) await rememberCategory(categoria);
   const { collected, prefs } = await getState();
   showStatus(prefs.autoScroll ? 'Desplazando la página y analizando productos...' : 'Analizando productos de Amazon...');
   try {
@@ -105,13 +143,13 @@ async function scrape() {
     let nuevos = 0;
     for (const p of r.productos) {
       if (!lista[p.asin]) nuevos++;
-      lista[p.asin] = p;
+      lista[p.asin] = { ...p, categoria, codCategoria: '' };
     }
     await chrome.storage.local.set({ collected: lista });
 
     const sinImagen = r.productos.filter(p => !p.imagen).length;
     const sinPrecio = r.productos.filter(p => !p.precio).length;
-    let msg = `✓ Extracción completada\n\nProductos en esta página: ${r.productos.length}\nSin imagen: ${sinImagen}\nSin precio: ${sinPrecio}\n\n${layoutsTxt}`;
+    let msg = `✓ Extracción completada\n\nCategoría: ${categoria || 'múltiples (completar a mano)'}\nProductos en esta página: ${r.productos.length}\nSin imagen: ${sinImagen}\nSin precio: ${sinPrecio}\n\n${layoutsTxt}`;
     if (prefs.accumulate) {
       msg += `\n\nNuevos añadidos: ${nuevos}\nTotal en la lista: ${Object.keys(lista).length}`;
     } else {
@@ -140,7 +178,22 @@ async function init() {
     });
   }
 
-  $('scrape').addEventListener('click', scrape);
+  $('scrape').addEventListener('click', askCategory);
+  $('categoryForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const multi = $('multiCategory').checked;
+    const categoria = multi ? '' : $('category').value.trim().replace(/\s+/g, ' ');
+    if (!multi && !categoria) return $('category').focus();
+    chrome.storage.local.set({ multiCategory: multi });
+    hideCategoryForm();
+    scrape(categoria);
+  });
+  $('multiCategory').addEventListener('change', () => {
+    syncMultiCategory();
+    if (!$('category').disabled) $('category').focus();
+  });
+  $('cancelCategory').addEventListener('click', hideCategoryForm);
+  $('category').addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); hideCategoryForm(); } });
   $('download').addEventListener('click', async () => {
     const { collected } = await getState();
     await downloadCsv(Object.values(collected), await getConfig());

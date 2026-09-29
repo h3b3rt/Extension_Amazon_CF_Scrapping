@@ -26,6 +26,12 @@ button.ghost{background:#e5e7eb;color:#111;padding:10px;width:auto;flex:0 0 auto
 #collection{margin-top:12px;padding:11px;background:#fff;border-radius:7px}
 .count{font-size:13px;margin-bottom:9px}
 .row{display:flex;gap:8px}
+#categoryForm{background:#fff;border-radius:7px;padding:12px}
+#categoryForm label{display:block;font-size:12px;font-weight:700;margin-bottom:6px}
+#category{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;margin-bottom:10px}
+#category:focus{outline:2px solid #ff9900;border-color:#ff9900}
+#category:disabled{background:#f3f4f6;color:#9ca3af}
+#categoryForm label.multi{display:flex;font-weight:400;margin-bottom:10px}
 footer{margin-top:14px;font-size:11px;color:#6b7280;display:flex;justify-content:space-between}
 footer a{color:#6b7280}
 </style>
@@ -42,6 +48,18 @@ footer a{color:#6b7280}
 </div>
 
 <button id="scrape">Extraer productos</button>
+
+<form id="categoryForm" hidden>
+  <label for="category">Categoría principal de estos productos</label>
+  <input id="category" list="recentCategories" autocomplete="off" required placeholder="Ej: Audífonos inalámbricos">
+  <datalist id="recentCategories"></datalist>
+  <label class="check multi"><input type="checkbox" id="multiCategory"> Múltiples categorías (dejar vacío y completar a mano)</label>
+  <div class="row">
+    <button type="submit">Extraer</button>
+    <button type="button" id="cancelCategory" class="ghost">Cancelar</button>
+  </div>
+</form>
+
 <div id="status" hidden></div>
 
 <div id="collection" hidden>
