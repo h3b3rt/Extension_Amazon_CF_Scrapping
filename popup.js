@@ -200,9 +200,10 @@ function hideDuplicate() {
 // sin API se escribe a mano. Propone la última usada o la de la extracción
 // anterior de esta página.
 async function askCategory() {
-  const { recentCategories = [], multiCategory = false } = await chrome.storage.local.get(['recentCategories', 'multiCategory']);
+  const { recentCategories = [] } = await chrome.storage.local.get('recentCategories');
   const previous = pending?.previous;
-  $('multiCategory').checked = previous ? !previous.categoria : multiCategory;
+  // Siempre empieza desmarcada: "Múltiples categorías" es la excepción, no la regla.
+  $('multiCategory').checked = false;
 
   const catalog = catalogCache.items;
   combo.recent = recentCategories;
@@ -538,7 +539,6 @@ async function init() {
       updateCategoryHint(choice.error);
       return $('category').focus();
     }
-    chrome.storage.local.set({ multiCategory: $('multiCategory').checked });
     pending.fileName = $('fileName').value;
     hideCategoryForm();
     scrape(choice.cat);
