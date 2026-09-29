@@ -1,4 +1,2876 @@
 {
-  "updatedAt": "",
-  "data": []
+ "updatedAt": "2026-09-29T23:08:39.408Z",
+ "source": "Carga manual provisional (Result_2.json)",
+ "data": [
+  {
+   "codigo": "CF010101",
+   "primaria": "Hogar",
+   "secundaria": "Menaje de Cocina",
+   "terciaria": "Juegos de ollas",
+   "ruta": "Hogar > Menaje de Cocina > Juegos de ollas"
+  },
+  {
+   "codigo": "CF010102",
+   "primaria": "Hogar",
+   "secundaria": "Menaje de Cocina",
+   "terciaria": "Termos, teteras y filtros",
+   "ruta": "Hogar > Menaje de Cocina > Termos, teteras y filtros"
+  },
+  {
+   "codigo": "CF010103",
+   "primaria": "Hogar",
+   "secundaria": "Menaje de Cocina",
+   "terciaria": "Utensilios de cocina",
+   "ruta": "Hogar > Menaje de Cocina > Utensilios de cocina"
+  },
+  {
+   "codigo": "CF010104",
+   "primaria": "Hogar",
+   "secundaria": "Menaje de Cocina",
+   "terciaria": "Cuchillo de cocina",
+   "ruta": "Hogar > Menaje de Cocina > Cuchillo de cocina"
+  },
+  {
+   "codigo": "CF010105",
+   "primaria": "Hogar",
+   "secundaria": "Menaje de Cocina",
+   "terciaria": "Sartenes",
+   "ruta": "Hogar > Menaje de Cocina > Sartenes"
+  },
+  {
+   "codigo": "CF010106",
+   "primaria": "Hogar",
+   "secundaria": "Menaje de Cocina",
+   "terciaria": "Utensillos de repostería",
+   "ruta": "Hogar > Menaje de Cocina > Utensillos de repostería"
+  },
+  {
+   "codigo": "CF010107",
+   "primaria": "Hogar",
+   "secundaria": "Menaje de Cocina",
+   "terciaria": "Tazas",
+   "ruta": "Hogar > Menaje de Cocina > Tazas"
+  },
+  {
+   "codigo": "CF010201",
+   "primaria": "Hogar",
+   "secundaria": "Menaje de comedor",
+   "terciaria": "Cubiertos",
+   "ruta": "Hogar > Menaje de comedor > Cubiertos"
+  },
+  {
+   "codigo": "CF010202",
+   "primaria": "Hogar",
+   "secundaria": "Menaje de comedor",
+   "terciaria": "Botellas, tomatodos y vasos termicos",
+   "ruta": "Hogar > Menaje de comedor > Botellas, tomatodos y vasos termicos"
+  },
+  {
+   "codigo": "CF010203",
+   "primaria": "Hogar",
+   "secundaria": "Menaje de comedor",
+   "terciaria": "Bentos y Tuppers",
+   "ruta": "Hogar > Menaje de comedor > Bentos y Tuppers"
+  },
+  {
+   "codigo": "CF010204",
+   "primaria": "Hogar",
+   "secundaria": "Menaje de comedor",
+   "terciaria": "Otros",
+   "ruta": "Hogar > Menaje de comedor > Otros"
+  },
+  {
+   "codigo": "CF010301",
+   "primaria": "Hogar",
+   "secundaria": "Baño",
+   "terciaria": "Toallas",
+   "ruta": "Hogar > Baño > Toallas"
+  },
+  {
+   "codigo": "CF010302",
+   "primaria": "Hogar",
+   "secundaria": "Baño",
+   "terciaria": "Accesorios de baño",
+   "ruta": "Hogar > Baño > Accesorios de baño"
+  },
+  {
+   "codigo": "CF010401",
+   "primaria": "Hogar",
+   "secundaria": "Viajes y Aire Libre",
+   "terciaria": "Camping",
+   "ruta": "Hogar > Viajes y Aire Libre > Camping"
+  },
+  {
+   "codigo": "CF010403",
+   "primaria": "Hogar",
+   "secundaria": "Viajes y Aire Libre",
+   "terciaria": "Cooler y contenedores",
+   "ruta": "Hogar > Viajes y Aire Libre > Cooler y contenedores"
+  },
+  {
+   "codigo": "CF010406",
+   "primaria": "Hogar",
+   "secundaria": "Viajes y Aire Libre",
+   "terciaria": "Piscina y Playa",
+   "ruta": "Hogar > Viajes y Aire Libre > Piscina y Playa"
+  },
+  {
+   "codigo": "CF010407",
+   "primaria": "Hogar",
+   "secundaria": "Viajes y Aire Libre",
+   "terciaria": "Muebles de piscina y jardín",
+   "ruta": "Hogar > Viajes y Aire Libre > Muebles de piscina y jardín"
+  },
+  {
+   "codigo": "CF010409",
+   "primaria": "Hogar",
+   "secundaria": "Viajes y Aire Libre",
+   "terciaria": "Supervivencia",
+   "ruta": "Hogar > Viajes y Aire Libre > Supervivencia"
+  },
+  {
+   "codigo": "CF010412",
+   "primaria": "Hogar",
+   "secundaria": "Viajes y Aire Libre",
+   "terciaria": "Parrillas",
+   "ruta": "Hogar > Viajes y Aire Libre > Parrillas"
+  },
+  {
+   "codigo": "CF010414",
+   "primaria": "Hogar",
+   "secundaria": "Viajes y Aire Libre",
+   "terciaria": "Pesca",
+   "ruta": "Hogar > Viajes y Aire Libre > Pesca"
+  },
+  {
+   "codigo": "CF010416",
+   "primaria": "Hogar",
+   "secundaria": "Viajes y Aire Libre",
+   "terciaria": "Mochilas y loncheras",
+   "ruta": "Hogar > Viajes y Aire Libre > Mochilas y loncheras"
+  },
+  {
+   "codigo": "CF010417",
+   "primaria": "Hogar",
+   "secundaria": "Viajes y Aire Libre",
+   "terciaria": "Mantas",
+   "ruta": "Hogar > Viajes y Aire Libre > Mantas"
+  },
+  {
+   "codigo": "CF010501",
+   "primaria": "Hogar",
+   "secundaria": "Garage",
+   "terciaria": "Limpieza de Automovil",
+   "ruta": "Hogar > Garage > Limpieza de Automovil"
+  },
+  {
+   "codigo": "CF010601",
+   "primaria": "Hogar",
+   "secundaria": "Dormitorio",
+   "terciaria": "Lámparas de Noche",
+   "ruta": "Hogar > Dormitorio > Lámparas de Noche"
+  },
+  {
+   "codigo": "CF010602",
+   "primaria": "Hogar",
+   "secundaria": "Dormitorio",
+   "terciaria": "Reloj despertador",
+   "ruta": "Hogar > Dormitorio > Reloj despertador"
+  },
+  {
+   "codigo": "CF010603",
+   "primaria": "Hogar",
+   "secundaria": "Dormitorio",
+   "terciaria": "Almohadas de cama",
+   "ruta": "Hogar > Dormitorio > Almohadas de cama"
+  },
+  {
+   "codigo": "CF010604",
+   "primaria": "Hogar",
+   "secundaria": "Dormitorio",
+   "terciaria": "Ropa de cama",
+   "ruta": "Hogar > Dormitorio > Ropa de cama"
+  },
+  {
+   "codigo": "CF010605",
+   "primaria": "Hogar",
+   "secundaria": "Dormitorio",
+   "terciaria": "Accesorios de Hogar",
+   "ruta": "Hogar > Dormitorio > Accesorios de Hogar"
+  },
+  {
+   "codigo": "CF020101",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Mujer",
+   "terciaria": "Zapatillas Deportivas",
+   "ruta": "Calzado > Calzado para Mujer > Zapatillas Deportivas"
+  },
+  {
+   "codigo": "CF020102",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Mujer",
+   "terciaria": "Zapatillas Urbanas",
+   "ruta": "Calzado > Calzado para Mujer > Zapatillas Urbanas"
+  },
+  {
+   "codigo": "CF020103",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Mujer",
+   "terciaria": "Sandalias y Pantuflas",
+   "ruta": "Calzado > Calzado para Mujer > Sandalias y Pantuflas"
+  },
+  {
+   "codigo": "CF020104",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Mujer",
+   "terciaria": "Zapatos de Vestir",
+   "ruta": "Calzado > Calzado para Mujer > Zapatos de Vestir"
+  },
+  {
+   "codigo": "CF020105",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Mujer",
+   "terciaria": "Botas y Botines",
+   "ruta": "Calzado > Calzado para Mujer > Botas y Botines"
+  },
+  {
+   "codigo": "CF020201",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Hombre",
+   "terciaria": "Zapatillas Deportivas",
+   "ruta": "Calzado > Calzado para Hombre > Zapatillas Deportivas"
+  },
+  {
+   "codigo": "CF020202",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Hombre",
+   "terciaria": "Zapatillas Urbanas",
+   "ruta": "Calzado > Calzado para Hombre > Zapatillas Urbanas"
+  },
+  {
+   "codigo": "CF020203",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Hombre",
+   "terciaria": "Sandalias y Pantuflas",
+   "ruta": "Calzado > Calzado para Hombre > Sandalias y Pantuflas"
+  },
+  {
+   "codigo": "CF020204",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Hombre",
+   "terciaria": "Zapatos de Vestir",
+   "ruta": "Calzado > Calzado para Hombre > Zapatos de Vestir"
+  },
+  {
+   "codigo": "CF020205",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Hombre",
+   "terciaria": "Botas y Botines",
+   "ruta": "Calzado > Calzado para Hombre > Botas y Botines"
+  },
+  {
+   "codigo": "CF020301",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Niños",
+   "terciaria": "Zapatillas Deportivas",
+   "ruta": "Calzado > Calzado para Niños > Zapatillas Deportivas"
+  },
+  {
+   "codigo": "CF020302",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Niños",
+   "terciaria": "Zapatillas Urbanas",
+   "ruta": "Calzado > Calzado para Niños > Zapatillas Urbanas"
+  },
+  {
+   "codigo": "CF020303",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Niños",
+   "terciaria": "Sandalias y Pantuflas",
+   "ruta": "Calzado > Calzado para Niños > Sandalias y Pantuflas"
+  },
+  {
+   "codigo": "CF020304",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Niños",
+   "terciaria": "Zapatos de Vestir",
+   "ruta": "Calzado > Calzado para Niños > Zapatos de Vestir"
+  },
+  {
+   "codigo": "CF020305",
+   "primaria": "Calzado",
+   "secundaria": "Calzado para Niños",
+   "terciaria": "Botas y Botines",
+   "ruta": "Calzado > Calzado para Niños > Botas y Botines"
+  },
+  {
+   "codigo": "CF040101",
+   "primaria": "Electrohogar",
+   "secundaria": "Climatización",
+   "terciaria": "Aire Acondicionado",
+   "ruta": "Electrohogar > Climatización > Aire Acondicionado"
+  },
+  {
+   "codigo": "CF040102",
+   "primaria": "Electrohogar",
+   "secundaria": "Climatización",
+   "terciaria": "Calentador de manos",
+   "ruta": "Electrohogar > Climatización > Calentador de manos"
+  },
+  {
+   "codigo": "CF040103",
+   "primaria": "Electrohogar",
+   "secundaria": "Climatización",
+   "terciaria": "Ventilador",
+   "ruta": "Electrohogar > Climatización > Ventilador"
+  },
+  {
+   "codigo": "CF040104",
+   "primaria": "Electrohogar",
+   "secundaria": "Climatización",
+   "terciaria": "Purificador de aire",
+   "ruta": "Electrohogar > Climatización > Purificador de aire"
+  },
+  {
+   "codigo": "CF040301",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Cafetera",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Cafetera"
+  },
+  {
+   "codigo": "CF040302",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Freidora de Aire",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Freidora de Aire"
+  },
+  {
+   "codigo": "CF040303",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Licuadoras y Batidoras",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Licuadoras y Batidoras"
+  },
+  {
+   "codigo": "CF040304",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Menaje Cocina",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Menaje Cocina"
+  },
+  {
+   "codigo": "CF040305",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Sandwicheras y Waffleras",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Sandwicheras y Waffleras"
+  },
+  {
+   "codigo": "CF040306",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Tostadora",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Tostadora"
+  },
+  {
+   "codigo": "CF040307",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Otros electrodomésticos",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Otros electrodomésticos"
+  },
+  {
+   "codigo": "CF040308",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Ollas arroceras",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Ollas arroceras"
+  },
+  {
+   "codigo": "CF040309",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Procesadores y picatodos",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Procesadores y picatodos"
+  },
+  {
+   "codigo": "CF040310",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Hervidores",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Hervidores"
+  },
+  {
+   "codigo": "CF040311",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Extractores y exprimidores",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Extractores y exprimidores"
+  },
+  {
+   "codigo": "CF040312",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Hornos eléctricos",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Hornos eléctricos"
+  },
+  {
+   "codigo": "CF040313",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Parrillas eléctricas y grills",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Parrillas eléctricas y grills"
+  },
+  {
+   "codigo": "CF040314",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Maquina de bebidas y helados",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Maquina de bebidas y helados"
+  },
+  {
+   "codigo": "CF040315",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrodomésticos Cocina",
+   "terciaria": "Calentador de Tazas",
+   "ruta": "Electrohogar > Electrodomésticos Cocina > Calentador de Tazas"
+  },
+  {
+   "codigo": "CF040401",
+   "primaria": "Electrohogar",
+   "secundaria": "Limpieza",
+   "terciaria": "Aspiradoras de Robot",
+   "ruta": "Electrohogar > Limpieza > Aspiradoras de Robot"
+  },
+  {
+   "codigo": "CF040402",
+   "primaria": "Electrohogar",
+   "secundaria": "Limpieza",
+   "terciaria": "Aspiradoras",
+   "ruta": "Electrohogar > Limpieza > Aspiradoras"
+  },
+  {
+   "codigo": "CF040501",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrohogar Reacondicionado",
+   "terciaria": "Licuadoras Reacondicionadas",
+   "ruta": "Electrohogar > Electrohogar Reacondicionado > Licuadoras Reacondicionadas"
+  },
+  {
+   "codigo": "CF040502",
+   "primaria": "Electrohogar",
+   "secundaria": "Electrohogar Reacondicionado",
+   "terciaria": "Cafeteras Reacondicionadas",
+   "ruta": "Electrohogar > Electrohogar Reacondicionado > Cafeteras Reacondicionadas"
+  },
+  {
+   "codigo": "CF060101",
+   "primaria": "Juguetería",
+   "secundaria": "Juguete",
+   "terciaria": "Carros y Pistas",
+   "ruta": "Juguetería > Juguete > Carros y Pistas"
+  },
+  {
+   "codigo": "CF060102",
+   "primaria": "Juguetería",
+   "secundaria": "Juguete",
+   "terciaria": "Figuras de acción y Funkos",
+   "ruta": "Juguetería > Juguete > Figuras de acción y Funkos"
+  },
+  {
+   "codigo": "CF060104",
+   "primaria": "Juguetería",
+   "secundaria": "Juguete",
+   "terciaria": "Juegos de Cartas",
+   "ruta": "Juguetería > Juguete > Juegos de Cartas"
+  },
+  {
+   "codigo": "CF060105",
+   "primaria": "Juguetería",
+   "secundaria": "Juguete",
+   "terciaria": "Juegos de mesa",
+   "ruta": "Juguetería > Juguete > Juegos de mesa"
+  },
+  {
+   "codigo": "CF060107",
+   "primaria": "Juguetería",
+   "secundaria": "Juguete",
+   "terciaria": "Juguetes preescolares",
+   "ruta": "Juguetería > Juguete > Juguetes preescolares"
+  },
+  {
+   "codigo": "CF060108",
+   "primaria": "Juguetería",
+   "secundaria": "Juguete",
+   "terciaria": "Lego y armables",
+   "ruta": "Juguetería > Juguete > Lego y armables"
+  },
+  {
+   "codigo": "CF060109",
+   "primaria": "Juguetería",
+   "secundaria": "Juguete",
+   "terciaria": "Mascota Interactiva",
+   "ruta": "Juguetería > Juguete > Mascota Interactiva"
+  },
+  {
+   "codigo": "CF060110",
+   "primaria": "Juguetería",
+   "secundaria": "Juguete",
+   "terciaria": "Muñecas y accesorios",
+   "ruta": "Juguetería > Juguete > Muñecas y accesorios"
+  },
+  {
+   "codigo": "CF060111",
+   "primaria": "Juguetería",
+   "secundaria": "Juguete",
+   "terciaria": "Peluches",
+   "ruta": "Juguetería > Juguete > Peluches"
+  },
+  {
+   "codigo": "CF060112",
+   "primaria": "Juguetería",
+   "secundaria": "Juguete",
+   "terciaria": "Juguetes para niños (as)",
+   "ruta": "Juguetería > Juguete > Juguetes para niños (as)"
+  },
+  {
+   "codigo": "CF060113",
+   "primaria": "Juguetería",
+   "secundaria": "Juguete",
+   "terciaria": "Máscaras y Disfraces",
+   "ruta": "Juguetería > Juguete > Máscaras y Disfraces"
+  },
+  {
+   "codigo": "CF060114",
+   "primaria": "Juguetería",
+   "secundaria": "Juguete",
+   "terciaria": "Decoración y Coleccionables",
+   "ruta": "Juguetería > Juguete > Decoración y Coleccionables"
+  },
+  {
+   "codigo": "CF060201",
+   "primaria": "Juguetería",
+   "secundaria": "Juguetes de Exterior",
+   "terciaria": "Patines y Scooters",
+   "ruta": "Juguetería > Juguetes de Exterior > Patines y Scooters"
+  },
+  {
+   "codigo": "CF060202",
+   "primaria": "Juguetería",
+   "secundaria": "Juguetes de Exterior",
+   "terciaria": "Piscinas e Inflables",
+   "ruta": "Juguetería > Juguetes de Exterior > Piscinas e Inflables"
+  },
+  {
+   "codigo": "CF060203",
+   "primaria": "Juguetería",
+   "secundaria": "Juguetes de Exterior",
+   "terciaria": "Triciclos y Correpasillos",
+   "ruta": "Juguetería > Juguetes de Exterior > Triciclos y Correpasillos"
+  },
+  {
+   "codigo": "CF060204",
+   "primaria": "Juguetería",
+   "secundaria": "Juguetes de Exterior",
+   "terciaria": "Juegos de jardín",
+   "ruta": "Juguetería > Juguetes de Exterior > Juegos de jardín"
+  },
+  {
+   "codigo": "CF060205",
+   "primaria": "Juguetería",
+   "secundaria": "Juguetes de Exterior",
+   "terciaria": "Cochecitos de jardín",
+   "ruta": "Juguetería > Juguetes de Exterior > Cochecitos de jardín"
+  },
+  {
+   "codigo": "CF070101",
+   "primaria": "Mascotas",
+   "secundaria": "Accesorios para Mascotas",
+   "terciaria": "Arneses y Pecheras",
+   "ruta": "Mascotas > Accesorios para Mascotas > Arneses y Pecheras"
+  },
+  {
+   "codigo": "CF070102",
+   "primaria": "Mascotas",
+   "secundaria": "Accesorios para Mascotas",
+   "terciaria": "Bolsos y Transportadores",
+   "ruta": "Mascotas > Accesorios para Mascotas > Bolsos y Transportadores"
+  },
+  {
+   "codigo": "CF070103",
+   "primaria": "Mascotas",
+   "secundaria": "Accesorios para Mascotas",
+   "terciaria": "Camas y Descanso",
+   "ruta": "Mascotas > Accesorios para Mascotas > Camas y Descanso"
+  },
+  {
+   "codigo": "CF070104",
+   "primaria": "Mascotas",
+   "secundaria": "Accesorios para Mascotas",
+   "terciaria": "Collares y Correas",
+   "ruta": "Mascotas > Accesorios para Mascotas > Collares y Correas"
+  },
+  {
+   "codigo": "CF070105",
+   "primaria": "Mascotas",
+   "secundaria": "Accesorios para Mascotas",
+   "terciaria": "Dispensador de comida",
+   "ruta": "Mascotas > Accesorios para Mascotas > Dispensador de comida"
+  },
+  {
+   "codigo": "CF070106",
+   "primaria": "Mascotas",
+   "secundaria": "Accesorios para Mascotas",
+   "terciaria": "Ropa para perros y gatos",
+   "ruta": "Mascotas > Accesorios para Mascotas > Ropa para perros y gatos"
+  },
+  {
+   "codigo": "CF070201",
+   "primaria": "Mascotas",
+   "secundaria": "Higiene para Mascotas",
+   "terciaria": "Accesorios de Limpieza",
+   "ruta": "Mascotas > Higiene para Mascotas > Accesorios de Limpieza"
+  },
+  {
+   "codigo": "CF070202",
+   "primaria": "Mascotas",
+   "secundaria": "Higiene para Mascotas",
+   "terciaria": "Arenero",
+   "ruta": "Mascotas > Higiene para Mascotas > Arenero"
+  },
+  {
+   "codigo": "CF070203",
+   "primaria": "Mascotas",
+   "secundaria": "Higiene para Mascotas",
+   "terciaria": "Cepillos y Cortauñas",
+   "ruta": "Mascotas > Higiene para Mascotas > Cepillos y Cortauñas"
+  },
+  {
+   "codigo": "CF070204",
+   "primaria": "Mascotas",
+   "secundaria": "Higiene para Mascotas",
+   "terciaria": "Protector de Asiento",
+   "ruta": "Mascotas > Higiene para Mascotas > Protector de Asiento"
+  },
+  {
+   "codigo": "CF070301",
+   "primaria": "Mascotas",
+   "secundaria": "Juguetes para Mascotas",
+   "terciaria": "Para Gato",
+   "ruta": "Mascotas > Juguetes para Mascotas > Para Gato"
+  },
+  {
+   "codigo": "CF070302",
+   "primaria": "Mascotas",
+   "secundaria": "Juguetes para Mascotas",
+   "terciaria": "Para Perro",
+   "ruta": "Mascotas > Juguetes para Mascotas > Para Perro"
+  },
+  {
+   "codigo": "CF080101",
+   "primaria": "Moda Hombre",
+   "secundaria": "Accesorios para hombre",
+   "terciaria": "Billeteras y tarjeteras para hombre",
+   "ruta": "Moda Hombre > Accesorios para hombre > Billeteras y tarjeteras para hombre"
+  },
+  {
+   "codigo": "CF080102",
+   "primaria": "Moda Hombre",
+   "secundaria": "Accesorios para hombre",
+   "terciaria": "Correas y cinturones para hombre",
+   "ruta": "Moda Hombre > Accesorios para hombre > Correas y cinturones para hombre"
+  },
+  {
+   "codigo": "CF080103",
+   "primaria": "Moda Hombre",
+   "secundaria": "Accesorios para hombre",
+   "terciaria": "Gorros y sombreros para hombre",
+   "ruta": "Moda Hombre > Accesorios para hombre > Gorros y sombreros para hombre"
+  },
+  {
+   "codigo": "CF080104",
+   "primaria": "Moda Hombre",
+   "secundaria": "Accesorios para hombre",
+   "terciaria": "Lentes de sol y Gafas para hombre",
+   "ruta": "Moda Hombre > Accesorios para hombre > Lentes de sol y Gafas para hombre"
+  },
+  {
+   "codigo": "CF080105",
+   "primaria": "Moda Hombre",
+   "secundaria": "Accesorios para hombre",
+   "terciaria": "Mochilas",
+   "ruta": "Moda Hombre > Accesorios para hombre > Mochilas"
+  },
+  {
+   "codigo": "CF080106",
+   "primaria": "Moda Hombre",
+   "secundaria": "Accesorios para hombre",
+   "terciaria": "Relojes para hombre",
+   "ruta": "Moda Hombre > Accesorios para hombre > Relojes para hombre"
+  },
+  {
+   "codigo": "CF080107",
+   "primaria": "Moda Hombre",
+   "secundaria": "Accesorios para hombre",
+   "terciaria": "Joyas y bisutería",
+   "ruta": "Moda Hombre > Accesorios para hombre > Joyas y bisutería"
+  },
+  {
+   "codigo": "CF080201",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa Interior de Hombre",
+   "terciaria": "Boxers y Calzoncillos para hombre",
+   "ruta": "Moda Hombre > Ropa Interior de Hombre > Boxers y Calzoncillos para hombre"
+  },
+  {
+   "codigo": "CF080202",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa Interior de Hombre",
+   "terciaria": "Medias para hombre",
+   "ruta": "Moda Hombre > Ropa Interior de Hombre > Medias para hombre"
+  },
+  {
+   "codigo": "CF080203",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa Interior de Hombre",
+   "terciaria": "Pijamas y Camisetas para hombre",
+   "ruta": "Moda Hombre > Ropa Interior de Hombre > Pijamas y Camisetas para hombre"
+  },
+  {
+   "codigo": "CF080301",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa para hombre",
+   "terciaria": "Casacas y Poleras para hombre",
+   "ruta": "Moda Hombre > Ropa para hombre > Casacas y Poleras para hombre"
+  },
+  {
+   "codigo": "CF080302",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa para hombre",
+   "terciaria": "Chalecos para hombre",
+   "ruta": "Moda Hombre > Ropa para hombre > Chalecos para hombre"
+  },
+  {
+   "codigo": "CF080303",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa para hombre",
+   "terciaria": "Jeans para hombre",
+   "ruta": "Moda Hombre > Ropa para hombre > Jeans para hombre"
+  },
+  {
+   "codigo": "CF080304",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa para hombre",
+   "terciaria": "Pantalones para hombre",
+   "ruta": "Moda Hombre > Ropa para hombre > Pantalones para hombre"
+  },
+  {
+   "codigo": "CF080305",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa para hombre",
+   "terciaria": "Polos y Camisas para hombre",
+   "ruta": "Moda Hombre > Ropa para hombre > Polos y Camisas para hombre"
+  },
+  {
+   "codigo": "CF080306",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa para hombre",
+   "terciaria": "Ropas de Baño para hombre",
+   "ruta": "Moda Hombre > Ropa para hombre > Ropas de Baño para hombre"
+  },
+  {
+   "codigo": "CF080307",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa para hombre",
+   "terciaria": "Short y Bermudas",
+   "ruta": "Moda Hombre > Ropa para hombre > Short y Bermudas"
+  },
+  {
+   "codigo": "CF080308",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa para hombre",
+   "terciaria": "Disfraces",
+   "ruta": "Moda Hombre > Ropa para hombre > Disfraces"
+  },
+  {
+   "codigo": "CF080401",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa Deportiva para hombre",
+   "terciaria": "Buzos deportivos",
+   "ruta": "Moda Hombre > Ropa Deportiva para hombre > Buzos deportivos"
+  },
+  {
+   "codigo": "CF080402",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa Deportiva para hombre",
+   "terciaria": "Casacas y cortavientos",
+   "ruta": "Moda Hombre > Ropa Deportiva para hombre > Casacas y cortavientos"
+  },
+  {
+   "codigo": "CF080403",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa Deportiva para hombre",
+   "terciaria": "Mallas y shorts",
+   "ruta": "Moda Hombre > Ropa Deportiva para hombre > Mallas y shorts"
+  },
+  {
+   "codigo": "CF080404",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa Deportiva para hombre",
+   "terciaria": "Mochilas y accesorios",
+   "ruta": "Moda Hombre > Ropa Deportiva para hombre > Mochilas y accesorios"
+  },
+  {
+   "codigo": "CF080405",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa Deportiva para hombre",
+   "terciaria": "Pantalones y joggers",
+   "ruta": "Moda Hombre > Ropa Deportiva para hombre > Pantalones y joggers"
+  },
+  {
+   "codigo": "CF080406",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa Deportiva para hombre",
+   "terciaria": "Poleras y sweaters",
+   "ruta": "Moda Hombre > Ropa Deportiva para hombre > Poleras y sweaters"
+  },
+  {
+   "codigo": "CF080407",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa Deportiva para hombre",
+   "terciaria": "Polos deportivos",
+   "ruta": "Moda Hombre > Ropa Deportiva para hombre > Polos deportivos"
+  },
+  {
+   "codigo": "CF080501",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa de Vestir",
+   "terciaria": "Chalecos",
+   "ruta": "Moda Hombre > Ropa de Vestir > Chalecos"
+  },
+  {
+   "codigo": "CF080502",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa de Vestir",
+   "terciaria": "Trajes",
+   "ruta": "Moda Hombre > Ropa de Vestir > Trajes"
+  },
+  {
+   "codigo": "CF080503",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa de Vestir",
+   "terciaria": "Pantalón de Vestir",
+   "ruta": "Moda Hombre > Ropa de Vestir > Pantalón de Vestir"
+  },
+  {
+   "codigo": "CF080504",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa de Vestir",
+   "terciaria": "Camisas",
+   "ruta": "Moda Hombre > Ropa de Vestir > Camisas"
+  },
+  {
+   "codigo": "CF080505",
+   "primaria": "Moda Hombre",
+   "secundaria": "Ropa de Vestir",
+   "terciaria": "Accesorios",
+   "ruta": "Moda Hombre > Ropa de Vestir > Accesorios"
+  },
+  {
+   "codigo": "CF090101",
+   "primaria": "Moda Mujer",
+   "secundaria": "Accesorios para Mujer",
+   "terciaria": "Billeteras y monederos",
+   "ruta": "Moda Mujer > Accesorios para Mujer > Billeteras y monederos"
+  },
+  {
+   "codigo": "CF090102",
+   "primaria": "Moda Mujer",
+   "secundaria": "Accesorios para Mujer",
+   "terciaria": "Carteras y Bolsos para Mujer",
+   "ruta": "Moda Mujer > Accesorios para Mujer > Carteras y Bolsos para Mujer"
+  },
+  {
+   "codigo": "CF090103",
+   "primaria": "Moda Mujer",
+   "secundaria": "Accesorios para Mujer",
+   "terciaria": "Correas y cinturones para Mujer",
+   "ruta": "Moda Mujer > Accesorios para Mujer > Correas y cinturones para Mujer"
+  },
+  {
+   "codigo": "CF090104",
+   "primaria": "Moda Mujer",
+   "secundaria": "Accesorios para Mujer",
+   "terciaria": "Joyas y bisutería",
+   "ruta": "Moda Mujer > Accesorios para Mujer > Joyas y bisutería"
+  },
+  {
+   "codigo": "CF090105",
+   "primaria": "Moda Mujer",
+   "secundaria": "Accesorios para Mujer",
+   "terciaria": "Lentes de Sol y Gafas para Mujer",
+   "ruta": "Moda Mujer > Accesorios para Mujer > Lentes de Sol y Gafas para Mujer"
+  },
+  {
+   "codigo": "CF090106",
+   "primaria": "Moda Mujer",
+   "secundaria": "Accesorios para Mujer",
+   "terciaria": "Relojes para Mujer",
+   "ruta": "Moda Mujer > Accesorios para Mujer > Relojes para Mujer"
+  },
+  {
+   "codigo": "CF090107",
+   "primaria": "Moda Mujer",
+   "secundaria": "Accesorios para Mujer",
+   "terciaria": "Mochilas",
+   "ruta": "Moda Mujer > Accesorios para Mujer > Mochilas"
+  },
+  {
+   "codigo": "CF090201",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa Interior para Mujer",
+   "terciaria": "Batas para mujer",
+   "ruta": "Moda Mujer > Ropa Interior para Mujer > Batas para mujer"
+  },
+  {
+   "codigo": "CF090202",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa Interior para Mujer",
+   "terciaria": "Lencería",
+   "ruta": "Moda Mujer > Ropa Interior para Mujer > Lencería"
+  },
+  {
+   "codigo": "CF090203",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa Interior para Mujer",
+   "terciaria": "Pijamas para Mujer",
+   "ruta": "Moda Mujer > Ropa Interior para Mujer > Pijamas para Mujer"
+  },
+  {
+   "codigo": "CF090301",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa para Mujer",
+   "terciaria": "Chaquetas y cazadoras para mujer",
+   "ruta": "Moda Mujer > Ropa para Mujer > Chaquetas y cazadoras para mujer"
+  },
+  {
+   "codigo": "CF090302",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa para Mujer",
+   "terciaria": "Chompas y Poleras para Mujer",
+   "ruta": "Moda Mujer > Ropa para Mujer > Chompas y Poleras para Mujer"
+  },
+  {
+   "codigo": "CF090303",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa para Mujer",
+   "terciaria": "Conjuntos y Enterizos para Mujer",
+   "ruta": "Moda Mujer > Ropa para Mujer > Conjuntos y Enterizos para Mujer"
+  },
+  {
+   "codigo": "CF090304",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa para Mujer",
+   "terciaria": "Faldas y Shorts para Mujer",
+   "ruta": "Moda Mujer > Ropa para Mujer > Faldas y Shorts para Mujer"
+  },
+  {
+   "codigo": "CF090305",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa para Mujer",
+   "terciaria": "Jeans para Mujer",
+   "ruta": "Moda Mujer > Ropa para Mujer > Jeans para Mujer"
+  },
+  {
+   "codigo": "CF090306",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa para Mujer",
+   "terciaria": "Pantalones para Mujer",
+   "ruta": "Moda Mujer > Ropa para Mujer > Pantalones para Mujer"
+  },
+  {
+   "codigo": "CF090307",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa para Mujer",
+   "terciaria": "Polos, Blusas y Tops",
+   "ruta": "Moda Mujer > Ropa para Mujer > Polos, Blusas y Tops"
+  },
+  {
+   "codigo": "CF090308",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa para Mujer",
+   "terciaria": "Ropas de Baño para Mujer",
+   "ruta": "Moda Mujer > Ropa para Mujer > Ropas de Baño para Mujer"
+  },
+  {
+   "codigo": "CF090309",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa para Mujer",
+   "terciaria": "Vestidos para mujer",
+   "ruta": "Moda Mujer > Ropa para Mujer > Vestidos para mujer"
+  },
+  {
+   "codigo": "CF090401",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa Deportiva para Mujer",
+   "terciaria": "Buzos deportivos",
+   "ruta": "Moda Mujer > Ropa Deportiva para Mujer > Buzos deportivos"
+  },
+  {
+   "codigo": "CF090402",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa Deportiva para Mujer",
+   "terciaria": "Casacas y cortavientos",
+   "ruta": "Moda Mujer > Ropa Deportiva para Mujer > Casacas y cortavientos"
+  },
+  {
+   "codigo": "CF090403",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa Deportiva para Mujer",
+   "terciaria": "Mallas y shorts",
+   "ruta": "Moda Mujer > Ropa Deportiva para Mujer > Mallas y shorts"
+  },
+  {
+   "codigo": "CF090404",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa Deportiva para Mujer",
+   "terciaria": "Mochilas y accesorios",
+   "ruta": "Moda Mujer > Ropa Deportiva para Mujer > Mochilas y accesorios"
+  },
+  {
+   "codigo": "CF090405",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa Deportiva para Mujer",
+   "terciaria": "Pantalones y joggers",
+   "ruta": "Moda Mujer > Ropa Deportiva para Mujer > Pantalones y joggers"
+  },
+  {
+   "codigo": "CF090406",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa Deportiva para Mujer",
+   "terciaria": "Poleras y sweaters",
+   "ruta": "Moda Mujer > Ropa Deportiva para Mujer > Poleras y sweaters"
+  },
+  {
+   "codigo": "CF090407",
+   "primaria": "Moda Mujer",
+   "secundaria": "Ropa Deportiva para Mujer",
+   "terciaria": "Polos deportivos",
+   "ruta": "Moda Mujer > Ropa Deportiva para Mujer > Polos deportivos"
+  },
+  {
+   "codigo": "CF100101",
+   "primaria": "Mundo Apple",
+   "secundaria": "Accesorios",
+   "terciaria": "AirTag",
+   "ruta": "Mundo Apple > Accesorios > AirTag"
+  },
+  {
+   "codigo": "CF100102",
+   "primaria": "Mundo Apple",
+   "secundaria": "Accesorios",
+   "terciaria": "Apple Pencil",
+   "ruta": "Mundo Apple > Accesorios > Apple Pencil"
+  },
+  {
+   "codigo": "CF100103",
+   "primaria": "Mundo Apple",
+   "secundaria": "Accesorios",
+   "terciaria": "Bands for Apple Watch",
+   "ruta": "Mundo Apple > Accesorios > Bands for Apple Watch"
+  },
+  {
+   "codigo": "CF100104",
+   "primaria": "Mundo Apple",
+   "secundaria": "Accesorios",
+   "terciaria": "Cables y Cargadores",
+   "ruta": "Mundo Apple > Accesorios > Cables y Cargadores"
+  },
+  {
+   "codigo": "CF100105",
+   "primaria": "Mundo Apple",
+   "secundaria": "Accesorios",
+   "terciaria": "Mouse y Teclado",
+   "ruta": "Mundo Apple > Accesorios > Mouse y Teclado"
+  },
+  {
+   "codigo": "CF100201",
+   "primaria": "Mundo Apple",
+   "secundaria": "Apple Watch",
+   "terciaria": "Apple Watch SE",
+   "ruta": "Mundo Apple > Apple Watch > Apple Watch SE"
+  },
+  {
+   "codigo": "CF100202",
+   "primaria": "Mundo Apple",
+   "secundaria": "Apple Watch",
+   "terciaria": "Apple Watch SE 2da GEN",
+   "ruta": "Mundo Apple > Apple Watch > Apple Watch SE 2da GEN"
+  },
+  {
+   "codigo": "CF100203",
+   "primaria": "Mundo Apple",
+   "secundaria": "Apple Watch",
+   "terciaria": "Apple Watch Series 8",
+   "ruta": "Mundo Apple > Apple Watch > Apple Watch Series 8"
+  },
+  {
+   "codigo": "CF100204",
+   "primaria": "Mundo Apple",
+   "secundaria": "Apple Watch",
+   "terciaria": "Apple Watch Series 9",
+   "ruta": "Mundo Apple > Apple Watch > Apple Watch Series 9"
+  },
+  {
+   "codigo": "CF100205",
+   "primaria": "Mundo Apple",
+   "secundaria": "Apple Watch",
+   "terciaria": "Apple Watch Ultra",
+   "ruta": "Mundo Apple > Apple Watch > Apple Watch Ultra"
+  },
+  {
+   "codigo": "CF100206",
+   "primaria": "Mundo Apple",
+   "secundaria": "Apple Watch",
+   "terciaria": "Apple Watch Ultra 2",
+   "ruta": "Mundo Apple > Apple Watch > Apple Watch Ultra 2"
+  },
+  {
+   "codigo": "CF100207",
+   "primaria": "Mundo Apple",
+   "secundaria": "Apple Watch",
+   "terciaria": "Apple Watch Series 11",
+   "ruta": "Mundo Apple > Apple Watch > Apple Watch Series 11"
+  },
+  {
+   "codigo": "CF100208",
+   "primaria": "Mundo Apple",
+   "secundaria": "Apple Watch",
+   "terciaria": "Apple Watch SE 3",
+   "ruta": "Mundo Apple > Apple Watch > Apple Watch SE 3"
+  },
+  {
+   "codigo": "CF100209",
+   "primaria": "Mundo Apple",
+   "secundaria": "Apple Watch",
+   "terciaria": "Apple Watch Ultra 3",
+   "ruta": "Mundo Apple > Apple Watch > Apple Watch Ultra 3"
+  },
+  {
+   "codigo": "CF100210",
+   "primaria": "Mundo Apple",
+   "secundaria": "Apple Watch",
+   "terciaria": "Apple Watch Ultra 4",
+   "ruta": "Mundo Apple > Apple Watch > Apple Watch Ultra 4"
+  },
+  {
+   "codigo": "CF100211",
+   "primaria": "Mundo Apple",
+   "secundaria": "Apple Watch",
+   "terciaria": "Apple Watch Series 12",
+   "ruta": "Mundo Apple > Apple Watch > Apple Watch Series 12"
+  },
+  {
+   "codigo": "CF100301",
+   "primaria": "Mundo Apple",
+   "secundaria": "Audio",
+   "terciaria": "AirPods",
+   "ruta": "Mundo Apple > Audio > AirPods"
+  },
+  {
+   "codigo": "CF100302",
+   "primaria": "Mundo Apple",
+   "secundaria": "Audio",
+   "terciaria": "AirPods Max",
+   "ruta": "Mundo Apple > Audio > AirPods Max"
+  },
+  {
+   "codigo": "CF100303",
+   "primaria": "Mundo Apple",
+   "secundaria": "Audio",
+   "terciaria": "Beats",
+   "ruta": "Mundo Apple > Audio > Beats"
+  },
+  {
+   "codigo": "CF100304",
+   "primaria": "Mundo Apple",
+   "secundaria": "Audio",
+   "terciaria": "EarPods",
+   "ruta": "Mundo Apple > Audio > EarPods"
+  },
+  {
+   "codigo": "CF100401",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPad",
+   "terciaria": "Fundas y Case",
+   "ruta": "Mundo Apple > iPad > Fundas y Case"
+  },
+  {
+   "codigo": "CF100402",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPad",
+   "terciaria": "iPad",
+   "ruta": "Mundo Apple > iPad > iPad"
+  },
+  {
+   "codigo": "CF100403",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPad",
+   "terciaria": "iPad Air",
+   "ruta": "Mundo Apple > iPad > iPad Air"
+  },
+  {
+   "codigo": "CF100404",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPad",
+   "terciaria": "iPad Mini",
+   "ruta": "Mundo Apple > iPad > iPad Mini"
+  },
+  {
+   "codigo": "CF100405",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPad",
+   "terciaria": "iPad Pro",
+   "ruta": "Mundo Apple > iPad > iPad Pro"
+  },
+  {
+   "codigo": "CF100501",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPhone",
+   "terciaria": "Fundas y Case",
+   "ruta": "Mundo Apple > iPhone > Fundas y Case"
+  },
+  {
+   "codigo": "CF100502",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPhone",
+   "terciaria": "iPhone 12",
+   "ruta": "Mundo Apple > iPhone > iPhone 12"
+  },
+  {
+   "codigo": "CF100503",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPhone",
+   "terciaria": "iPhone 13",
+   "ruta": "Mundo Apple > iPhone > iPhone 13"
+  },
+  {
+   "codigo": "CF100504",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPhone",
+   "terciaria": "iPhone 14",
+   "ruta": "Mundo Apple > iPhone > iPhone 14"
+  },
+  {
+   "codigo": "CF100505",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPhone",
+   "terciaria": "iPhone 15",
+   "ruta": "Mundo Apple > iPhone > iPhone 15"
+  },
+  {
+   "codigo": "CF100506",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPhone",
+   "terciaria": "iPhone 16",
+   "ruta": "Mundo Apple > iPhone > iPhone 16"
+  },
+  {
+   "codigo": "CF100507",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPhone",
+   "terciaria": "Iphone 17",
+   "ruta": "Mundo Apple > iPhone > Iphone 17"
+  },
+  {
+   "codigo": "CF100508",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPhone",
+   "terciaria": "iPhone 18",
+   "ruta": "Mundo Apple > iPhone > iPhone 18"
+  },
+  {
+   "codigo": "CF100509",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPhone",
+   "terciaria": "iPhone 11",
+   "ruta": "Mundo Apple > iPhone > iPhone 11"
+  },
+  {
+   "codigo": "CF100510",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPhone",
+   "terciaria": "iPhone XR",
+   "ruta": "Mundo Apple > iPhone > iPhone XR"
+  },
+  {
+   "codigo": "CF100511",
+   "primaria": "Mundo Apple",
+   "secundaria": "iPhone",
+   "terciaria": "Iphone Duo",
+   "ruta": "Mundo Apple > iPhone > Iphone Duo"
+  },
+  {
+   "codigo": "CF100601",
+   "primaria": "Mundo Apple",
+   "secundaria": "Mac",
+   "terciaria": "iMac",
+   "ruta": "Mundo Apple > Mac > iMac"
+  },
+  {
+   "codigo": "CF100602",
+   "primaria": "Mundo Apple",
+   "secundaria": "Mac",
+   "terciaria": "Mac Mini",
+   "ruta": "Mundo Apple > Mac > Mac Mini"
+  },
+  {
+   "codigo": "CF100603",
+   "primaria": "Mundo Apple",
+   "secundaria": "Mac",
+   "terciaria": "Mac Studio",
+   "ruta": "Mundo Apple > Mac > Mac Studio"
+  },
+  {
+   "codigo": "CF100701",
+   "primaria": "Mundo Apple",
+   "secundaria": "MacBook",
+   "terciaria": "MacBook Air",
+   "ruta": "Mundo Apple > MacBook > MacBook Air"
+  },
+  {
+   "codigo": "CF100702",
+   "primaria": "Mundo Apple",
+   "secundaria": "MacBook",
+   "terciaria": "MacBook Pro",
+   "ruta": "Mundo Apple > MacBook > MacBook Pro"
+  },
+  {
+   "codigo": "CF100703",
+   "primaria": "Mundo Apple",
+   "secundaria": "MacBook",
+   "terciaria": "MacBook Neo",
+   "ruta": "Mundo Apple > MacBook > MacBook Neo"
+  },
+  {
+   "codigo": "CF100801",
+   "primaria": "Mundo Apple",
+   "secundaria": "TV & SmartHome",
+   "terciaria": "Apple TV",
+   "ruta": "Mundo Apple > TV & SmartHome > Apple TV"
+  },
+  {
+   "codigo": "CF100802",
+   "primaria": "Mundo Apple",
+   "secundaria": "TV & SmartHome",
+   "terciaria": "HomePod",
+   "ruta": "Mundo Apple > TV & SmartHome > HomePod"
+  },
+  {
+   "codigo": "CF100803",
+   "primaria": "Mundo Apple",
+   "secundaria": "TV & SmartHome",
+   "terciaria": "HomePod Mini",
+   "ruta": "Mundo Apple > TV & SmartHome > HomePod Mini"
+  },
+  {
+   "codigo": "CF100901",
+   "primaria": "Mundo Apple",
+   "secundaria": "Vision",
+   "terciaria": "Accesorios Vision Pro",
+   "ruta": "Mundo Apple > Vision > Accesorios Vision Pro"
+  },
+  {
+   "codigo": "CF100902",
+   "primaria": "Mundo Apple",
+   "secundaria": "Vision",
+   "terciaria": "Apple Vision Pro",
+   "ruta": "Mundo Apple > Vision > Apple Vision Pro"
+  },
+  {
+   "codigo": "CF110201",
+   "primaria": "Moda Infantil",
+   "secundaria": "Niñas",
+   "terciaria": "Abrigos y Chompas para niñas",
+   "ruta": "Moda Infantil > Niñas > Abrigos y Chompas para niñas"
+  },
+  {
+   "codigo": "CF110202",
+   "primaria": "Moda Infantil",
+   "secundaria": "Niñas",
+   "terciaria": "Buzos y Conjuntos para niñas",
+   "ruta": "Moda Infantil > Niñas > Buzos y Conjuntos para niñas"
+  },
+  {
+   "codigo": "CF110203",
+   "primaria": "Moda Infantil",
+   "secundaria": "Niñas",
+   "terciaria": "Jeans y Pantalones para niñas",
+   "ruta": "Moda Infantil > Niñas > Jeans y Pantalones para niñas"
+  },
+  {
+   "codigo": "CF110204",
+   "primaria": "Moda Infantil",
+   "secundaria": "Niñas",
+   "terciaria": "Pijamas para niñas",
+   "ruta": "Moda Infantil > Niñas > Pijamas para niñas"
+  },
+  {
+   "codigo": "CF110205",
+   "primaria": "Moda Infantil",
+   "secundaria": "Niñas",
+   "terciaria": "Polos y Blusas para niñas",
+   "ruta": "Moda Infantil > Niñas > Polos y Blusas para niñas"
+  },
+  {
+   "codigo": "CF110206",
+   "primaria": "Moda Infantil",
+   "secundaria": "Niñas",
+   "terciaria": "Shorts y Faldas para niñas",
+   "ruta": "Moda Infantil > Niñas > Shorts y Faldas para niñas"
+  },
+  {
+   "codigo": "CF110207",
+   "primaria": "Moda Infantil",
+   "secundaria": "Niñas",
+   "terciaria": "Vestidos para niñas",
+   "ruta": "Moda Infantil > Niñas > Vestidos para niñas"
+  },
+  {
+   "codigo": "CF110301",
+   "primaria": "Moda Infantil",
+   "secundaria": "Niños",
+   "terciaria": "Abrigos y Chompas para niños",
+   "ruta": "Moda Infantil > Niños > Abrigos y Chompas para niños"
+  },
+  {
+   "codigo": "CF110302",
+   "primaria": "Moda Infantil",
+   "secundaria": "Niños",
+   "terciaria": "Conjunto y Buzos para niños",
+   "ruta": "Moda Infantil > Niños > Conjunto y Buzos para niños"
+  },
+  {
+   "codigo": "CF110303",
+   "primaria": "Moda Infantil",
+   "secundaria": "Niños",
+   "terciaria": "Jeans y Pantalones para niños",
+   "ruta": "Moda Infantil > Niños > Jeans y Pantalones para niños"
+  },
+  {
+   "codigo": "CF110304",
+   "primaria": "Moda Infantil",
+   "secundaria": "Niños",
+   "terciaria": "Pijamas para niños",
+   "ruta": "Moda Infantil > Niños > Pijamas para niños"
+  },
+  {
+   "codigo": "CF110305",
+   "primaria": "Moda Infantil",
+   "secundaria": "Niños",
+   "terciaria": "Polos y Camisas para niños",
+   "ruta": "Moda Infantil > Niños > Polos y Camisas para niños"
+  },
+  {
+   "codigo": "CF110306",
+   "primaria": "Moda Infantil",
+   "secundaria": "Niños",
+   "terciaria": "Shorts para niños",
+   "ruta": "Moda Infantil > Niños > Shorts para niños"
+  },
+  {
+   "codigo": "CF110501",
+   "primaria": "Moda Infantil",
+   "secundaria": "Accesorios infantiles",
+   "terciaria": "Accesorios para el viaje",
+   "ruta": "Moda Infantil > Accesorios infantiles > Accesorios para el viaje"
+  },
+  {
+   "codigo": "CF110502",
+   "primaria": "Moda Infantil",
+   "secundaria": "Accesorios infantiles",
+   "terciaria": "Cuidado personal",
+   "ruta": "Moda Infantil > Accesorios infantiles > Cuidado personal"
+  },
+  {
+   "codigo": "CF110503",
+   "primaria": "Moda Infantil",
+   "secundaria": "Accesorios infantiles",
+   "terciaria": "Smartwatch para niños",
+   "ruta": "Moda Infantil > Accesorios infantiles > Smartwatch para niños"
+  },
+  {
+   "codigo": "CF110504",
+   "primaria": "Moda Infantil",
+   "secundaria": "Accesorios infantiles",
+   "terciaria": "Audifonos para niños",
+   "ruta": "Moda Infantil > Accesorios infantiles > Audifonos para niños"
+  },
+  {
+   "codigo": "CF110505",
+   "primaria": "Moda Infantil",
+   "secundaria": "Accesorios infantiles",
+   "terciaria": "Lámpara de Noche",
+   "ruta": "Moda Infantil > Accesorios infantiles > Lámpara de Noche"
+  },
+  {
+   "codigo": "CF110506",
+   "primaria": "Moda Infantil",
+   "secundaria": "Accesorios infantiles",
+   "terciaria": "Otros productos de bebe",
+   "ruta": "Moda Infantil > Accesorios infantiles > Otros productos de bebe"
+  },
+  {
+   "codigo": "CF130101",
+   "primaria": "Tecnología",
+   "secundaria": "Audio",
+   "terciaria": "Asistentes de Voz",
+   "ruta": "Tecnología > Audio > Asistentes de Voz"
+  },
+  {
+   "codigo": "CF130102",
+   "primaria": "Tecnología",
+   "secundaria": "Audio",
+   "terciaria": "Audífonos",
+   "ruta": "Tecnología > Audio > Audífonos"
+  },
+  {
+   "codigo": "CF130103",
+   "primaria": "Tecnología",
+   "secundaria": "Audio",
+   "terciaria": "Parlantes",
+   "ruta": "Tecnología > Audio > Parlantes"
+  },
+  {
+   "codigo": "CF130104",
+   "primaria": "Tecnología",
+   "secundaria": "Audio",
+   "terciaria": "Soundbar y Home Theater",
+   "ruta": "Tecnología > Audio > Soundbar y Home Theater"
+  },
+  {
+   "codigo": "CF130105",
+   "primaria": "Tecnología",
+   "secundaria": "Audio",
+   "terciaria": "Micrófonos",
+   "ruta": "Tecnología > Audio > Micrófonos"
+  },
+  {
+   "codigo": "CF130201",
+   "primaria": "Tecnología",
+   "secundaria": "Hogar Inteligente",
+   "terciaria": "Asistente de Voz",
+   "ruta": "Tecnología > Hogar Inteligente > Asistente de Voz"
+  },
+  {
+   "codigo": "CF130203",
+   "primaria": "Tecnología",
+   "secundaria": "Hogar Inteligente",
+   "terciaria": "Iluminación inteligente",
+   "ruta": "Tecnología > Hogar Inteligente > Iluminación inteligente"
+  },
+  {
+   "codigo": "CF130204",
+   "primaria": "Tecnología",
+   "secundaria": "Hogar Inteligente",
+   "terciaria": "Proyectores",
+   "ruta": "Tecnología > Hogar Inteligente > Proyectores"
+  },
+  {
+   "codigo": "CF130205",
+   "primaria": "Tecnología",
+   "secundaria": "Hogar Inteligente",
+   "terciaria": "Reproductores Streaming",
+   "ruta": "Tecnología > Hogar Inteligente > Reproductores Streaming"
+  },
+  {
+   "codigo": "CF130301",
+   "primaria": "Tecnología",
+   "secundaria": "Laptops y PCs",
+   "terciaria": "Accesorios",
+   "ruta": "Tecnología > Laptops y PCs > Accesorios"
+  },
+  {
+   "codigo": "CF130302",
+   "primaria": "Tecnología",
+   "secundaria": "Laptops y PCs",
+   "terciaria": "Chromebooks",
+   "ruta": "Tecnología > Laptops y PCs > Chromebooks"
+  },
+  {
+   "codigo": "CF130303",
+   "primaria": "Tecnología",
+   "secundaria": "Laptops y PCs",
+   "terciaria": "Laptops",
+   "ruta": "Tecnología > Laptops y PCs > Laptops"
+  },
+  {
+   "codigo": "CF130304",
+   "primaria": "Tecnología",
+   "secundaria": "Laptops y PCs",
+   "terciaria": "MiniPC",
+   "ruta": "Tecnología > Laptops y PCs > MiniPC"
+  },
+  {
+   "codigo": "CF130305",
+   "primaria": "Tecnología",
+   "secundaria": "Laptops y PCs",
+   "terciaria": "Redes|Módem|Router",
+   "ruta": "Tecnología > Laptops y PCs > Redes|Módem|Router"
+  },
+  {
+   "codigo": "CF130401",
+   "primaria": "Tecnología",
+   "secundaria": "Mundo Gamer",
+   "terciaria": "Accesorios Gamer",
+   "ruta": "Tecnología > Mundo Gamer > Accesorios Gamer"
+  },
+  {
+   "codigo": "CF130402",
+   "primaria": "Tecnología",
+   "secundaria": "Mundo Gamer",
+   "terciaria": "Laptops Gamer",
+   "ruta": "Tecnología > Mundo Gamer > Laptops Gamer"
+  },
+  {
+   "codigo": "CF130403",
+   "primaria": "Tecnología",
+   "secundaria": "Mundo Gamer",
+   "terciaria": "Tarjetas Gráficas",
+   "ruta": "Tecnología > Mundo Gamer > Tarjetas Gráficas"
+  },
+  {
+   "codigo": "CF130404",
+   "primaria": "Tecnología",
+   "secundaria": "Mundo Gamer",
+   "terciaria": "Monitores Gaming",
+   "ruta": "Tecnología > Mundo Gamer > Monitores Gaming"
+  },
+  {
+   "codigo": "CF130501",
+   "primaria": "Tecnología",
+   "secundaria": "Smartwatch",
+   "terciaria": "Google",
+   "ruta": "Tecnología > Smartwatch > Google"
+  },
+  {
+   "codigo": "CF130502",
+   "primaria": "Tecnología",
+   "secundaria": "Smartwatch",
+   "terciaria": "Otros",
+   "ruta": "Tecnología > Smartwatch > Otros"
+  },
+  {
+   "codigo": "CF130601",
+   "primaria": "Tecnología",
+   "secundaria": "Tablets",
+   "terciaria": "Tablets Amazon",
+   "ruta": "Tecnología > Tablets > Tablets Amazon"
+  },
+  {
+   "codigo": "CF130602",
+   "primaria": "Tecnología",
+   "secundaria": "Tablets",
+   "terciaria": "Tablets Google",
+   "ruta": "Tecnología > Tablets > Tablets Google"
+  },
+  {
+   "codigo": "CF130603",
+   "primaria": "Tecnología",
+   "secundaria": "Tablets",
+   "terciaria": "Tablets Samsung",
+   "ruta": "Tecnología > Tablets > Tablets Samsung"
+  },
+  {
+   "codigo": "CF130604",
+   "primaria": "Tecnología",
+   "secundaria": "Tablets",
+   "terciaria": "Kindle",
+   "ruta": "Tecnología > Tablets > Kindle"
+  },
+  {
+   "codigo": "CF130605",
+   "primaria": "Tecnología",
+   "secundaria": "Tablets",
+   "terciaria": "Otros",
+   "ruta": "Tecnología > Tablets > Otros"
+  },
+  {
+   "codigo": "CF130701",
+   "primaria": "Tecnología",
+   "secundaria": "Videojuegos",
+   "terciaria": "Consolas",
+   "ruta": "Tecnología > Videojuegos > Consolas"
+  },
+  {
+   "codigo": "CF130702",
+   "primaria": "Tecnología",
+   "secundaria": "Videojuegos",
+   "terciaria": "Consolas Portátiles",
+   "ruta": "Tecnología > Videojuegos > Consolas Portátiles"
+  },
+  {
+   "codigo": "CF130703",
+   "primaria": "Tecnología",
+   "secundaria": "Videojuegos",
+   "terciaria": "Nintendo",
+   "ruta": "Tecnología > Videojuegos > Nintendo"
+  },
+  {
+   "codigo": "CF130704",
+   "primaria": "Tecnología",
+   "secundaria": "Videojuegos",
+   "terciaria": "PlayStation",
+   "ruta": "Tecnología > Videojuegos > PlayStation"
+  },
+  {
+   "codigo": "CF130705",
+   "primaria": "Tecnología",
+   "secundaria": "Videojuegos",
+   "terciaria": "Realidad Virtual",
+   "ruta": "Tecnología > Videojuegos > Realidad Virtual"
+  },
+  {
+   "codigo": "CF130706",
+   "primaria": "Tecnología",
+   "secundaria": "Videojuegos",
+   "terciaria": "Videojuegos Retro",
+   "ruta": "Tecnología > Videojuegos > Videojuegos Retro"
+  },
+  {
+   "codigo": "CF130707",
+   "primaria": "Tecnología",
+   "secundaria": "Videojuegos",
+   "terciaria": "Xbox",
+   "ruta": "Tecnología > Videojuegos > Xbox"
+  },
+  {
+   "codigo": "CF130801",
+   "primaria": "Tecnología",
+   "secundaria": "Fotografía y Video",
+   "terciaria": "Drones",
+   "ruta": "Tecnología > Fotografía y Video > Drones"
+  },
+  {
+   "codigo": "CF130802",
+   "primaria": "Tecnología",
+   "secundaria": "Fotografía y Video",
+   "terciaria": "Cámaras de video",
+   "ruta": "Tecnología > Fotografía y Video > Cámaras de video"
+  },
+  {
+   "codigo": "CF130803",
+   "primaria": "Tecnología",
+   "secundaria": "Fotografía y Video",
+   "terciaria": "Impresora portátil",
+   "ruta": "Tecnología > Fotografía y Video > Impresora portátil"
+  },
+  {
+   "codigo": "CF130804",
+   "primaria": "Tecnología",
+   "secundaria": "Fotografía y Video",
+   "terciaria": "Cámaras instantáneas",
+   "ruta": "Tecnología > Fotografía y Video > Cámaras instantáneas"
+  },
+  {
+   "codigo": "CF130805",
+   "primaria": "Tecnología",
+   "secundaria": "Fotografía y Video",
+   "terciaria": "Otros",
+   "ruta": "Tecnología > Fotografía y Video > Otros"
+  },
+  {
+   "codigo": "CF130901",
+   "primaria": "Tecnología",
+   "secundaria": "Smartphone",
+   "terciaria": "Smartphone Apple",
+   "ruta": "Tecnología > Smartphone > Smartphone Apple"
+  },
+  {
+   "codigo": "CF130902",
+   "primaria": "Tecnología",
+   "secundaria": "Smartphone",
+   "terciaria": "Smartphone Samsung",
+   "ruta": "Tecnología > Smartphone > Smartphone Samsung"
+  },
+  {
+   "codigo": "CF130903",
+   "primaria": "Tecnología",
+   "secundaria": "Smartphone",
+   "terciaria": "Smartphone Google",
+   "ruta": "Tecnología > Smartphone > Smartphone Google"
+  },
+  {
+   "codigo": "CF130904",
+   "primaria": "Tecnología",
+   "secundaria": "Smartphone",
+   "terciaria": "Smartphone Gamer",
+   "ruta": "Tecnología > Smartphone > Smartphone Gamer"
+  },
+  {
+   "codigo": "CF130905",
+   "primaria": "Tecnología",
+   "secundaria": "Smartphone",
+   "terciaria": "Celulares y smartphones",
+   "ruta": "Tecnología > Smartphone > Celulares y smartphones"
+  },
+  {
+   "codigo": "CF131001",
+   "primaria": "Tecnología",
+   "secundaria": "Accesorios",
+   "terciaria": "Cables y Cargadores",
+   "ruta": "Tecnología > Accesorios > Cables y Cargadores"
+  },
+  {
+   "codigo": "CF131002",
+   "primaria": "Tecnología",
+   "secundaria": "Accesorios",
+   "terciaria": "Fundas & Case",
+   "ruta": "Tecnología > Accesorios > Fundas & Case"
+  },
+  {
+   "codigo": "CF131003",
+   "primaria": "Tecnología",
+   "secundaria": "Accesorios",
+   "terciaria": "Gadgets Gamer",
+   "ruta": "Tecnología > Accesorios > Gadgets Gamer"
+  },
+  {
+   "codigo": "CF131004",
+   "primaria": "Tecnología",
+   "secundaria": "Accesorios",
+   "terciaria": "PowerBanks",
+   "ruta": "Tecnología > Accesorios > PowerBanks"
+  },
+  {
+   "codigo": "CF131005",
+   "primaria": "Tecnología",
+   "secundaria": "Accesorios",
+   "terciaria": "Protector Pantalla & Micas",
+   "ruta": "Tecnología > Accesorios > Protector Pantalla & Micas"
+  },
+  {
+   "codigo": "CF131201",
+   "primaria": "Tecnología",
+   "secundaria": "Tecnología Reacondicionado",
+   "terciaria": "iPhone Reacondicionado",
+   "ruta": "Tecnología > Tecnología Reacondicionado > iPhone Reacondicionado"
+  },
+  {
+   "codigo": "CF131202",
+   "primaria": "Tecnología",
+   "secundaria": "Tecnología Reacondicionado",
+   "terciaria": "Celulares Reacondicionados",
+   "ruta": "Tecnología > Tecnología Reacondicionado > Celulares Reacondicionados"
+  },
+  {
+   "codigo": "CF131203",
+   "primaria": "Tecnología",
+   "secundaria": "Tecnología Reacondicionado",
+   "terciaria": "Laptops Reacondicionadas",
+   "ruta": "Tecnología > Tecnología Reacondicionado > Laptops Reacondicionadas"
+  },
+  {
+   "codigo": "CF131204",
+   "primaria": "Tecnología",
+   "secundaria": "Tecnología Reacondicionado",
+   "terciaria": "iPad Reacondicionadas",
+   "ruta": "Tecnología > Tecnología Reacondicionado > iPad Reacondicionadas"
+  },
+  {
+   "codigo": "CF131205",
+   "primaria": "Tecnología",
+   "secundaria": "Tecnología Reacondicionado",
+   "terciaria": "Tablets Reacondicionadas",
+   "ruta": "Tecnología > Tecnología Reacondicionado > Tablets Reacondicionadas"
+  },
+  {
+   "codigo": "CF131206",
+   "primaria": "Tecnología",
+   "secundaria": "Tecnología Reacondicionado",
+   "terciaria": "Apple Pencil Reacondicionado",
+   "ruta": "Tecnología > Tecnología Reacondicionado > Apple Pencil Reacondicionado"
+  },
+  {
+   "codigo": "CF131207",
+   "primaria": "Tecnología",
+   "secundaria": "Tecnología Reacondicionado",
+   "terciaria": "MacBook Reacondicionado",
+   "ruta": "Tecnología > Tecnología Reacondicionado > MacBook Reacondicionado"
+  },
+  {
+   "codigo": "CF131208",
+   "primaria": "Tecnología",
+   "secundaria": "Tecnología Reacondicionado",
+   "terciaria": "Consolas de Videojuego Reacondicionadas",
+   "ruta": "Tecnología > Tecnología Reacondicionado > Consolas de Videojuego Reacondicionadas"
+  },
+  {
+   "codigo": "CF131209",
+   "primaria": "Tecnología",
+   "secundaria": "Tecnología Reacondicionado",
+   "terciaria": "Audio Reacondicionado",
+   "ruta": "Tecnología > Tecnología Reacondicionado > Audio Reacondicionado"
+  },
+  {
+   "codigo": "CF131210",
+   "primaria": "Tecnología",
+   "secundaria": "Tecnología Reacondicionado",
+   "terciaria": "Chromebook Reacondicionado",
+   "ruta": "Tecnología > Tecnología Reacondicionado > Chromebook Reacondicionado"
+  },
+  {
+   "codigo": "CF131211",
+   "primaria": "Tecnología",
+   "secundaria": "Tecnología Reacondicionado",
+   "terciaria": "Cámaras Reacondicionadas",
+   "ruta": "Tecnología > Tecnología Reacondicionado > Cámaras Reacondicionadas"
+  },
+  {
+   "codigo": "CF131212",
+   "primaria": "Tecnología",
+   "secundaria": "Tecnología Reacondicionado",
+   "terciaria": "Periféricos Reacondicionados",
+   "ruta": "Tecnología > Tecnología Reacondicionado > Periféricos Reacondicionados"
+  },
+  {
+   "codigo": "CF140201",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Hidratantes faciales y corporales",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Hidratantes faciales y corporales"
+  },
+  {
+   "codigo": "CF140202",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Serums",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Serums"
+  },
+  {
+   "codigo": "CF140203",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Contorno de Ojos",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Contorno de Ojos"
+  },
+  {
+   "codigo": "CF140204",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Limpiadores y Exfoliantes",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Limpiadores y Exfoliantes"
+  },
+  {
+   "codigo": "CF140205",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Mascarillas Faciales",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Mascarillas Faciales"
+  },
+  {
+   "codigo": "CF140206",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Antiedad",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Antiedad"
+  },
+  {
+   "codigo": "CF140207",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Dermocosmética",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Dermocosmética"
+  },
+  {
+   "codigo": "CF140208",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Sets de Skincare",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Sets de Skincare"
+  },
+  {
+   "codigo": "CF140209",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Cremas para manos y pies",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Cremas para manos y pies"
+  },
+  {
+   "codigo": "CF140210",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Protección Solar",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Protección Solar"
+  },
+  {
+   "codigo": "CF140211",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Bronceadores",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Bronceadores"
+  },
+  {
+   "codigo": "CF140212",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Repelentes",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Repelentes"
+  },
+  {
+   "codigo": "CF140213",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Afeitado y Rasurado",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Afeitado y Rasurado"
+  },
+  {
+   "codigo": "CF140214",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Hidratante Labial",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Hidratante Labial"
+  },
+  {
+   "codigo": "CF140215",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado de la piel",
+   "terciaria": "Depiladoras",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado de la piel > Depiladoras"
+  },
+  {
+   "codigo": "CF140301",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Maquillaje",
+   "terciaria": "Rostro",
+   "ruta": "Belleza y Cuidado Corporal > Maquillaje > Rostro"
+  },
+  {
+   "codigo": "CF140302",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Maquillaje",
+   "terciaria": "Ojos",
+   "ruta": "Belleza y Cuidado Corporal > Maquillaje > Ojos"
+  },
+  {
+   "codigo": "CF140303",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Maquillaje",
+   "terciaria": "Labios",
+   "ruta": "Belleza y Cuidado Corporal > Maquillaje > Labios"
+  },
+  {
+   "codigo": "CF140304",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Maquillaje",
+   "terciaria": "Uñas",
+   "ruta": "Belleza y Cuidado Corporal > Maquillaje > Uñas"
+  },
+  {
+   "codigo": "CF140305",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Maquillaje",
+   "terciaria": "Brochas y Accesorios",
+   "ruta": "Belleza y Cuidado Corporal > Maquillaje > Brochas y Accesorios"
+  },
+  {
+   "codigo": "CF140306",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Maquillaje",
+   "terciaria": "Sets de Maquillaje",
+   "ruta": "Belleza y Cuidado Corporal > Maquillaje > Sets de Maquillaje"
+  },
+  {
+   "codigo": "CF140501",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado Capilar",
+   "terciaria": "Tratamientos Capilares",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado Capilar > Tratamientos Capilares"
+  },
+  {
+   "codigo": "CF140502",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado Capilar",
+   "terciaria": "Cepillos y Accesorios",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado Capilar > Cepillos y Accesorios"
+  },
+  {
+   "codigo": "CF140503",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Cuidado Capilar",
+   "terciaria": "Tintes y Coloración",
+   "ruta": "Belleza y Cuidado Corporal > Cuidado Capilar > Tintes y Coloración"
+  },
+  {
+   "codigo": "CF140601",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Especiales y Tendencias",
+   "terciaria": "Packs y Sets Regalables",
+   "ruta": "Belleza y Cuidado Corporal > Especiales y Tendencias > Packs y Sets Regalables"
+  },
+  {
+   "codigo": "CF140602",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Especiales y Tendencias",
+   "terciaria": "Virales Belleza",
+   "ruta": "Belleza y Cuidado Corporal > Especiales y Tendencias > Virales Belleza"
+  },
+  {
+   "codigo": "CF140603",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Especiales y Tendencias",
+   "terciaria": "Belleza Koreana",
+   "ruta": "Belleza y Cuidado Corporal > Especiales y Tendencias > Belleza Koreana"
+  },
+  {
+   "codigo": "CF140701",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Electrobelleza",
+   "terciaria": "Plancha para el Cabello",
+   "ruta": "Belleza y Cuidado Corporal > Electrobelleza > Plancha para el Cabello"
+  },
+  {
+   "codigo": "CF140702",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Electrobelleza",
+   "terciaria": "Rizador de Cabello",
+   "ruta": "Belleza y Cuidado Corporal > Electrobelleza > Rizador de Cabello"
+  },
+  {
+   "codigo": "CF140703",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Electrobelleza",
+   "terciaria": "Secadores de Cabello",
+   "ruta": "Belleza y Cuidado Corporal > Electrobelleza > Secadores de Cabello"
+  },
+  {
+   "codigo": "CF140704",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Electrobelleza",
+   "terciaria": "Cepillos eléctricos",
+   "ruta": "Belleza y Cuidado Corporal > Electrobelleza > Cepillos eléctricos"
+  },
+  {
+   "codigo": "CF140705",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Electrobelleza",
+   "terciaria": "Máquina de afeitar",
+   "ruta": "Belleza y Cuidado Corporal > Electrobelleza > Máquina de afeitar"
+  },
+  {
+   "codigo": "CF140706",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Electrobelleza",
+   "terciaria": "Masajeadores Faciales",
+   "ruta": "Belleza y Cuidado Corporal > Electrobelleza > Masajeadores Faciales"
+  },
+  {
+   "codigo": "CF140707",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Electrobelleza",
+   "terciaria": "Máquina Depiladora",
+   "ruta": "Belleza y Cuidado Corporal > Electrobelleza > Máquina Depiladora"
+  },
+  {
+   "codigo": "CF140708",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Electrobelleza",
+   "terciaria": "Recortadora",
+   "ruta": "Belleza y Cuidado Corporal > Electrobelleza > Recortadora"
+  },
+  {
+   "codigo": "CF140709",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Electrobelleza",
+   "terciaria": "Masajeadores Corporales",
+   "ruta": "Belleza y Cuidado Corporal > Electrobelleza > Masajeadores Corporales"
+  },
+  {
+   "codigo": "CF140801",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Electrobelleza Reacondicionado",
+   "terciaria": "Secadoras Reacondicionadas",
+   "ruta": "Belleza y Cuidado Corporal > Electrobelleza Reacondicionado > Secadoras Reacondicionadas"
+  },
+  {
+   "codigo": "CF140802",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Electrobelleza Reacondicionado",
+   "terciaria": "Rizadoras Reacondicionadas",
+   "ruta": "Belleza y Cuidado Corporal > Electrobelleza Reacondicionado > Rizadoras Reacondicionadas"
+  },
+  {
+   "codigo": "CF140803",
+   "primaria": "Belleza y Cuidado Corporal",
+   "secundaria": "Electrobelleza Reacondicionado",
+   "terciaria": "Planchas de Cabello Reacondicionadas",
+   "ruta": "Belleza y Cuidado Corporal > Electrobelleza Reacondicionado > Planchas de Cabello Reacondicionadas"
+  },
+  {
+   "codigo": "CF150101",
+   "primaria": "Deporte",
+   "secundaria": "Accesorios Deportivos",
+   "terciaria": "Monitor de Actividad",
+   "ruta": "Deporte > Accesorios Deportivos > Monitor de Actividad"
+  },
+  {
+   "codigo": "CF150102",
+   "primaria": "Deporte",
+   "secundaria": "Accesorios Deportivos",
+   "terciaria": "Gafas y Lentes",
+   "ruta": "Deporte > Accesorios Deportivos > Gafas y Lentes"
+  },
+  {
+   "codigo": "CF150201",
+   "primaria": "Deporte",
+   "secundaria": "Deportes",
+   "terciaria": "Pádel",
+   "ruta": "Deporte > Deportes > Pádel"
+  },
+  {
+   "codigo": "CF150202",
+   "primaria": "Deporte",
+   "secundaria": "Deportes",
+   "terciaria": "Tenis",
+   "ruta": "Deporte > Deportes > Tenis"
+  },
+  {
+   "codigo": "CF160101",
+   "primaria": "Librería y Música",
+   "secundaria": "Libros",
+   "terciaria": "Ficción y Videojuegos",
+   "ruta": "Librería y Música > Libros > Ficción y Videojuegos"
+  },
+  {
+   "codigo": "CF160102",
+   "primaria": "Librería y Música",
+   "secundaria": "Libros",
+   "terciaria": "Infantiles",
+   "ruta": "Librería y Música > Libros > Infantiles"
+  },
+  {
+   "codigo": "CF160103",
+   "primaria": "Librería y Música",
+   "secundaria": "Libros",
+   "terciaria": "Literatura y Novelas",
+   "ruta": "Librería y Música > Libros > Literatura y Novelas"
+  },
+  {
+   "codigo": "CF160104",
+   "primaria": "Librería y Música",
+   "secundaria": "Libros",
+   "terciaria": "Cocina y Gourmet",
+   "ruta": "Librería y Música > Libros > Cocina y Gourmet"
+  },
+  {
+   "codigo": "CF160105",
+   "primaria": "Librería y Música",
+   "secundaria": "Libros",
+   "terciaria": "Comics y Mangas",
+   "ruta": "Librería y Música > Libros > Comics y Mangas"
+  },
+  {
+   "codigo": "CF160106",
+   "primaria": "Librería y Música",
+   "secundaria": "Libros",
+   "terciaria": "Ciencia y Conocimiento",
+   "ruta": "Librería y Música > Libros > Ciencia y Conocimiento"
+  },
+  {
+   "codigo": "CF160107",
+   "primaria": "Librería y Música",
+   "secundaria": "Libros",
+   "terciaria": "Álbumes Coleccionables",
+   "ruta": "Librería y Música > Libros > Álbumes Coleccionables"
+  },
+  {
+   "codigo": "CF160201",
+   "primaria": "Librería y Música",
+   "secundaria": "Artículos de Librería",
+   "terciaria": "Set de Arte",
+   "ruta": "Librería y Música > Artículos de Librería > Set de Arte"
+  },
+  {
+   "codigo": "CF160202",
+   "primaria": "Librería y Música",
+   "secundaria": "Artículos de Librería",
+   "terciaria": "Lapiceros y Bolígrafos",
+   "ruta": "Librería y Música > Artículos de Librería > Lapiceros y Bolígrafos"
+  },
+  {
+   "codigo": "CF160203",
+   "primaria": "Librería y Música",
+   "secundaria": "Artículos de Librería",
+   "terciaria": "Set de lápices y colores",
+   "ruta": "Librería y Música > Artículos de Librería > Set de lápices y colores"
+  },
+  {
+   "codigo": "CF160204",
+   "primaria": "Librería y Música",
+   "secundaria": "Artículos de Librería",
+   "terciaria": "Set de Pintura",
+   "ruta": "Librería y Música > Artículos de Librería > Set de Pintura"
+  },
+  {
+   "codigo": "CF160301",
+   "primaria": "Librería y Música",
+   "secundaria": "Instrumentos Musicales",
+   "terciaria": "Guitarras",
+   "ruta": "Librería y Música > Instrumentos Musicales > Guitarras"
+  },
+  {
+   "codigo": "CF160302",
+   "primaria": "Librería y Música",
+   "secundaria": "Instrumentos Musicales",
+   "terciaria": "Teclados y pianos",
+   "ruta": "Librería y Música > Instrumentos Musicales > Teclados y pianos"
+  },
+  {
+   "codigo": "CF160303",
+   "primaria": "Librería y Música",
+   "secundaria": "Instrumentos Musicales",
+   "terciaria": "Baterías y percusión",
+   "ruta": "Librería y Música > Instrumentos Musicales > Baterías y percusión"
+  },
+  {
+   "codigo": "CF160304",
+   "primaria": "Librería y Música",
+   "secundaria": "Instrumentos Musicales",
+   "terciaria": "DJ y audio profesional",
+   "ruta": "Librería y Música > Instrumentos Musicales > DJ y audio profesional"
+  },
+  {
+   "codigo": "CF160305",
+   "primaria": "Librería y Música",
+   "secundaria": "Instrumentos Musicales",
+   "terciaria": "Ukeleles",
+   "ruta": "Librería y Música > Instrumentos Musicales > Ukeleles"
+  },
+  {
+   "codigo": "CF160306",
+   "primaria": "Librería y Música",
+   "secundaria": "Instrumentos Musicales",
+   "terciaria": "Violines",
+   "ruta": "Librería y Música > Instrumentos Musicales > Violines"
+  },
+  {
+   "codigo": "CF160307",
+   "primaria": "Librería y Música",
+   "secundaria": "Instrumentos Musicales",
+   "terciaria": "Instrumentos de viento",
+   "ruta": "Librería y Música > Instrumentos Musicales > Instrumentos de viento"
+  },
+  {
+   "codigo": "CF160401",
+   "primaria": "Librería y Música",
+   "secundaria": "Discos y Vinilos",
+   "terciaria": "Clásicos",
+   "ruta": "Librería y Música > Discos y Vinilos > Clásicos"
+  },
+  {
+   "codigo": "CF160402",
+   "primaria": "Librería y Música",
+   "secundaria": "Discos y Vinilos",
+   "terciaria": "Rock",
+   "ruta": "Librería y Música > Discos y Vinilos > Rock"
+  },
+  {
+   "codigo": "CF160403",
+   "primaria": "Librería y Música",
+   "secundaria": "Discos y Vinilos",
+   "terciaria": "Pop",
+   "ruta": "Librería y Música > Discos y Vinilos > Pop"
+  },
+  {
+   "codigo": "CF160404",
+   "primaria": "Librería y Música",
+   "secundaria": "Discos y Vinilos",
+   "terciaria": "Kpop",
+   "ruta": "Librería y Música > Discos y Vinilos > Kpop"
+  },
+  {
+   "codigo": "CF160501",
+   "primaria": "Librería y Música",
+   "secundaria": "Escolar",
+   "terciaria": "Cartucheras Escolares",
+   "ruta": "Librería y Música > Escolar > Cartucheras Escolares"
+  },
+  {
+   "codigo": "CF160502",
+   "primaria": "Librería y Música",
+   "secundaria": "Escolar",
+   "terciaria": "Loncheras escolares y Bentos",
+   "ruta": "Librería y Música > Escolar > Loncheras escolares y Bentos"
+  },
+  {
+   "codigo": "CF160503",
+   "primaria": "Librería y Música",
+   "secundaria": "Escolar",
+   "terciaria": "Mochilas para niños",
+   "ruta": "Librería y Música > Escolar > Mochilas para niños"
+  },
+  {
+   "codigo": "CF160504",
+   "primaria": "Librería y Música",
+   "secundaria": "Escolar",
+   "terciaria": "Pack Escolar",
+   "ruta": "Librería y Música > Escolar > Pack Escolar"
+  },
+  {
+   "codigo": "CF160505",
+   "primaria": "Librería y Música",
+   "secundaria": "Escolar",
+   "terciaria": "Útiles escolares",
+   "ruta": "Librería y Música > Escolar > Útiles escolares"
+  },
+  {
+   "codigo": "CF170101",
+   "primaria": "Fragancias",
+   "secundaria": "Perfumes",
+   "terciaria": "Perfumes para Hombre",
+   "ruta": "Fragancias > Perfumes > Perfumes para Hombre"
+  },
+  {
+   "codigo": "CF170102",
+   "primaria": "Fragancias",
+   "secundaria": "Perfumes",
+   "terciaria": "Perfumes para Mujer",
+   "ruta": "Fragancias > Perfumes > Perfumes para Mujer"
+  },
+  {
+   "codigo": "CF170103",
+   "primaria": "Fragancias",
+   "secundaria": "Perfumes",
+   "terciaria": "Perfumes Unisex",
+   "ruta": "Fragancias > Perfumes > Perfumes Unisex"
+  },
+  {
+   "codigo": "CF170201",
+   "primaria": "Fragancias",
+   "secundaria": "Mists y Corporales",
+   "terciaria": "Body Mist",
+   "ruta": "Fragancias > Mists y Corporales > Body Mist"
+  },
+  {
+   "codigo": "CF170202",
+   "primaria": "Fragancias",
+   "secundaria": "Mists y Corporales",
+   "terciaria": "Lociones y Cremas Perfumadas",
+   "ruta": "Fragancias > Mists y Corporales > Lociones y Cremas Perfumadas"
+  },
+  {
+   "codigo": "CF170203",
+   "primaria": "Fragancias",
+   "secundaria": "Mists y Corporales",
+   "terciaria": "Geles de Baño y Ducha",
+   "ruta": "Fragancias > Mists y Corporales > Geles de Baño y Ducha"
+  },
+  {
+   "codigo": "CF170204",
+   "primaria": "Fragancias",
+   "secundaria": "Mists y Corporales",
+   "terciaria": "Aceites Corporales Aromáticos",
+   "ruta": "Fragancias > Mists y Corporales > Aceites Corporales Aromáticos"
+  },
+  {
+   "codigo": "CF170301",
+   "primaria": "Fragancias",
+   "secundaria": "Set de Regalo",
+   "terciaria": "Sets de Regalo para Mujer",
+   "ruta": "Fragancias > Set de Regalo > Sets de Regalo para Mujer"
+  },
+  {
+   "codigo": "CF170302",
+   "primaria": "Fragancias",
+   "secundaria": "Set de Regalo",
+   "terciaria": "Sets de Regalo para Hombre",
+   "ruta": "Fragancias > Set de Regalo > Sets de Regalo para Hombre"
+  },
+  {
+   "codigo": "CF170303",
+   "primaria": "Fragancias",
+   "secundaria": "Set de Regalo",
+   "terciaria": "Sets de Regalo Unisex",
+   "ruta": "Fragancias > Set de Regalo > Sets de Regalo Unisex"
+  },
+  {
+   "codigo": "CF180101",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Vitaminas y Minerales",
+   "terciaria": "Multivitamínicos",
+   "ruta": "Vitaminas y Suplementos > Vitaminas y Minerales > Multivitamínicos"
+  },
+  {
+   "codigo": "CF180102",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Vitaminas y Minerales",
+   "terciaria": "Vitamina C",
+   "ruta": "Vitaminas y Suplementos > Vitaminas y Minerales > Vitamina C"
+  },
+  {
+   "codigo": "CF180103",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Vitaminas y Minerales",
+   "terciaria": "Vitamina D",
+   "ruta": "Vitaminas y Suplementos > Vitaminas y Minerales > Vitamina D"
+  },
+  {
+   "codigo": "CF180104",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Vitaminas y Minerales",
+   "terciaria": "Complejo B",
+   "ruta": "Vitaminas y Suplementos > Vitaminas y Minerales > Complejo B"
+  },
+  {
+   "codigo": "CF180105",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Vitaminas y Minerales",
+   "terciaria": "Magnesio",
+   "ruta": "Vitaminas y Suplementos > Vitaminas y Minerales > Magnesio"
+  },
+  {
+   "codigo": "CF180106",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Vitaminas y Minerales",
+   "terciaria": "Zinc",
+   "ruta": "Vitaminas y Suplementos > Vitaminas y Minerales > Zinc"
+  },
+  {
+   "codigo": "CF180107",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Vitaminas y Minerales",
+   "terciaria": "Calcio",
+   "ruta": "Vitaminas y Suplementos > Vitaminas y Minerales > Calcio"
+  },
+  {
+   "codigo": "CF180108",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Vitaminas y Minerales",
+   "terciaria": "Hierro",
+   "ruta": "Vitaminas y Suplementos > Vitaminas y Minerales > Hierro"
+  },
+  {
+   "codigo": "CF180109",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Vitaminas y Minerales",
+   "terciaria": "Otras Vitaminas",
+   "ruta": "Vitaminas y Suplementos > Vitaminas y Minerales > Otras Vitaminas"
+  },
+  {
+   "codigo": "CF180110",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Vitaminas y Minerales",
+   "terciaria": "Vitaminas Infantiles",
+   "ruta": "Vitaminas y Suplementos > Vitaminas y Minerales > Vitaminas Infantiles"
+  },
+  {
+   "codigo": "CF180201",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Suplementos",
+   "terciaria": "Colágeno",
+   "ruta": "Vitaminas y Suplementos > Suplementos > Colágeno"
+  },
+  {
+   "codigo": "CF180202",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Suplementos",
+   "terciaria": "Omegas",
+   "ruta": "Vitaminas y Suplementos > Suplementos > Omegas"
+  },
+  {
+   "codigo": "CF180203",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Suplementos",
+   "terciaria": "Melatonina",
+   "ruta": "Vitaminas y Suplementos > Suplementos > Melatonina"
+  },
+  {
+   "codigo": "CF180204",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Suplementos",
+   "terciaria": "Salud Digestiva",
+   "ruta": "Vitaminas y Suplementos > Suplementos > Salud Digestiva"
+  },
+  {
+   "codigo": "CF180205",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Suplementos",
+   "terciaria": "Antioxidantes",
+   "ruta": "Vitaminas y Suplementos > Suplementos > Antioxidantes"
+  },
+  {
+   "codigo": "CF180206",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Suplementos",
+   "terciaria": "Aminoácidos",
+   "ruta": "Vitaminas y Suplementos > Suplementos > Aminoácidos"
+  },
+  {
+   "codigo": "CF180207",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Suplementos",
+   "terciaria": "Extractos Naturales",
+   "ruta": "Vitaminas y Suplementos > Suplementos > Extractos Naturales"
+  },
+  {
+   "codigo": "CF180208",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Suplementos",
+   "terciaria": "Otros Suplementos",
+   "ruta": "Vitaminas y Suplementos > Suplementos > Otros Suplementos"
+  },
+  {
+   "codigo": "CF180209",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Suplementos",
+   "terciaria": "Niños y bebés",
+   "ruta": "Vitaminas y Suplementos > Suplementos > Niños y bebés"
+  },
+  {
+   "codigo": "CF180210",
+   "primaria": "Vitaminas y Suplementos",
+   "secundaria": "Suplementos",
+   "terciaria": "Proteinas",
+   "ruta": "Vitaminas y Suplementos > Suplementos > Proteinas"
+  },
+  {
+   "codigo": "CF190101",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Ropa bebé",
+   "terciaria": "Abrigos y Chompas",
+   "ruta": "Bebés y Maternidad > Ropa bebé > Abrigos y Chompas"
+  },
+  {
+   "codigo": "CF190102",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Ropa bebé",
+   "terciaria": "Bodies, Vestidos y Enterizos",
+   "ruta": "Bebés y Maternidad > Ropa bebé > Bodies, Vestidos y Enterizos"
+  },
+  {
+   "codigo": "CF190103",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Ropa bebé",
+   "terciaria": "Buzos y Conjuntos",
+   "ruta": "Bebés y Maternidad > Ropa bebé > Buzos y Conjuntos"
+  },
+  {
+   "codigo": "CF190104",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Ropa bebé",
+   "terciaria": "Polos, Blusas y Camisas",
+   "ruta": "Bebés y Maternidad > Ropa bebé > Polos, Blusas y Camisas"
+  },
+  {
+   "codigo": "CF190105",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Ropa bebé",
+   "terciaria": "Pantalones y Jeans",
+   "ruta": "Bebés y Maternidad > Ropa bebé > Pantalones y Jeans"
+  },
+  {
+   "codigo": "CF190106",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Ropa bebé",
+   "terciaria": "Shorts y Faldas",
+   "ruta": "Bebés y Maternidad > Ropa bebé > Shorts y Faldas"
+  },
+  {
+   "codigo": "CF190107",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Ropa bebé",
+   "terciaria": "Pijamas y ropa interior",
+   "ruta": "Bebés y Maternidad > Ropa bebé > Pijamas y ropa interior"
+  },
+  {
+   "codigo": "CF190108",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Ropa bebé",
+   "terciaria": "Trajes para bebés",
+   "ruta": "Bebés y Maternidad > Ropa bebé > Trajes para bebés"
+  },
+  {
+   "codigo": "CF190109",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Ropa bebé",
+   "terciaria": "Accesorios",
+   "ruta": "Bebés y Maternidad > Ropa bebé > Accesorios"
+  },
+  {
+   "codigo": "CF190201",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Lactancia y Alimentación",
+   "terciaria": "Biberones y Accesorios",
+   "ruta": "Bebés y Maternidad > Lactancia y Alimentación > Biberones y Accesorios"
+  },
+  {
+   "codigo": "CF190202",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Lactancia y Alimentación",
+   "terciaria": "Extractores de leche",
+   "ruta": "Bebés y Maternidad > Lactancia y Alimentación > Extractores de leche"
+  },
+  {
+   "codigo": "CF190203",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Lactancia y Alimentación",
+   "terciaria": "Menaje para bebés",
+   "ruta": "Bebés y Maternidad > Lactancia y Alimentación > Menaje para bebés"
+  },
+  {
+   "codigo": "CF190204",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Lactancia y Alimentación",
+   "terciaria": "Molinos de Alimento",
+   "ruta": "Bebés y Maternidad > Lactancia y Alimentación > Molinos de Alimento"
+  },
+  {
+   "codigo": "CF190205",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Lactancia y Alimentación",
+   "terciaria": "Cojines y Bancos de Lactancia",
+   "ruta": "Bebés y Maternidad > Lactancia y Alimentación > Cojines y Bancos de Lactancia"
+  },
+  {
+   "codigo": "CF190301",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Seguridad y Paseo",
+   "terciaria": "Mochilas pañaleras",
+   "ruta": "Bebés y Maternidad > Seguridad y Paseo > Mochilas pañaleras"
+  },
+  {
+   "codigo": "CF190302",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Seguridad y Paseo",
+   "terciaria": "Monitores y cámaras",
+   "ruta": "Bebés y Maternidad > Seguridad y Paseo > Monitores y cámaras"
+  },
+  {
+   "codigo": "CF190303",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Seguridad y Paseo",
+   "terciaria": "Barandillas de Seguridad",
+   "ruta": "Bebés y Maternidad > Seguridad y Paseo > Barandillas de Seguridad"
+  },
+  {
+   "codigo": "CF190304",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Seguridad y Paseo",
+   "terciaria": "Mosquitero",
+   "ruta": "Bebés y Maternidad > Seguridad y Paseo > Mosquitero"
+  },
+  {
+   "codigo": "CF190305",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Seguridad y Paseo",
+   "terciaria": "Seguridad en el Baño",
+   "ruta": "Bebés y Maternidad > Seguridad y Paseo > Seguridad en el Baño"
+  },
+  {
+   "codigo": "CF190306",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Seguridad y Paseo",
+   "terciaria": "Guardias y Cerraduras",
+   "ruta": "Bebés y Maternidad > Seguridad y Paseo > Guardias y Cerraduras"
+  },
+  {
+   "codigo": "CF190307",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Seguridad y Paseo",
+   "terciaria": "Orejeras de protección auditiva",
+   "ruta": "Bebés y Maternidad > Seguridad y Paseo > Orejeras de protección auditiva"
+  },
+  {
+   "codigo": "CF190308",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Seguridad y Paseo",
+   "terciaria": "Arnéses de Seguridad",
+   "ruta": "Bebés y Maternidad > Seguridad y Paseo > Arnéses de Seguridad"
+  },
+  {
+   "codigo": "CF190309",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Seguridad y Paseo",
+   "terciaria": "Sillas de auto",
+   "ruta": "Bebés y Maternidad > Seguridad y Paseo > Sillas de auto"
+  },
+  {
+   "codigo": "CF190310",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Seguridad y Paseo",
+   "terciaria": "Sillas de comer para bebés",
+   "ruta": "Bebés y Maternidad > Seguridad y Paseo > Sillas de comer para bebés"
+  },
+  {
+   "codigo": "CF190311",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Seguridad y Paseo",
+   "terciaria": "Otros Accesorios",
+   "ruta": "Bebés y Maternidad > Seguridad y Paseo > Otros Accesorios"
+  },
+  {
+   "codigo": "CF190401",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Actividad y Entretenimiento",
+   "terciaria": "Juguetes para bebés",
+   "ruta": "Bebés y Maternidad > Actividad y Entretenimiento > Juguetes para bebés"
+  },
+  {
+   "codigo": "CF190402",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Actividad y Entretenimiento",
+   "terciaria": "Columpios, Saltarines y Bouncers",
+   "ruta": "Bebés y Maternidad > Actividad y Entretenimiento > Columpios, Saltarines y Bouncers"
+  },
+  {
+   "codigo": "CF190403",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Actividad y Entretenimiento",
+   "terciaria": "Alfombras de Juego y Gimnasios",
+   "ruta": "Bebés y Maternidad > Actividad y Entretenimiento > Alfombras de Juego y Gimnasios"
+  },
+  {
+   "codigo": "CF190404",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Actividad y Entretenimiento",
+   "terciaria": "Andaderas y caminadoras",
+   "ruta": "Bebés y Maternidad > Actividad y Entretenimiento > Andaderas y caminadoras"
+  },
+  {
+   "codigo": "CF190501",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Maternidad",
+   "terciaria": "Almohada de Embarazo",
+   "ruta": "Bebés y Maternidad > Maternidad > Almohada de Embarazo"
+  },
+  {
+   "codigo": "CF190502",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Maternidad",
+   "terciaria": "Cuidado de la piel",
+   "ruta": "Bebés y Maternidad > Maternidad > Cuidado de la piel"
+  },
+  {
+   "codigo": "CF190503",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Maternidad",
+   "terciaria": "Lencería y Ropa interior",
+   "ruta": "Bebés y Maternidad > Maternidad > Lencería y Ropa interior"
+  },
+  {
+   "codigo": "CF190504",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Maternidad",
+   "terciaria": "Ropa de Maternidad",
+   "ruta": "Bebés y Maternidad > Maternidad > Ropa de Maternidad"
+  },
+  {
+   "codigo": "CF190505",
+   "primaria": "Bebés y Maternidad",
+   "secundaria": "Maternidad",
+   "terciaria": "Dispositivos de Vigilancia Prenatal",
+   "ruta": "Bebés y Maternidad > Maternidad > Dispositivos de Vigilancia Prenatal"
+  }
+ ]
 }

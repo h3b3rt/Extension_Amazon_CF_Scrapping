@@ -35,6 +35,11 @@ jobs:
             https://api.comprafacil.pics/category/list/full-path)
           case "$status" in
             200) ;;
+            404)
+              # Endpoint aún no desplegado en producción: se conserva la lista actual sin marcar error.
+              echo "::warning::El endpoint todavía no existe (404). Se mantiene categories.json actual."
+              echo "SKIP=1" >> "$GITHUB_ENV"
+              exit 0 ;;
             401) echo "::error::401: falta el header Authorization."; exit 1 ;;
             403) echo "::error::403: el token API_TOKEN es incorrecto."; exit 1 ;;
             *)   echo "::error::La API respondió HTTP $status. Avisar a backend."; exit 1 ;;
@@ -46,6 +51,7 @@ jobs:
           echo "Categorías recibidas: $(jq '.data | length' resp.json)"
 
       - name: Guardar si hubo cambios
+        if: env.SKIP != '1'
         run: |
           if jq -e --slurpfile nuevo resp.json '.data == $nuevo[0].data' categories.json > /dev/null 2>&1; then
             echo "Sin cambios en las categorías."
