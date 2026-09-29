@@ -26,12 +26,23 @@ button.ghost{background:#e5e7eb;color:#111;padding:10px;width:auto;flex:0 0 auto
 #collection{margin-top:12px;padding:11px;background:#fff;border-radius:7px}
 .count{font-size:13px;margin-bottom:9px}
 .row{display:flex;gap:8px}
-#categoryForm{background:#fff;border-radius:7px;padding:12px}
-#categoryForm label{display:block;font-size:12px;font-weight:700;margin-bottom:6px}
-#category{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;margin-bottom:10px}
-#category:focus{outline:2px solid #ff9900;border-color:#ff9900}
-#category:disabled{background:#f3f4f6;color:#9ca3af}
-#categoryForm label.multi{display:flex;font-weight:400;margin-bottom:10px}
+.sources{list-style:none;margin:0 0 10px;padding:0;max-height:150px;overflow-y:auto;border-top:1px solid #f0f1f3}
+.sources li{font-size:12px;padding:6px 0;border-bottom:1px solid #f0f1f3;line-height:1.4}
+.sources a{color:#b45309;font-weight:700;text-decoration:none}
+.sources a:hover{text-decoration:underline}
+.sources .meta{color:#6b7280}
+.panel{background:#fff;border-radius:7px;padding:12px}
+.field-label{display:block;font-size:12px;font-weight:700;margin-bottom:6px}
+.text-input{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px}
+.text-input:focus{outline:2px solid #ff9900;border-color:#ff9900}
+.text-input:disabled{background:#f3f4f6;color:#9ca3af}
+.hint{font-size:11px;color:#6b7280;margin:5px 0 10px;word-break:break-all}
+.panel .check{margin:8px 0 10px}
+#exportForm{margin-top:10px}
+#duplicatePanel{background:#fff7e6;border:1px solid #fcd34d;border-radius:7px;padding:12px;margin-bottom:10px}
+#duplicatePanel p{margin:0 0 10px;font-size:12px;line-height:1.5;white-space:pre-line}
+#duplicatePanel .title{font-weight:700;font-size:13px;margin-bottom:6px}
+#replaceData{padding:10px;font-size:13px}
 footer{margin-top:14px;font-size:11px;color:#6b7280;display:flex;justify-content:space-between}
 footer a{color:#6b7280}
 </style>
@@ -49,11 +60,25 @@ footer a{color:#6b7280}
 
 <button id="scrape">Extraer productos</button>
 
-<form id="categoryForm" hidden>
-  <label for="category">Categoría principal de estos productos</label>
-  <input id="category" list="recentCategories" autocomplete="off" required placeholder="Ej: Audífonos inalámbricos">
+<div id="duplicatePanel" hidden>
+  <p class="title">⚠ Esta página ya fue extraída</p>
+  <p id="duplicateInfo"></p>
+  <div class="row">
+    <button id="replaceData">Reemplazar datos anteriores</button>
+    <button id="cancelDuplicate" class="ghost">Cancelar</button>
+  </div>
+</div>
+
+<form id="categoryForm" class="panel" hidden>
+  <label class="field-label" for="category">Categoría principal de estos productos</label>
+  <input id="category" class="text-input" list="recentCategories" autocomplete="off" required placeholder="Ej: Audífonos inalámbricos">
   <datalist id="recentCategories"></datalist>
-  <label class="check multi"><input type="checkbox" id="multiCategory"> Múltiples categorías (dejar vacío y completar a mano)</label>
+  <label class="check"><input type="checkbox" id="multiCategory"> Múltiples categorías (dejar vacío y completar a mano)</label>
+  <div id="fileNameGroup">
+    <label class="field-label" for="fileName">Nombre del archivo CSV</label>
+    <input id="fileName" class="text-input" autocomplete="off" placeholder="Ej: Audifonos_Hyperx">
+    <div class="hint" id="fileNamePreview"></div>
+  </div>
   <div class="row">
     <button type="submit">Extraer</button>
     <button type="button" id="cancelCategory" class="ghost">Cancelar</button>
@@ -64,10 +89,20 @@ footer a{color:#6b7280}
 
 <div id="collection" hidden>
   <div class="count"><strong id="count">0</strong> productos en la lista</div>
+  <ul id="sources" class="sources" hidden></ul>
   <div class="row">
     <button id="download" class="secondary">Descargar CSV</button>
     <button id="clear" class="ghost">Limpiar</button>
   </div>
+  <form id="exportForm" hidden>
+    <label class="field-label" for="exportName">Nombre del archivo CSV</label>
+    <input id="exportName" class="text-input" autocomplete="off" placeholder="Ej: Audifonos_Hyperx">
+    <div class="hint" id="exportNamePreview"></div>
+    <div class="row">
+      <button type="submit" class="secondary">Descargar</button>
+      <button type="button" id="cancelExport" class="ghost">Cancelar</button>
+    </div>
+  </form>
 </div>
 
 <footer><span id="configInfo"></span><a href="#" id="openOptions">Opciones</a></footer>

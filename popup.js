@@ -1,9 +1,16 @@
 import { getConfig, getConfigMeta, refreshRemoteConfig, compareVersions, extensionVersion } from './config.js';
+import { normalizeUrl, getHistory, saveHistoryEntry, formatDate } from './history.js';
 
 const $ = id => document.getElementById(id);
 const AMAZON_RE = /^https:\/\/([a-z0-9-]+\.)*amazon\.com\//i;
 const STALE_MS = 30 * 60 * 1000;
 const MAX_RECENT_CATEGORIES = 15;
+
+// Extracción en preparación: pestaña, URL normalizada y si reemplaza datos previos.
+let pending = null;
+let defaultPrefix = 'Plantilla_Scrapping';
+let updateFileNamePreview = () => {};
+let updateExportNamePreview = () => {};
 
 function showStatus(message, type = '') {
   const status = $('status');
@@ -24,6 +31,46 @@ async function renderCollection() {
   $('collection').hidden = !(prefs.accumulate || n);
   $('download').disabled = !n;
   $('clear').disabled = !n;
+  await renderSources(collected);
+}
+
+// Páginas que forman la lista actual, en orden de extracción, con su categoría
+// ("Multicategoría N" si se dejó vacía) y un enlace a la página original.
+async function renderSources(collected) {
+  const history = await getHistory();
+  const groups = new Map();
+  for (const p of Object.values(collected)) {
+    const key = p.origen || '';
+    const g = groups.get(key) || { url: key, categoria: p.categoria || '', productos: 0 };
+    g.productos++;
+    groups.set(key, g);
+  }
+  const fechaDe = g => history[g.url]?.fecha || '';
+  const sorted = [...groups.values()].sort((a, b) => fechaDe(a).localeCompare(fechaDe(b)));
+
+  let multi = 0;
+  const items = sorted.map(g => {
+    const li = document.createElement('li');
+    const nombre = g.url ? (g.categoria || `Multicategoría ${++multi}`) : 'Extracciones anteriores';
+    const titulo = history[g.url]?.titulo || g.url;
+    if (g.url) {
+      const a = document.createElement('a');
+      a.href = g.url;
+      a.target = '_blank';
+      a.title = titulo;
+      a.textContent = nombre;
+      li.append(a);
+    } else {
+      li.append(nombre);
+    }
+    const info = document.createElement('span');
+    info.className = 'meta';
+    info.textContent = ` · ${g.productos} producto${g.productos === 1 ? '' : 's'}`;
+    li.append(info);
+    return li;
+  });
+  $('sources').replaceChildren(...items);
+  $('sources').hidden = !items.length;
 }
 
 // Aviso de nueva versión y mensajes publicados en la configuración remota.
@@ -71,24 +118,89 @@ function timestamp() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
 }
 
-async function downloadCsv(products, config) {
-  const csv = buildCsv(products, config.csv);
-  const url = 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + csv);
-  const prefix = config.csv.filenamePrefix || 'Plantilla_Scrapping';
-  await chrome.downloads.download({ url, filename: `${prefix}_${timestamp()}.csv` });
+// "Audífonos HyperX" -> "Audífonos_HyperX". Quita caracteres no válidos en Windows.
+function sanitizeFileName(name) {
+  return (name || '')
+    .replace(/[<>:"/\\|?*\x00-\x1f\s]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^[_.]+|[_.]+$/g, '')
+    .slice(0, 80);
 }
 
-// Pide la categoría antes de cada extracción. Propone la última usada y
-// sugiere las recientes. (Más adelante se enlazará con las categorías del sistema.)
+// Nombre final: <nombre elegido o prefijo por defecto>_<fecha>_<hora>.csv
+function csvFileName(name) {
+  return `${sanitizeFileName(name) || defaultPrefix}_${timestamp()}.csv`;
+}
+
+function bindFileNamePreview(inputId, previewId) {
+  const update = () => { $(previewId).textContent = `Se guardará como: ${csvFileName($(inputId).value)}`; };
+  $(inputId).addEventListener('input', update);
+  return update;
+}
+
+async function downloadCsv(products, config, name = '') {
+  const csv = buildCsv(products, config.csv);
+  const url = 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + csv);
+  const filename = csvFileName(name);
+  await chrome.downloads.download({ url, filename });
+  return filename;
+}
+
+// Primer paso al pulsar "Extraer": valida la pestaña y consulta el historial.
+async function startExtraction() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) throw new Error('No se pudo identificar la pestaña.');
+    if (!AMAZON_RE.test(tab.url || '')) throw new Error('Debes abrir una página de Amazon.com.');
+    const url = normalizeUrl(tab.url, await getConfig());
+    pending = { tabId: tab.id, url, title: tab.title || '', replace: false };
+
+    const previous = (await getHistory())[url];
+    if (previous) return showDuplicate(previous);
+    askCategory();
+  } catch (error) {
+    showStatus(error.message || 'Ocurrió un error.', 'error');
+  }
+}
+
+async function showDuplicate(previous) {
+  const { collected } = await getState();
+  const enLista = Object.values(collected).filter(p => p.origen === pending.url).length;
+  $('duplicateInfo').textContent = [
+    `Fecha: ${formatDate(previous.fecha)}`,
+    `Productos: ${previous.productos}`,
+    `Categoría: ${previous.categoria || 'múltiples'}`,
+    enLista ? `En la lista actual: ${enLista} productos de esta página` : 'Sus productos ya no están en la lista actual.',
+  ].join('\n');
+  $('scrape').hidden = true;
+  $('duplicatePanel').hidden = false;
+  pending.previous = previous;
+  $('replaceData').focus();
+}
+
+function hideDuplicate() {
+  $('duplicatePanel').hidden = true;
+  $('scrape').hidden = false;
+}
+
+// Pide la categoría antes de cada extracción. Propone la última usada (o la de
+// la extracción anterior de esta página) y sugiere las recientes.
+// (Más adelante se enlazará con las categorías del sistema.)
 async function askCategory() {
   const { recentCategories = [], multiCategory = false } = await chrome.storage.local.get(['recentCategories', 'multiCategory']);
-  $('multiCategory').checked = multiCategory;
+  const previous = pending?.previous;
+  $('multiCategory').checked = previous ? !previous.categoria : multiCategory;
   const datalist = $('recentCategories');
   datalist.replaceChildren(...recentCategories.map(c => Object.assign(document.createElement('option'), { value: c })));
   $('scrape').hidden = true;
   $('categoryForm').hidden = false;
+  // En modo acumular el nombre se pide al descargar, no en cada extracción.
+  const { prefs } = await getState();
+  $('fileNameGroup').hidden = prefs.accumulate;
+  $('fileName').value = '';
+  updateFileNamePreview();
   const input = $('category');
-  input.value = recentCategories[0] || '';
+  input.value = previous?.categoria || recentCategories[0] || '';
   syncMultiCategory();
   if (!input.disabled) {
     input.focus();
@@ -115,20 +227,17 @@ async function rememberCategory(categoria) {
 }
 
 async function scrape(categoria) {
+  const { tabId, url, title, replace } = pending;
   const button = $('scrape');
   button.disabled = true;
   if (categoria) await rememberCategory(categoria);
   const { collected, prefs } = await getState();
   showStatus(prefs.autoScroll ? 'Desplazando la página y analizando productos...' : 'Analizando productos de Amazon...');
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id) throw new Error('No se pudo identificar la pestaña.');
-    if (!AMAZON_RE.test(tab.url || '')) throw new Error('Debes abrir una página de Amazon.com.');
-
     const config = await getConfig();
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['scraper.js'] });
+    await chrome.scripting.executeScript({ target: { tabId }, files: ['scraper.js'] });
     const [injection] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
+      target: { tabId },
       func: (cfg, opts) => globalThis.__amazonScraper(cfg, opts),
       args: [config, { autoScroll: prefs.autoScroll }],
     });
@@ -140,21 +249,29 @@ async function scrape(categoria) {
     if (!r.productos.length) throw new Error(`No se encontraron productos compatibles en esta página.\n\n${layoutsTxt}`);
 
     const lista = prefs.accumulate ? { ...collected } : {};
+    let eliminados = 0;
+    if (replace) {
+      for (const [asin, p] of Object.entries(lista)) {
+        if (p.origen === url) { delete lista[asin]; eliminados++; }
+      }
+    }
     let nuevos = 0;
     for (const p of r.productos) {
       if (!lista[p.asin]) nuevos++;
-      lista[p.asin] = { ...p, categoria, codCategoria: '' };
+      lista[p.asin] = { ...p, categoria, codCategoria: '', origen: url };
     }
     await chrome.storage.local.set({ collected: lista });
+    await saveHistoryEntry(url, { fecha: new Date().toISOString(), categoria, productos: r.productos.length, titulo: title });
 
     const sinImagen = r.productos.filter(p => !p.imagen).length;
     const sinPrecio = r.productos.filter(p => !p.precio).length;
-    let msg = `✓ Extracción completada\n\nCategoría: ${categoria || 'múltiples (completar a mano)'}\nProductos en esta página: ${r.productos.length}\nSin imagen: ${sinImagen}\nSin precio: ${sinPrecio}\n\n${layoutsTxt}`;
+    let msg = `✓ ${replace ? 'Datos anteriores reemplazados' : 'Extracción completada'}\n\nCategoría: ${categoria || 'múltiples (completar a mano)'}\nProductos en esta página: ${r.productos.length}\nSin imagen: ${sinImagen}\nSin precio: ${sinPrecio}\n\n${layoutsTxt}`;
     if (prefs.accumulate) {
-      msg += `\n\nNuevos añadidos: ${nuevos}\nTotal en la lista: ${Object.keys(lista).length}`;
+      if (replace) msg += `\n\nEliminados de la extracción anterior: ${eliminados}`;
+      msg += `\n${replace ? '' : '\n'}Nuevos añadidos: ${nuevos}\nTotal en la lista: ${Object.keys(lista).length}`;
     } else {
-      await downloadCsv(Object.values(lista), config);
-      msg += '\n\nCSV descargado';
+      const filename = await downloadCsv(Object.values(lista), config, pending.fileName);
+      msg += `\n\nCSV descargado: ${filename}`;
     }
     showStatus(msg, 'success');
   } catch (error) {
@@ -178,13 +295,23 @@ async function init() {
     });
   }
 
-  $('scrape').addEventListener('click', askCategory);
+  $('scrape').addEventListener('click', startExtraction);
+  $('replaceData').addEventListener('click', () => {
+    pending.replace = true;
+    hideDuplicate();
+    askCategory();
+  });
+  $('cancelDuplicate').addEventListener('click', () => {
+    pending = null;
+    hideDuplicate();
+  });
   $('categoryForm').addEventListener('submit', e => {
     e.preventDefault();
     const multi = $('multiCategory').checked;
     const categoria = multi ? '' : $('category').value.trim().replace(/\s+/g, ' ');
     if (!multi && !categoria) return $('category').focus();
     chrome.storage.local.set({ multiCategory: multi });
+    pending.fileName = $('fileName').value;
     hideCategoryForm();
     scrape(categoria);
   });
@@ -194,11 +321,25 @@ async function init() {
   });
   $('cancelCategory').addEventListener('click', hideCategoryForm);
   $('category').addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); hideCategoryForm(); } });
-  $('download').addEventListener('click', async () => {
-    const { collected } = await getState();
-    await downloadCsv(Object.values(collected), await getConfig());
-    showStatus(`CSV descargado con ${Object.keys(collected).length} productos.`, 'success');
+  updateFileNamePreview = bindFileNamePreview('fileName', 'fileNamePreview');
+  updateExportNamePreview = bindFileNamePreview('exportName', 'exportNamePreview');
+  const hideExportForm = () => { $('exportForm').hidden = true; $('download').parentElement.hidden = false; };
+  $('download').addEventListener('click', () => {
+    $('download').parentElement.hidden = true;
+    $('exportForm').hidden = false;
+    $('exportName').value = '';
+    updateExportNamePreview();
+    $('exportName').focus();
   });
+  $('exportForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const { collected } = await getState();
+    const filename = await downloadCsv(Object.values(collected), await getConfig(), $('exportName').value);
+    hideExportForm();
+    showStatus(`CSV descargado con ${Object.keys(collected).length} productos:\n${filename}`, 'success');
+  });
+  $('cancelExport').addEventListener('click', hideExportForm);
+  $('exportName').addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); hideExportForm(); } });
   $('clear').addEventListener('click', async () => {
     await chrome.storage.local.set({ collected: {} });
     showStatus('Lista vaciada.');
@@ -207,6 +348,7 @@ async function init() {
   $('openOptions').addEventListener('click', e => { e.preventDefault(); chrome.runtime.openOptionsPage(); });
 
   const config = await getConfig();
+  defaultPrefix = config.csv.filenamePrefix || defaultPrefix;
   renderBanner(config);
   renderConfigInfo(config);
   renderCollection();

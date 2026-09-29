@@ -1,6 +1,7 @@
 import {
   getConfig, getConfigMeta, getSettings, saveSettings, refreshRemoteConfig, resetRemoteConfig, extensionVersion,
 } from './config.js';
+import { getHistory, removeHistoryEntry, clearHistory, formatDate } from './history.js';
 
 const $ = id => document.getElementById(id);
 
@@ -18,6 +19,32 @@ async function renderStatus() {
   $('checkedAt').textContent = meta?.checkedAt ? new Date(meta.checkedAt).toLocaleString() : 'Nunca';
   $('result').textContent = meta ? (meta.ok ? 'OK' : meta.error || '—') : '—';
   $('result').className = meta?.ok ? 'ok' : meta?.error ? 'err' : '';
+}
+
+async function renderHistory() {
+  const entries = Object.entries(await getHistory()).sort(([, a], [, b]) => b.fecha.localeCompare(a.fecha));
+  const cell = (content) => {
+    const td = document.createElement('td');
+    td.append(content);
+    return td;
+  };
+  const rows = entries.map(([url, e]) => {
+    const tr = document.createElement('tr');
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.textContent = e.titulo || url;
+    const remove = document.createElement('button');
+    remove.className = 'ghost';
+    remove.textContent = 'Quitar';
+    remove.addEventListener('click', async () => { await removeHistoryEntry(url); renderHistory(); });
+    tr.append(cell(formatDate(e.fecha)), cell(e.categoria || 'Múltiples'), cell(String(e.productos)), cell(a), cell(remove));
+    return tr;
+  });
+  $('historyBody').replaceChildren(...rows);
+  $('historyTable').hidden = !rows.length;
+  $('historyEmpty').hidden = !!rows.length;
+  $('clearHistory').disabled = !rows.length;
 }
 
 async function check() {
@@ -58,7 +85,13 @@ async function init() {
     chrome.downloads.download({ url, filename: 'config.json' });
   });
   $('reload').addEventListener('click', () => chrome.runtime.reload());
+  $('clearHistory').addEventListener('click', async () => {
+    if (!confirm('¿Borrar todo el historial de páginas extraídas?')) return;
+    await clearHistory();
+    renderHistory();
+  });
   renderStatus();
+  renderHistory();
 }
 
 init();
