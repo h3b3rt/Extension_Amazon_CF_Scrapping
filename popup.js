@@ -1,6 +1,7 @@
 import { getConfig, getConfigMeta, refreshRemoteConfig, compareVersions, extensionVersion } from './config.js';
 import { normalizeUrl, getHistory, saveHistoryEntry, formatDate } from './history.js';
 import { getPrefs } from './prefs.js';
+import { getCachedCategories, getCategories, findCategory } from './categories.js';
 
 const $ = id => document.getElementById(id);
 const AMAZON_RE = /^https:\/\/([a-z0-9-]+\.)*amazon\.com\//i;
@@ -12,6 +13,8 @@ let pending = null;
 let defaultPrefix = 'Plantilla_Scrapping';
 let updateFileNamePreview = () => {};
 let updateExportNamePreview = () => {};
+// Categorías del sistema (en caché; vacía si la API no está configurada).
+let catalogCache = { items: [], fetchedAt: null, error: null };
 
 function showStatus(message, type = '') {
   const status = $('status');
@@ -42,7 +45,12 @@ async function renderSources(collected) {
   const groups = new Map();
   for (const p of Object.values(collected)) {
     const key = p.origen || '';
-    const g = groups.get(key) || { url: key, categoria: p.categoria || '', productos: 0 };
+    const g = groups.get(key) || {
+      url: key,
+      categoria: p.categoriaTerciaria || p.categoria || '',
+      ruta: p.categoriaRuta || '',
+      productos: 0,
+    };
     g.productos++;
     groups.set(key, g);
   }
@@ -58,7 +66,7 @@ async function renderSources(collected) {
       const a = document.createElement('a');
       a.href = g.url;
       a.target = '_blank';
-      a.title = titulo;
+      a.title = g.ruta ? `${g.ruta}\n${titulo}` : titulo;
       a.textContent = nombre;
       li.append(a);
     } else {
@@ -184,15 +192,27 @@ function hideDuplicate() {
   $('scrape').hidden = false;
 }
 
-// Pide la categoría antes de cada extracción. Propone la última usada (o la de
-// la extracción anterior de esta página) y sugiere las recientes.
-// (Más adelante se enlazará con las categorías del sistema.)
+// Pide la categoría antes de cada extracción. Con la API configurada se elige
+// de la lista del sistema (buscando por cualquier parte de la ruta o por código);
+// sin API se escribe a mano. Propone la última usada o la de la extracción
+// anterior de esta página.
 async function askCategory() {
   const { recentCategories = [], multiCategory = false } = await chrome.storage.local.get(['recentCategories', 'multiCategory']);
   const previous = pending?.previous;
   $('multiCategory').checked = previous ? !previous.categoria : multiCategory;
-  const datalist = $('recentCategories');
-  datalist.replaceChildren(...recentCategories.map(c => Object.assign(document.createElement('option'), { value: c })));
+
+  const catalog = catalogCache.items;
+  const option = (value, label) => Object.assign(document.createElement('option'), { value, label: label || '' });
+  let options;
+  if (catalog.length) {
+    const recientes = recentCategories.map(r => findCategory(catalog, r)).filter(Boolean);
+    const resto = catalog.filter(c => !recientes.includes(c));
+    options = [...recientes, ...resto].map(c => option(c.ruta, c.codigo));
+  } else {
+    options = recentCategories.map(c => option(c));
+  }
+  $('recentCategories').replaceChildren(...options);
+  $('category').placeholder = catalog.length ? 'Busca: ollas, audífonos, CF010101…' : 'Ej: Audífonos inalámbricos';
   $('scrape').hidden = true;
   $('categoryForm').hidden = false;
   // En modo acumular el nombre se pide al descargar, no en cada extracción.
@@ -201,12 +221,47 @@ async function askCategory() {
   $('fileName').value = '';
   updateFileNamePreview();
   const input = $('category');
-  input.value = previous?.categoria || recentCategories[0] || '';
+  const sugerida = previous?.categoria || recentCategories[0] || '';
+  input.value = !catalog.length || findCategory(catalog, sugerida) ? sugerida : '';
   syncMultiCategory();
+  updateCategoryHint();
   if (!input.disabled) {
     input.focus();
     input.select();
   }
+}
+
+// Debajo del campo: código de la categoría elegida, o el estado de la lista.
+function updateCategoryHint(errorText = '') {
+  const hint = $('categoryHint');
+  const catalog = catalogCache.items;
+  let text = errorText;
+  if (!text && !$('multiCategory').checked && catalog.length) {
+    const c = findCategory(catalog, $('category').value);
+    text = c ? `Código: ${c.codigo}` : `Elige una de las ${catalog.length} categorías del sistema.`;
+  }
+  if (!text && catalogCache.error) text = `⚠ ${catalogCache.error}`;
+  if (catalogCache.error && catalog.length && !errorText) {
+    text += `\n⚠ No se pudo actualizar la lista (${catalogCache.error}). Se usa la del ${formatDate(catalogCache.fetchedAt)}.`;
+  }
+  hint.textContent = text;
+  hint.className = `hint${errorText ? ' error' : ''}`;
+  hint.hidden = !text;
+}
+
+// Categoría elegida en el formulario, con los 3 niveles y el código.
+// null = múltiples categorías (columnas vacías para completar a mano).
+function readCategory() {
+  if ($('multiCategory').checked) return { ok: true, cat: null };
+  const text = $('category').value.trim().replace(/\s+/g, ' ');
+  if (!text) return { ok: false, error: 'Escribe o elige una categoría.' };
+  const catalog = catalogCache.items;
+  if (!catalog.length) {
+    return { ok: true, cat: { principal: text, secundaria: '', terciaria: '', codigo: '', ruta: text } };
+  }
+  const c = findCategory(catalog, text);
+  if (!c) return { ok: false, error: 'Esa categoría no existe en el sistema. Elígela de la lista.' };
+  return { ok: true, cat: { principal: c.primaria, secundaria: c.secundaria, terciaria: c.terciaria, codigo: c.codigo, ruta: c.ruta } };
 }
 
 // "Múltiples categorías": la columna queda vacía para completarla a mano.
@@ -227,11 +282,11 @@ async function rememberCategory(categoria) {
   await chrome.storage.local.set({ recentCategories: next.slice(0, MAX_RECENT_CATEGORIES) });
 }
 
-async function scrape(categoria) {
+async function scrape(cat) {
   const { tabId, url, title, replace } = pending;
   const button = $('scrape');
   button.disabled = true;
-  if (categoria) await rememberCategory(categoria);
+  if (cat) await rememberCategory(cat.ruta);
   const { collected, prefs } = await getState();
   showStatus(prefs.autoScroll ? 'Desplazando la página y analizando productos...' : 'Analizando productos de Amazon...');
   try {
@@ -259,14 +314,29 @@ async function scrape(categoria) {
     let nuevos = 0;
     for (const p of r.productos) {
       if (!lista[p.asin]) nuevos++;
-      lista[p.asin] = { ...p, categoria, codCategoria: '', origen: url };
+      lista[p.asin] = {
+        ...p,
+        categoria: cat?.principal || '',
+        categoriaSecundaria: cat?.secundaria || '',
+        categoriaTerciaria: cat?.terciaria || '',
+        codCategoria: cat?.codigo || '',
+        categoriaRuta: cat?.ruta || '',
+        origen: url,
+      };
     }
     await chrome.storage.local.set({ collected: lista });
-    await saveHistoryEntry(url, { fecha: new Date().toISOString(), categoria, productos: r.productos.length, titulo: title });
+    await saveHistoryEntry(url, {
+      fecha: new Date().toISOString(),
+      categoria: cat?.ruta || '',
+      codigo: cat?.codigo || '',
+      productos: r.productos.length,
+      titulo: title,
+    });
 
     const sinImagen = r.productos.filter(p => !p.imagen).length;
     const sinPrecio = r.productos.filter(p => !p.precio).length;
-    let msg = `✓ ${replace ? 'Datos anteriores reemplazados' : 'Extracción completada'}\n\nCategoría: ${categoria || 'múltiples (completar a mano)'}\nProductos en esta página: ${r.productos.length}\nSin imagen: ${sinImagen}\nSin precio: ${sinPrecio}\n\n${layoutsTxt}`;
+    const catTxt = cat ? `${cat.ruta}${cat.codigo ? ` (${cat.codigo})` : ''}` : 'múltiples (completar a mano)';
+    let msg = `✓ ${replace ? 'Datos anteriores reemplazados' : 'Extracción completada'}\n\nCategoría: ${catTxt}\nProductos en esta página: ${r.productos.length}\nSin imagen: ${sinImagen}\nSin precio: ${sinPrecio}\n\n${layoutsTxt}`;
     if (prefs.accumulate) {
       if (replace) msg += `\n\nEliminados de la extracción anterior: ${eliminados}`;
       msg += `\n${replace ? '' : '\n'}Nuevos añadidos: ${nuevos}\nTotal en la lista: ${Object.keys(lista).length}`;
@@ -299,18 +369,22 @@ async function init() {
   });
   $('categoryForm').addEventListener('submit', e => {
     e.preventDefault();
-    const multi = $('multiCategory').checked;
-    const categoria = multi ? '' : $('category').value.trim().replace(/\s+/g, ' ');
-    if (!multi && !categoria) return $('category').focus();
-    chrome.storage.local.set({ multiCategory: multi });
+    const choice = readCategory();
+    if (!choice.ok) {
+      updateCategoryHint(choice.error);
+      return $('category').focus();
+    }
+    chrome.storage.local.set({ multiCategory: $('multiCategory').checked });
     pending.fileName = $('fileName').value;
     hideCategoryForm();
-    scrape(categoria);
+    scrape(choice.cat);
   });
   $('multiCategory').addEventListener('change', () => {
     syncMultiCategory();
+    updateCategoryHint();
     if (!$('category').disabled) $('category').focus();
   });
+  $('category').addEventListener('input', () => updateCategoryHint());
   $('cancelCategory').addEventListener('click', hideCategoryForm);
   $('category').addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); hideCategoryForm(); } });
   updateFileNamePreview = bindFileNamePreview('fileName', 'fileNamePreview');
@@ -344,6 +418,13 @@ async function init() {
   renderBanner(config);
   renderConfigInfo(config);
   renderCollection();
+
+  // Categorías: primero la caché (instantáneo) y luego se refresca si está vencida.
+  catalogCache = await getCachedCategories();
+  getCategories().then(fresh => {
+    catalogCache = fresh;
+    if (!$('categoryForm').hidden) updateCategoryHint();
+  });
 
   // Si la última comprobación es antigua, refrescar en segundo plano.
   const meta = await getConfigMeta();

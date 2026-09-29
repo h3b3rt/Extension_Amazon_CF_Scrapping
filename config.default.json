@@ -1,12 +1,14 @@
 {
   "schemaVersion": 1,
-  "revision": 4,
+  "revision": 5,
   "updatedAt": "2026-09-29",
   "remoteConfigUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/config.json",
   "minExtensionVersion": "1.1.0",
-  "latestVersion": "1.3.1",
+  "latestVersion": "1.4.0",
   "downloadUrl": "https://github.com/h3b3rt/Extension_Amazon_CF_Scrapping/releases/latest",
   "notice": "",
+
+  "categoriesApiUrl": "https://api.comprafacil.pics",
 
   "productUrl": "https://www.amazon.com/dp/{asin}",
 
@@ -108,12 +110,14 @@
 
   "csv": {
     "filenamePrefix": "Plantilla_Scrapping",
-    "headers": ["PUBLICAR", "SKU HIJOS", "SKU PADRE", "MARCA", "NOMBRE AMAZON", "NOMBRE PROPUESTO", "CATEGORIA PRINCIPAL", "COD CATEGORIA", "LINK", "LINK DE IMAGEN", "IMAGEN", "PESO APROX", "PRECIO USD", "PRECIO PEN S/", "PRECIO COMPETENCIA", "STOCK SCRAPING", "PRECIO SCRAPING", "PRECIO FIJO", "SUBIDO A SISTEMA", "SUBIDO WEB", "SUBIDO RIPLEY", "SUBIDO AGORA", "SUBIDO JUNTOZ"],
+    "headers": ["PUBLICAR", "SKU HIJOS", "SKU PADRE", "MARCA", "NOMBRE AMAZON", "NOMBRE PROPUESTO", "CATEGORIA PRINCIPAL", "CATEGORIA SECUNDARIA", "CATEGORIA TERCIARIA", "COD CATEGORIA", "LINK", "LINK DE IMAGEN", "IMAGEN", "PESO APROX", "PRECIO USD", "PRECIO PEN S/", "PRECIO COMPETENCIA", "STOCK SCRAPING", "PRECIO SCRAPING", "PRECIO FIJO", "SUBIDO A SISTEMA", "SUBIDO WEB", "SUBIDO RIPLEY", "SUBIDO AGORA", "SUBIDO JUNTOZ"],
     "fields": {
       "SKU PADRE": "asin",
       "MARCA": "marca",
       "NOMBRE AMAZON": "nombre",
       "CATEGORIA PRINCIPAL": "categoria",
+      "CATEGORIA SECUNDARIA": "categoriaSecundaria",
+      "CATEGORIA TERCIARIA": "categoriaTerciaria",
       "COD CATEGORIA": "codCategoria",
       "LINK": "link",
       "LINK DE IMAGEN": "imagen",
