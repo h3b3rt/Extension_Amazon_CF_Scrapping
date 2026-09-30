@@ -1,6 +1,7 @@
 # Descarga las categorías del sistema COMPRAFACIL y actualiza categories.json.
 # Las extensiones leen ese archivo desde GitHub, así que ningún usuario necesita
-# token. El token vive solo en el secret API_TOKEN del repositorio.
+# token: el workflow inicia sesión con los secrets CF_EMAIL / CF_PASSWORD y usa
+# el JWT de sesión recibido (caduca, por eso se pide uno nuevo en cada ejecución).
 name: Actualizar categorías
 
 on:
@@ -22,27 +23,48 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Descargar categorías
+      - name: Iniciar sesión en el sistema
         env:
-          API_TOKEN: ${{ secrets.API_TOKEN }}
+          CF_EMAIL: ${{ secrets.CF_EMAIL }}
+          CF_PASSWORD: ${{ secrets.CF_PASSWORD }}
         run: |
-          if [ -z "$API_TOKEN" ]; then
-            echo "::error::Falta el secret API_TOKEN (Settings → Secrets and variables → Actions)."
+          if [ -z "$CF_EMAIL" ] || [ -z "$CF_PASSWORD" ]; then
+            # Aún sin configurar: se conserva categories.json sin marcar error.
+            echo "::warning::Faltan los secrets CF_EMAIL y/o CF_PASSWORD. Se mantiene categories.json actual."
+            echo "SKIP=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          # El body se arma con jq para que caracteres especiales de la contraseña no rompan el JSON.
+          jq -n --arg email "$CF_EMAIL" --arg password "$CF_PASSWORD" '{email: $email, password: $password}' > login.json
+          status=$(curl -sS -o login_resp.json -w '%{http_code}' -X POST \
+            -H 'Content-Type: application/json' --data @login.json \
+            https://api.comprafacil.pics/auth/user/login)
+          rm -f login.json
+          token=$(jq -r '.data.token // empty' login_resp.json 2>/dev/null)
+          rm -f login_resp.json
+          if [ "$status" != 200 ] || [ -z "$token" ]; then
+            echo "::error::No se pudo iniciar sesión (HTTP $status). Revisa CF_EMAIL / CF_PASSWORD."
             exit 1
           fi
+          echo "::add-mask::$token"
+          echo "CF_TOKEN=$token" >> "$GITHUB_ENV"
+
+      - name: Descargar categorías
+        if: env.SKIP != '1'
+        run: |
+          # JWT de inicio de sesión, sin "Bearer".
           status=$(curl -sS -o resp.json -w '%{http_code}' \
-            -H "Authorization: $API_TOKEN" \
+            -H "Authorization: $CF_TOKEN" \
             https://api.comprafacil.pics/category/list/full-path)
           case "$status" in
             200) ;;
             404)
-              # Endpoint aún no desplegado en producción: se conserva la lista actual sin marcar error.
-              echo "::warning::El endpoint todavía no existe (404). Se mantiene categories.json actual."
+              # Endpoint no disponible: se conserva la lista actual sin marcar error.
+              echo "::warning::El endpoint no existe (404). Se mantiene categories.json actual."
               echo "SKIP=1" >> "$GITHUB_ENV"
               exit 0 ;;
-            401) echo "::error::401: falta el header Authorization."; exit 1 ;;
-            403) echo "::error::403: el token API_TOKEN es incorrecto."; exit 1 ;;
-            *)   echo "::error::La API respondió HTTP $status. Avisar a backend."; exit 1 ;;
+            401|403) echo "::error::HTTP $status: la API rechazó el token de sesión."; exit 1 ;;
+            *)       echo "::error::La API respondió HTTP $status. Avisar a backend."; exit 1 ;;
           esac
           if ! jq -e '.status == true and (.data | type == "array") and (.data | length) > 0' resp.json > /dev/null; then
             echo "::error::Respuesta inesperada de la API; categories.json no se modifica."

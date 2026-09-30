@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Amazon Scraper</title>
 <style>
+[hidden]{display:none !important}
 body{width:420px;margin:0;padding:18px;box-sizing:border-box;font-family:Arial,sans-serif;background:#f7f8fa;color:#111827}
 h1{font-size:18px;margin:0 0 4px}
 .subtitle{font-size:12px;color:#6b7280;margin-bottom:14px}
@@ -40,6 +41,13 @@ button.ghost{background:#e5e7eb;color:#111;padding:10px;width:auto;flex:0 0 auto
 #categoryHint{margin-bottom:0;white-space:pre-line;word-break:normal}
 .hint.ok{color:#15803d}
 .label-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mode-switch{display:flex;gap:4px;padding:3px;background:#f3f4f6;border-radius:8px;margin-bottom:8px}
+.mode-switch .mode{flex:1;padding:6px 8px;font-size:12px;font-weight:700;background:transparent;color:#6b7280;border-radius:6px}
+.mode-switch .mode.active{background:#fff;color:#111827;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.mode-switch .mode:disabled{opacity:.45}
+.levels{display:flex;flex-direction:column;gap:6px}
+.levels select{cursor:pointer;background:#fff}
+.levels select:disabled{cursor:not-allowed}
 .link-btn{width:auto;background:none;padding:0 0 6px;font-size:12px;font-weight:700;color:#b45309;border-radius:0}
 .link-btn:hover{text-decoration:underline;opacity:1}
 .combo-list{list-style:none;margin:4px 0 0;padding:4px 0;max-height:260px;overflow-y:auto;border:1px solid #d1d5db;border-radius:7px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.08)}
@@ -78,12 +86,21 @@ footer a{color:#6b7280}
   </div>
 </div>
 
-<form id="categoryForm" class="panel" hidden>
+<form id="categoryForm" class="panel" novalidate hidden>
   <div class="label-row">
     <label class="field-label" for="category">Categoría de estos productos</label>
     <button type="button" id="refreshCats" class="link-btn" title="Volver a descargar la lista de categorías">↻ Actualizar</button>
   </div>
-  <div class="combo">
+  <div class="mode-switch" role="tablist" aria-label="Forma de elegir la categoría">
+    <button type="button" id="modeSearch" class="mode" role="tab">🔍 Buscar</button>
+    <button type="button" id="modeBrowse" class="mode" role="tab">☰ Por niveles</button>
+  </div>
+  <div id="browseGroup" class="levels" hidden>
+    <select id="level1" class="text-input" aria-label="Categoría principal"></select>
+    <select id="level2" class="text-input" aria-label="Categoría secundaria"></select>
+    <select id="level3" class="text-input" aria-label="Categoría terciaria"></select>
+  </div>
+  <div id="searchGroup" class="combo">
     <input id="category" class="text-input" autocomplete="off" spellcheck="false" required
            role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="categoryList"
            placeholder="Ej: Audífonos inalámbricos">

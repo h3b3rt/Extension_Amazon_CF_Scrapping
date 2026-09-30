@@ -18,7 +18,7 @@ Extensión para Chrome, Edge y otros navegadores Chromium (Manifest V3). Extrae 
 
 ### Lista de categorías (automática)
 
-1. El workflow [`categorias.yml`](.github/workflows/categorias.yml) consulta la API del sistema cada 3 horas y, si hubo cambios, actualiza [`categories.json`](categories.json) en este repositorio. Usa el token del secret **`API_TOKEN`** (Settings → Secrets and variables → Actions). El token nunca va en el código ni en la extensión.
+1. El workflow [`categorias.yml`](.github/workflows/categorias.yml) consulta la API del sistema cada 3 horas y, si hubo cambios, actualiza [`categories.json`](categories.json) en este repositorio. Inicia sesión en el sistema con los secrets **`CF_EMAIL`** y **`CF_PASSWORD`** (Settings → Secrets and variables → Actions) y usa el token de sesión que recibe. Las credenciales nunca van en el código ni en la extensión.
 2. Cada extensión lee `categories.json` de GitHub cada hora, o al pulsar **↻ Actualizar** en el popup. Si no hay conexión, usa la copia incluida en la extensión.
 
 Si se crea una categoría y se necesita ya: **Actions → Actualizar categorías → Run workflow**. Al terminar, pulsa **↻ Actualizar** en la extensión.

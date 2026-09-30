@@ -219,13 +219,90 @@ async function askCategory() {
   const sugerida = previous?.categoria || recentCategories[0] || '';
   combo.selected = catalog.length ? findCategory(catalog, sugerida) : null;
   input.value = catalog.length ? (combo.selected ? categoryLabel(combo.selected) : '') : sugerida;
+  const { categoryMode: savedMode = 'search' } = await chrome.storage.local.get('categoryMode');
   syncMultiCategory();
+  setCategoryMode(savedMode, { focus: false });
+  focusCategoryField();
+}
+
+// ---- Dos formas de elegir: buscador o niveles (principal → secundaria → terciaria) ----
+
+let categoryMode = 'search';
+
+function setCategoryMode(mode, { focus = true } = {}) {
+  const hasCatalog = catalogCache.items.length > 0;
+  categoryMode = hasCatalog ? mode : 'search';
+  $('modeBrowse').disabled = !hasCatalog;
+  $('modeBrowse').title = hasCatalog ? '' : 'Disponible cuando haya categorías cargadas';
+  for (const [id, m] of [['modeSearch', 'search'], ['modeBrowse', 'browse']]) {
+    $(id).classList.toggle('active', m === categoryMode);
+    $(id).setAttribute('aria-selected', String(m === categoryMode));
+  }
+  $('browseGroup').hidden = categoryMode !== 'browse';
+  $('searchGroup').hidden = categoryMode !== 'search';
+  setComboOpen(false);
+  // Lo elegido en un modo se ve en el otro.
+  if (categoryMode === 'browse') renderLevels(levelsOf(combo.selected));
+  else if (combo.selected) $('category').value = categoryLabel(combo.selected);
   updateCategoryHint();
-  if (!input.disabled) {
-    input.focus();
-    input.select();
+  if (focus) focusCategoryField();
+}
+
+// Enfoca el campo que toca completar: el buscador o el primer nivel sin elegir.
+function focusCategoryField() {
+  if ($('multiCategory').checked) return;
+  if (categoryMode === 'browse') {
+    const next = ['level1', 'level2', 'level3'].find(id => !$(id).value && !$(id).disabled) || 'level3';
+    $(next).focus();
+  } else {
+    $('category').focus();
+    $('category').select();
     renderComboList();
   }
+}
+
+const levelsOf = c => (c ? { primaria: c.primaria, secundaria: c.secundaria, codigo: c.codigo } : {});
+
+function fillSelect(select, placeholder, options, value) {
+  select.replaceChildren(
+    Object.assign(document.createElement('option'), { value: '', textContent: placeholder }),
+    ...options.map(([v, t]) => Object.assign(document.createElement('option'), { value: v, textContent: t })),
+  );
+  select.value = options.some(([v]) => v === value) ? value : '';
+}
+
+// Cada lista muestra solo las opciones del nivel superior elegido.
+function renderLevels({ primaria = '', secundaria = '', codigo = '' } = {}) {
+  const catalog = catalogCache.items;
+  const unique = values => [...new Set(values)];
+  fillSelect($('level1'), 'Categoría principal…', unique(catalog.map(c => c.primaria)).map(p => [p, p]), primaria);
+  const p = $('level1').value;
+  const secundarias = unique(catalog.filter(c => c.primaria === p).map(c => c.secundaria));
+  fillSelect($('level2'), p ? 'Categoría secundaria…' : 'Elige primero la principal', secundarias.map(s => [s, s]), secundaria);
+  const s = $('level2').value;
+  const terciarias = catalog.filter(c => c.primaria === p && c.secundaria === s);
+  fillSelect($('level3'), s ? 'Categoría terciaria…' : 'Elige primero la secundaria', terciarias.map(c => [c.codigo, c.terciaria]), codigo);
+  const multi = $('multiCategory').checked;
+  $('level1').disabled = multi;
+  $('level2').disabled = multi || !p;
+  $('level3').disabled = multi || !s;
+}
+
+function onLevelChange(e) {
+  renderLevels({ primaria: $('level1').value, secundaria: $('level2').value, codigo: $('level3').value });
+  const codigo = $('level3').value;
+  combo.selected = codigo ? catalogCache.items.find(c => c.codigo === codigo) || null : null;
+  $('category').value = combo.selected ? categoryLabel(combo.selected) : '';
+  updateCategoryHint();
+  // Avanzar al siguiente nivel en cuanto se elige uno.
+  const next = { level1: 'level2', level2: 'level3' }[e.target.id];
+  if (next && e.target.value && !$(next).disabled) $(next).focus();
+}
+
+// Tras cargar o actualizar la lista: habilitar "Por niveles" y refrescar sus opciones.
+function refreshCategoryUi() {
+  if ($('categoryForm').hidden) return;
+  setCategoryMode(categoryMode, { focus: false });
 }
 
 // ---- Buscador de categorías (lista desplegable que filtra mientras se escribe) ----
@@ -404,6 +481,7 @@ async function onRefreshCategories() {
   btn.textContent = '↻ Actualizar';
   // Si la categoría escrita existe en la lista nueva, queda elegida.
   combo.selected = findCategory(catalogCache.items, $('category').value) || null;
+  refreshCategoryUi();
   if (catalogCache.error) {
     const respaldo = catalogCache.items.length ? ` Se sigue usando la lista anterior (${catalogCache.items.length} categorías).` : '';
     updateCategoryHint(`⚠ No se pudo actualizar.${respaldo}\n${catalogCache.error}`, 'error');
@@ -417,6 +495,12 @@ async function onRefreshCategories() {
 // null = múltiples categorías (columnas vacías para completar a mano).
 function readCategory() {
   if ($('multiCategory').checked) return { ok: true, cat: null };
+  const toCat = c => ({ principal: c.primaria, secundaria: c.secundaria, terciaria: c.terciaria, codigo: c.codigo, ruta: categoryLabel(c) });
+  if (categoryMode === 'browse') {
+    return combo.selected
+      ? { ok: true, cat: toCat(combo.selected) }
+      : { ok: false, error: 'Completa los tres niveles: principal, secundaria y terciaria.' };
+  }
   const text = $('category').value.trim().replace(/\s+/g, ' ');
   if (!text) return { ok: false, error: 'Escribe o elige una categoría.' };
   const catalog = catalogCache.items;
@@ -425,14 +509,14 @@ function readCategory() {
   }
   const c = combo.selected || findCategory(catalog, text);
   if (!c) return { ok: false, error: 'Elige una categoría de la lista.' };
-  return { ok: true, cat: { principal: c.primaria, secundaria: c.secundaria, terciaria: c.terciaria, codigo: c.codigo, ruta: categoryLabel(c) } };
+  return { ok: true, cat: toCat(c) };
 }
 
-// "Múltiples categorías": la columna queda vacía para completarla a mano.
+// "Múltiples categorías": las columnas quedan vacías para completarlas a mano.
 function syncMultiCategory() {
   const multi = $('multiCategory').checked;
   $('category').disabled = multi;
-  $('category').required = !multi;
+  if (categoryMode === 'browse') renderLevels(levelsOf(combo.selected));
 }
 
 function hideCategoryForm() {
@@ -537,16 +621,26 @@ async function init() {
     const choice = readCategory();
     if (!choice.ok) {
       updateCategoryHint(choice.error);
-      return $('category').focus();
+      return focusCategoryField();
     }
     pending.fileName = $('fileName').value;
     hideCategoryForm();
     scrape(choice.cat);
   });
+  for (const [id, mode] of [['modeSearch', 'search'], ['modeBrowse', 'browse']]) {
+    $(id).addEventListener('click', () => {
+      setCategoryMode(mode);
+      chrome.storage.local.set({ categoryMode: mode });
+    });
+  }
+  for (const id of ['level1', 'level2', 'level3']) $(id).addEventListener('change', onLevelChange);
+  $('browseGroup').addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); hideCategoryForm(); }
+  });
   $('multiCategory').addEventListener('change', () => {
     syncMultiCategory();
     updateCategoryHint();
-    if (!$('category').disabled) $('category').focus();
+    focusCategoryField();
   });
   $('category').addEventListener('input', () => {
     combo.selected = null;
@@ -594,7 +688,7 @@ async function init() {
   catalogCache = await getCachedCategories();
   getCategories().then(fresh => {
     catalogCache = fresh;
-    if (!$('categoryForm').hidden) updateCategoryHint();
+    refreshCategoryUi();
     if (document.activeElement === $('category')) renderComboList();
   });
 
