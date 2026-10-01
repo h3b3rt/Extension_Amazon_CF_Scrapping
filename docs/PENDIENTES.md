@@ -1,6 +1,6 @@
 # Pendientes y próximos pasos
 
-Estado al **01/10/2026** (versión publicada: **v1.7.0**; en preparación: **v1.8.0**, Michael Kors y nombre COMPRAFACIL Scraper).
+Estado al **01/10/2026** (versión publicada: **v1.8.0**, Michael Kors y nombre COMPRAFACIL Scraper; siguiente: **v1.9.0**, con el próximo ecommerce).
 
 ## 1. Categorías automáticas desde la API ✅
 - [x] Secrets **`CF_EMAIL`** y **`CF_PASSWORD`** creados en GitHub. Ver [CATEGORIAS.md](CATEGORIAS.md).
@@ -8,23 +8,23 @@ Estado al **01/10/2026** (versión publicada: **v1.7.0**; en preparación: **v1.
 
 ## 2. Probar en Chrome real
 Varias funciones solo se probaron en simulación (jsdom) y con capturas de Chrome sin interfaz:
-- [ ] Buscador de categorías y modo **Por niveles**.
-- [ ] Botón **↻ Actualizar** categorías.
+- [x] Buscador de categorías y modo **Por niveles**.
+- [x] Botón **↻ Actualizar** categorías.
 - [ ] Historial sincronizado entre dos PCs con la misma cuenta de Google.
 - [ ] Extracción en una tienda de marca con **EditorialTile**.
 - [x] **v1.6.0:** abrir el Excel descargado en **Google Sheets** y revisar la vista previa `ref_imagen`, el desplegable de `Buscar categoria` y que `codigo_categoria` cambie al elegir otra ruta.
 - [x] **v1.7.0:** extracción en Chrome real de búsquedas y de una página de producto: un solo producto (sin sugerencias), con precio y marca. Excel de prueba revisado el 01/10/2026: 80 filas, `ref_grupo` lleno y por bloques, sin celdas `''` ni columnas del backend llenas.
 - [x] **v1.7.0:** grupos en el popup: nombrar, separar, renombrar y enlace ↗ a la página original.
 - [ ] **v1.7.0:** página de producto **sin precio** ("Currently unavailable") y la marca cuando no hay fila "Marca" (solo `#bylineInfo`, en inglés: "Visit the X Store").
-- [ ] **v1.8.0:** Michael Kors en Chrome real: un listado con **Load More** (avance en el popup y el límite respetado), una página de producto normal y una en oferta, y una página de categoría (`/women/shoes/boots/`). Confirmar que Akamai no bloquea la extracción y que el botón de escritorio se detecta.
+- [x] **v1.8.0:** Michael Kors en Chrome real (comprobado el 01/10/2026): listado con **Load More**, avance en el popup y límite respetado, y páginas de producto.
+- [x] **v1.8.0:** título del popup por sitio (*COMPRAFACIL Scraper* fuera de los sitios, con la lista de sitios disponibles).
 - [ ] **v1.8.0:** subir al sistema un Excel con filas de Michael Kors y confirmar que se crean con el SKU del link.
-- [ ] **v1.8.0:** título del popup y del icono por sitio, y la lista de sitios en otra página.
 - [ ] **v1.6.0:** subir un Excel de prueba al sistema (`POST /product/upload/list`) y confirmar que se crean los productos con su categoría y condición.
 
 ## 3. Otros ecommerce de la plantilla
 La plantilla acepta Amazon, Sephora, Marc Jacobs, Kate Spade y Michael Kors.
 - [x] **Michael Kors** (piloto, v1.8.0). El backend toma el SKU de la columna `sku` o, si falta, del link (`/<ID>.html` del pathname; ignora los parámetros). Si ambos vienen, gana `sku`. La extensión escribe los dos y saca el SKU del link, así siempre coinciden. Una fila sin SKU se descarta sin aviso.
-- [ ] Siguientes: Sephora, Marc Jacobs, Kate Spade. Por cada uno: URL de listado, de producto y de un producto en oferta, y cómo obtiene el SKU el backend. Se agregan en `config.json → sites` y en `host_permissions` (versión nueva).
+- [ ] **v1.9.0:** siguiente ecommerce (Sephora, Marc Jacobs o Kate Spade). Para cada uno hace falta: HTML de un listado, de un producto y de un producto en oferta (guardado desde Chrome con `copy(document.documentElement.outerHTML)`), y cómo obtiene el SKU el backend. Se agrega en `config.json → sites` y en `host_permissions` (versión nueva).
 - Aviso para el backend (no bloquea): `SP_CreateProductList` solo crea productos nuevos (un SKU existente se ignora) y `p_updated`/`p_created` toman `ROW_COUNT()` de `SP_GenerateUpc`, así que el conteo que devuelve no es fiable.
 
 ## 4. Publicar en Chrome Web Store (recomendado)
