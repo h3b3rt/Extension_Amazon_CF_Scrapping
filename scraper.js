@@ -137,6 +137,37 @@ globalThis.__amazonScraper = async function (config, options = {}) {
     return config.image?.fullSize ? best.replace(/\._[^/]+?_\.(jpe?g|png|webp|gif)$/i, '.$1') : best;
   }
 
+  // Marca de la página en las tiendas de marca (/stores/...): está en el
+  // breadcrumb, en og:title o en el JSON "brandName" de la página, no en cada
+  // tarjeta. Fuera de esas páginas devuelve '' para no inventar una marca.
+  function getPageBrand() {
+    const P = config.pageBrand;
+    if (!P) return '';
+    try {
+      if (P.urlPattern && !new RegExp(P.urlPattern, 'i').test(location.pathname)) return '';
+    } catch { return ''; }
+    let strip = null;
+    try { strip = P.strip ? new RegExp(P.strip, 'i') : null; } catch { /* regex inválida: no limpiar */ }
+    const clean = v => (strip ? (v || '').replace(strip, '') : v || '').replace(/\s+/g, ' ').trim();
+    const fromDom = firstValue(document, P.selectors, el => clean(el.getAttribute('content') || el.getAttribute('alt') || text(el)));
+    if (fromDom) return fromDom;
+    if (P.scriptPattern) {
+      try {
+        const re = new RegExp(P.scriptPattern);
+        for (const s of qsa(document, 'script:not([src])')) {
+          const m = (s.textContent || '').match(re);
+          if (!m) continue;
+          let v = m[1];
+          try { v = JSON.parse(`"${v}"`); } catch { /* sin escapes JSON: usar tal cual */ }
+          if (clean(v)) return clean(v);
+        }
+      } catch { /* regex inválida */ }
+    }
+    return '';
+  }
+
+  let marcaPagina = '';
+
   function parseItem(item, layout) {
     const asin = findAsin(item, layout);
     if (!asin) return null;
@@ -145,7 +176,8 @@ globalThis.__amazonScraper = async function (config, options = {}) {
     return {
       asin,
       nombre,
-      marca: firstValue(item, layout.brand, text) || nombre.split(' ')[0] || '',
+      // Sin marca segura queda vacía para completarla a mano (no se adivina).
+      marca: firstValue(item, layout.brand, text) || marcaPagina,
       imagen: getImage(firstEl(item, layout.image)),
       precio: getPrice(item, layout),
       link: (config.productUrl || 'https://www.amazon.com/dp/{asin}').replace('{asin}', asin),
@@ -168,6 +200,7 @@ globalThis.__amazonScraper = async function (config, options = {}) {
 
   try {
     if (options.autoScroll) await autoScroll(config.scroll);
+    marcaPagina = getPageBrand();
     const productos = [];
     const vistos = new Set();
     const layouts = [];
@@ -188,7 +221,7 @@ globalThis.__amazonScraper = async function (config, options = {}) {
       layouts.push({ id: layout.id, label: layout.label || layout.id, encontrados: items.length, extraidos });
     }
     console.table(productos.map(p => ({ ASIN: p.asin, MARCA: p.marca, NOMBRE: p.nombre, PRECIO: p.precio, IMAGEN: p.imagen })));
-    return { productos, layouts };
+    return { productos, layouts, marcaPagina };
   } catch (e) {
     return { error: e.message || String(e) };
   }

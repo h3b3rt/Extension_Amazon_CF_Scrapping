@@ -71,7 +71,7 @@ footer a{color:#6b7280}
 </head>
 <body>
 <h1>Amazon Product Scraper</h1>
-<div class="subtitle">Exportador CSV de productos · v<span id="version"></span></div>
+<div class="subtitle">Exportador a la plantilla de scraping · v<span id="version"></span></div>
 
 <div id="update" class="banner" hidden></div>
 
@@ -109,7 +109,7 @@ footer a{color:#6b7280}
   <div class="hint" id="categoryHint" hidden></div>
   <label class="check"><input type="checkbox" id="multiCategory"> Múltiples categorías (dejar vacío y completar a mano)</label>
   <div id="fileNameGroup">
-    <label class="field-label" for="fileName">Nombre del archivo CSV</label>
+    <label class="field-label" for="fileName">Nombre del archivo Excel</label>
     <input id="fileName" class="text-input" autocomplete="off" placeholder="Ej: Audifonos_Hyperx">
     <div class="hint" id="fileNamePreview"></div>
   </div>
@@ -125,11 +125,11 @@ footer a{color:#6b7280}
   <div class="count"><strong id="count">0</strong> productos en la lista</div>
   <ul id="sources" class="sources" hidden></ul>
   <div class="row">
-    <button id="download" class="secondary">Descargar CSV</button>
+    <button id="download" class="secondary">Descargar Excel</button>
     <button id="clear" class="ghost">Limpiar</button>
   </div>
   <form id="exportForm" hidden>
-    <label class="field-label" for="exportName">Nombre del archivo CSV</label>
+    <label class="field-label" for="exportName">Nombre del archivo Excel</label>
     <input id="exportName" class="text-input" autocomplete="off" placeholder="Ej: Audifonos_Hyperx">
     <div class="hint" id="exportNamePreview"></div>
     <div class="row">

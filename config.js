@@ -1,4 +1,4 @@
-// Configuración de selectores y formato CSV.
+// Configuración de selectores y de la salida xlsx.
 // Se empaqueta una versión por defecto (config.default.json) y se puede
 // sobrescribir con una remota. La remota solo contiene DATOS (selectores,
 // columnas, avisos): Manifest V3 no permite ejecutar código descargado.
@@ -30,8 +30,9 @@ export function validateConfig(cfg) {
   if (!Array.isArray(cfg.layouts) || !cfg.layouts.length || cfg.layouts.some(l => !l?.id || typeof l.item !== 'string')) {
     return 'El campo "layouts" es inválido.';
   }
-  if (!Array.isArray(cfg.csv?.headers) || !cfg.csv.headers.length || typeof cfg.csv.fields !== 'object') {
-    return 'El campo "csv" es inválido.';
+  // "csv" sigue en config.json solo para las versiones 1.5.x ya instaladas.
+  if (!cfg.xlsx || typeof cfg.xlsx !== 'object' || !Array.isArray(cfg.xlsx.refColumns ?? [])) {
+    return 'El campo "xlsx" es inválido.';
   }
   return '';
 }

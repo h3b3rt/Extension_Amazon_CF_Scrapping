@@ -1,6 +1,7 @@
 import { getConfig, getConfigMeta, refreshRemoteConfig, compareVersions, extensionVersion } from './config.js';
 import { normalizeUrl, getHistory, saveHistoryEntry, formatDate } from './history.js';
 import { getPrefs } from './prefs.js';
+import { buildWorkbook } from './xlsx.js';
 import {
   getCachedCategories, getCategories, refreshCategories, findCategory, searchCategories, categoryLabel, normalizeText,
   sourceLabel,
@@ -13,7 +14,8 @@ const MAX_RECENT_CATEGORIES = 15;
 
 // Extracción en preparación: pestaña, URL normalizada y si reemplaza datos previos.
 let pending = null;
-let defaultPrefix = 'Plantilla_Scrapping';
+let defaultPrefix = 'Plantilla_Scraping';
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 let updateFileNamePreview = () => {};
 let updateExportNamePreview = () => {};
 // Categorías del sistema (en caché; vacía si la API no está configurada).
@@ -114,16 +116,6 @@ function renderConfigInfo(config) {
   $('configInfo').textContent = `Config ${config._source} · rev ${config.revision ?? '?'}`;
 }
 
-function buildCsv(products, { headers, fields, defaults = {} }) {
-  const esc = v => {
-    const s = (v ?? '').toString();
-    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const rows = [headers.map(esc).join(',')];
-  for (const p of products) rows.push(headers.map(h => esc(fields[h] ? p[fields[h]] : defaults[h])).join(','));
-  return rows.join('\r\n');
-}
-
 function timestamp() {
   const d = new Date();
   const pad = n => String(n).padStart(2, '0');
@@ -139,23 +131,43 @@ function sanitizeFileName(name) {
     .slice(0, 80);
 }
 
-// Nombre final: <nombre elegido o prefijo por defecto>_<fecha>_<hora>.csv
-function csvFileName(name) {
-  return `${sanitizeFileName(name) || defaultPrefix}_${timestamp()}.csv`;
+// Nombre final: <nombre elegido o prefijo por defecto>_<fecha>_<hora>.xlsx
+function exportFileName(name) {
+  return `${sanitizeFileName(name) || defaultPrefix}_${timestamp()}.xlsx`;
 }
 
 function bindFileNamePreview(inputId, previewId) {
-  const update = () => { $(previewId).textContent = `Se guardará como: ${csvFileName($(inputId).value)}`; };
+  const update = () => { $(previewId).textContent = `Se guardará como: ${exportFileName($(inputId).value)}`; };
   $(inputId).addEventListener('input', update);
   return update;
 }
 
-async function downloadCsv(products, config, name = '') {
-  const csv = buildCsv(products, config.csv);
-  const url = 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + csv);
-  const filename = csvFileName(name);
+function toBase64(bytes) {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+// Genera el xlsx desde plantilla.xlsx con las categorías actuales en Mapeo_categorias.
+async function downloadXlsx(products, config, name = '') {
+  const template = await (await fetch(chrome.runtime.getURL('plantilla.xlsx'))).arrayBuffer();
+  const { bytes, summary } = await buildWorkbook(template, products, { config: config.xlsx, categories: catalogCache.items });
+  if (!summary.filas) throw new Error('Ningún producto tiene SKU: no se generó el archivo.');
+  const url = `data:${XLSX_MIME};base64,${toBase64(bytes)}`;
+  const filename = exportFileName(name);
   await chrome.downloads.download({ url, filename });
-  return filename;
+  return { filename, ...summary };
+}
+
+// Resumen del archivo descargado (avisos solo si hay algo que revisar).
+function exportSummary(r) {
+  const lines = [`Excel descargado: ${r.filename}`, `Filas: ${r.filas}`];
+  if (r.reacondicionados) lines.push(`Condición "Reacondicionado": ${r.reacondicionados} (revisar)`);
+  if (r.sinCategoria) lines.push(`Sin categoría (elegir en la plantilla): ${r.sinCategoria}`);
+  if (r.duplicados) lines.push(`Posibles variantes repetidas: ${r.duplicados} (ver ref_duplicado)`);
+  if (r.omitidos) lines.push(`⚠ Omitidos sin SKU: ${r.omitidos}`);
+  if (r.conGuion) lines.push(`⚠ SKU con guion: ${r.conGuion} (el sistema lo corta en el primer "-")`);
+  return lines.join('\n');
 }
 
 // Primer paso al pulsar "Extraer": valida la pestaña y consulta el historial.
@@ -584,14 +596,14 @@ async function scrape(cat) {
 
     const sinImagen = r.productos.filter(p => !p.imagen).length;
     const sinPrecio = r.productos.filter(p => !p.precio).length;
-    const catTxt = cat ? `${cat.ruta}${cat.codigo ? ` (${cat.codigo})` : ''}` : 'múltiples (completar a mano)';
-    let msg = `✓ ${replace ? 'Datos anteriores reemplazados' : 'Extracción completada'}\n\nCategoría: ${catTxt}\nProductos en esta página: ${r.productos.length}\nSin imagen: ${sinImagen}\nSin precio: ${sinPrecio}\n\n${layoutsTxt}`;
+    const catTxt = cat ? `${cat.ruta}${cat.codigo ? ` (${cat.codigo})` : ''}` : 'múltiples (elegir en la plantilla)';
+    const marcaTxt = r.marcaPagina ? `Marca de la tienda (solo referencia): ${r.marcaPagina}\n` : '';
+    let msg = `✓ ${replace ? 'Datos anteriores reemplazados' : 'Extracción completada'}\n\nCategoría: ${catTxt}\n${marcaTxt}Productos en esta página: ${r.productos.length}\nSin imagen: ${sinImagen}\nSin precio: ${sinPrecio}\n\n${layoutsTxt}`;
     if (prefs.accumulate) {
       if (replace) msg += `\n\nEliminados de la extracción anterior: ${eliminados}`;
       msg += `\n${replace ? '' : '\n'}Nuevos añadidos: ${nuevos}\nTotal en la lista: ${Object.keys(lista).length}`;
     } else {
-      const filename = await downloadCsv(Object.values(lista), config, pending.fileName);
-      msg += `\n\nCSV descargado: ${filename}`;
+      msg += `\n\n${exportSummary(await downloadXlsx(Object.values(lista), config, pending.fileName))}`;
     }
     showStatus(msg, 'success');
   } catch (error) {
@@ -665,9 +677,14 @@ async function init() {
   $('exportForm').addEventListener('submit', async e => {
     e.preventDefault();
     const { collected } = await getState();
-    const filename = await downloadCsv(Object.values(collected), await getConfig(), $('exportName').value);
-    hideExportForm();
-    showStatus(`CSV descargado con ${Object.keys(collected).length} productos:\n${filename}`, 'success');
+    try {
+      const r = await downloadXlsx(Object.values(collected), await getConfig(), $('exportName').value);
+      hideExportForm();
+      showStatus(exportSummary(r), 'success');
+    } catch (error) {
+      console.error(error);
+      showStatus(error.message || 'No se pudo generar el Excel.', 'error');
+    }
   });
   $('cancelExport').addEventListener('click', hideExportForm);
   $('exportName').addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); hideExportForm(); } });
@@ -679,7 +696,7 @@ async function init() {
   $('openOptions').addEventListener('click', e => { e.preventDefault(); chrome.runtime.openOptionsPage(); });
 
   const config = await getConfig();
-  defaultPrefix = config.csv.filenamePrefix || defaultPrefix;
+  defaultPrefix = config.xlsx?.filenamePrefix || defaultPrefix;
   renderBanner(config);
   renderConfigInfo(config);
   renderCollection();

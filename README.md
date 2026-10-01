@@ -1,6 +1,6 @@
 # Amazon Product Scraper · COMPRAFACIL
 
-Extensión para Google Chrome (Manifest V3) que extrae productos de páginas de **Amazon.com** y los exporta al **CSV de COMPRAFACIL**, con la categoría del sistema (principal, secundaria, terciaria y código).
+Extensión para Google Chrome (Manifest V3) que extrae productos de páginas de **Amazon.com** y los exporta a la **plantilla de scraping de COMPRAFACIL** (.xlsx), con la categoría del sistema y columnas de ayuda (imagen, nombre, marca, precio).
 
 ## Descargar
 
@@ -10,12 +10,12 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de páginas de 
 
 ## Qué hace
 
-- Extrae ASIN, nombre, marca, precio (sin tomar el precio tachado), imagen en alta resolución y enlace de cada producto.
+- Genera el Excel listo para subir al sistema: `ecomerce`, `sku` (ASIN), `link`, `condicion` (Nuevo / Reacondicionado), categoría y `seguimiento`. Nombre, marca, precio e imagen van solo como referencia (`ref_*`), con vista previa de la imagen en Google Sheets.
 - Funciona en resultados de búsqueda y en tiendas de marca: `ProductUIRender`, `ProductGridItem`, `ProductShowcase` y `EditorialTile`.
-- Desplaza la página sola para cargar todos los productos y acumula varias páginas en un solo CSV, sin repetir productos.
+- Desplaza la página sola para cargar todos los productos y acumula varias páginas en un solo Excel, sin repetir productos.
 - Para cada extracción pide la categoría: se puede **buscar** o elegir **por niveles**. Las 410 categorías del sistema se actualizan solas.
 - Avisa si una página ya se extrajo antes y ofrece reemplazar los datos. El historial es personal y se sincroniza con la cuenta de Google.
-- El nombre del archivo es opcional: `Audifonos_Hyperx_2026-09-30_14-35.csv`.
+- El nombre del archivo es opcional: `Audifonos_Hyperx_2026-09-30_14-35.xlsx`.
 - **Se actualiza a distancia:** los selectores de Amazon y las categorías se corrigen desde este repositorio, sin reinstalar.
 
 ## Documentación
@@ -23,7 +23,7 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de páginas de 
 | Documento | Para quién | Contenido |
 |---|---|---|
 | [INSTALACION.md](docs/INSTALACION.md) | Cualquier usuario | Instalar, actualizar y desinstalar |
-| [GUIA-DE-USO.md](docs/GUIA-DE-USO.md) | Cualquier usuario | Cómo extraer, elegir categorías, descargar el CSV y usar el historial |
+| [GUIA-DE-USO.md](docs/GUIA-DE-USO.md) | Cualquier usuario | Cómo extraer, elegir categorías, descargar el Excel y usar el historial |
 | [CATEGORIAS.md](docs/CATEGORIAS.md) | Administrador | De dónde salen las categorías, cómo se actualizan y qué configurar |
 | [CONFIGURACION-REMOTA.md](docs/CONFIGURACION-REMOTA.md) | Administrador | Corregir selectores o añadir tipos de página sin publicar una versión |
 | [DESARROLLO.md](docs/DESARROLLO.md) | Quien programa | Preparar otra PC, arquitectura, pruebas y cómo publicar versiones |
@@ -33,7 +33,9 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de páginas de 
 
 ```
 ├── manifest.json            Definición de la extensión (versión, permisos)
-├── popup.html / popup.js    Ventana principal (extraer, categoría, lista, CSV)
+├── popup.html / popup.js    Ventana principal (extraer, categoría, lista, Excel)
+├── xlsx.js                  Genera el Excel desde plantilla.xlsx
+├── plantilla.xlsx           Plantilla de scraping del sistema
 ├── options.html / options.js  Página de Opciones (estado, categorías, historial)
 ├── scraper.js               Se inyecta en Amazon y extrae los productos
 ├── config.js                Carga y validación de la configuración remota

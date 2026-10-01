@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "revision": 9,
-  "updatedAt": "2026-09-29",
+  "revision": 11,
+  "updatedAt": "2026-10-01",
   "remoteConfigUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/config.json",
   "minExtensionVersion": "1.1.0",
-  "latestVersion": "1.5.2",
+  "latestVersion": "1.6.0",
   "downloadUrl": "https://github.com/h3b3rt/Extension_Amazon_CF_Scrapping/releases/latest",
   "notice": "",
 
@@ -18,6 +18,13 @@
 
   "history": {
     "keepParams": ["k", "i", "rh", "page", "node", "bbn", "s", "field-keywords", "low-price", "high-price", "me", "srs"]
+  },
+
+  "pageBrand": {
+    "urlPattern": "^/stores/",
+    "selectors": ["nav[data-testid=\"breadcrumb\"] li:first-child [itemprop=\"name\"]", "[data-testid=\"header-logo\"] img[alt$=\" home page\"]"],
+    "strip": " home page$",
+    "scriptPattern": "\"brandName\":\"([^\"]+)\""
   },
 
   "price": {
@@ -34,8 +41,8 @@
       "item": "div[data-component-type=\"s-search-result\"]",
       "asinFrom": ["attr", "child", "link"],
       "link": ["[data-cy=\"title-recipe\"] a[href*=\"/dp/\"]", "a.s-no-outline[href*=\"/dp/\"]", "a[href*=\"/dp/\"]", "[data-cy=\"title-recipe\"] a[href]"],
-      "title": ["[data-cy=\"title-recipe\"] h2 span", "[data-cy=\"title-recipe\"] h2", "h2 span", "h2"],
-      "brand": [],
+      "title": ["[data-cy=\"title-recipe\"] a h2 span", "[data-cy=\"title-recipe\"] h2 span", "[data-cy=\"title-recipe\"] h2", "h2 span", "h2"],
+      "brand": ["[data-cy=\"title-recipe\"] div.a-row.a-color-secondary :is(h2, h5) span.a-color-base"],
       "image": ["[data-cy=\"image-container\"] img.s-image", "img.s-image"]
     },
     {
@@ -44,8 +51,8 @@
       "item": "li[class*=\"ProductUIRender__grid-item\"]",
       "asinFrom": ["attr", "child", "link"],
       "link": ["[data-cy=\"title-recipe\"] a[href*=\"/dp/\"]", "a.s-no-outline[href*=\"/dp/\"]", "a[href*=\"/dp/\"]", "[data-cy=\"title-recipe\"] a[href]"],
-      "title": ["[data-cy=\"title-recipe\"] h2 span", "[data-cy=\"title-recipe\"] h2", "h2.a-size-base span", "h2.a-size-mini span"],
-      "brand": [],
+      "title": ["[data-cy=\"title-recipe\"] a h2 span", "[data-cy=\"title-recipe\"] h2 span", "[data-cy=\"title-recipe\"] h2", "h2.a-size-base span", "h2.a-size-mini span"],
+      "brand": ["[data-cy=\"title-recipe\"] div.a-row.a-color-secondary :is(h2, h5) span.a-color-base"],
       "image": ["[data-cy=\"image-container\"] picture img", "[data-cy=\"image-container\"] img.s-image", "picture img.s-image", "img.s-image"]
     },
     {
@@ -107,6 +114,27 @@
       ]
     }
   ],
+
+  "xlsx": {
+    "filenamePrefix": "Plantilla_Scraping",
+    "ecomerce": "Amazon",
+    "seguimiento": "Scraping",
+    "condicion": {
+      "pattern": "\\b(renewed|refurbished|reacondicionad[oa]s?)\\b",
+      "match": "Reacondicionado",
+      "default": "Nuevo"
+    },
+    "imageFormula": "IMAGE({celda})",
+    "rowHeight": 60,
+    "refColumns": [
+      { "header": "ref_imagen_link", "field": "imagen", "width": 30 },
+      { "header": "ref_imagen", "imageOf": "ref_imagen_link", "width": 12 },
+      { "header": "ref_nombre", "field": "nombre", "width": 60 },
+      { "header": "ref_marca", "field": "marca", "width": 18 },
+      { "header": "ref_precio", "field": "precio", "width": 10 },
+      { "header": "ref_duplicado", "field": "duplicado", "width": 26 }
+    ]
+  },
 
   "csv": {
     "filenamePrefix": "Plantilla_Scrapping",

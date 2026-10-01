@@ -32,7 +32,7 @@ background.js: refresca la configuración al iniciar y cada 3 h (chrome.alarms)
 
 - **Sin código remoto:** todo lo que viene de GitHub son datos (JSON). El HTML nunca se construye con `innerHTML` a partir de datos remotos; se usa `textContent`.
 - **`scraper.js`** define `globalThis.__amazonScraper(config, options)` y el popup lo llama con `chrome.scripting.executeScript`. Todo lo específico de cada tipo de página está en `config.layouts`, no en el código.
-- **Módulos ES:** `popup.js`, `options.js` y `background.js` (`"type": "module"`) importan `config.js`, `categories.js`, `history.js` y `prefs.js`.
+- **Módulos ES:** `popup.js`, `options.js` y `background.js` (`"type": "module"`) importan `config.js`, `categories.js`, `history.js` y `prefs.js`. El popup importa además `xlsx.js`, que genera el Excel desde `plantilla.xlsx` sin librerías (zip con `DecompressionStream`/`CompressionStream`).
 
 ### Almacenamiento
 
@@ -48,21 +48,21 @@ background.js: refresca la configuración al iniciar y cada 3 h (chrome.alarms)
 ## Publicar una versión nueva
 
 1. Sube la versión en **tres sitios**:
-   - `manifest.json` → `"version": "1.5.3"`
-   - `config.json` y `config.default.json` → `"latestVersion": "1.5.3"` y sube `"revision"`
+   - `manifest.json` → `"version": "1.6.0"`
+   - `config.json` y `config.default.json` → `"latestVersion": "1.6.0"` y sube `"revision"`
 2. Commit y push a `main`.
 3. Crea y sube la etiqueta:
    ```powershell
-   git tag v1.5.3
-   git push origin v1.5.3
+   git tag v1.6.0
+   git push origin v1.6.0
    ```
 4. El workflow [`release.yml`](../.github/workflows/release.yml):
    - comprueba que la etiqueta coincida con `manifest.json`,
-   - genera `amazon-product-scraper-1.5.3.zip` (con `categories.json` incluido),
+   - genera `amazon-product-scraper-1.6.0.zip` (con `categories.json` y `plantilla.xlsx` incluidos),
    - lo publica en **Releases**.
 5. Las extensiones instaladas muestran el aviso de versión nueva.
 
-> Si solo cambian selectores o columnas del CSV, **no hace falta versión nueva**: basta con editar `config.json` y subir `revision`. Ver [CONFIGURACION-REMOTA.md](CONFIGURACION-REMOTA.md).
+> Si solo cambian selectores o las columnas de ayuda del Excel, **no hace falta versión nueva**: basta con editar `config.json` y subir `revision`. Ver [CONFIGURACION-REMOTA.md](CONFIGURACION-REMOTA.md).
 
 `tools/empaquetar.ps1` genera el mismo zip en `dist/` para subirlo a mano, por ejemplo a Chrome Web Store.
 
@@ -70,14 +70,19 @@ background.js: refresca la configuración al iniciar y cada 3 h (chrome.alarms)
 
 No hay suite de pruebas automáticas en el repo. Durante el desarrollo se probó así:
 
-- **Sintaxis:** `node --input-type=module --check < popup.js`, y lo mismo con cada módulo.
+- **Sintaxis:** `node --check popup.js`, y lo mismo con cada módulo. Si está bien no muestra nada. En PowerShell, todos a la vez:
+  ```powershell
+  Get-ChildItem *.js | ForEach-Object { node --check $_.FullName; if ($?) { "OK  $($_.Name)" } }
+  ```
+  Sin nombre de archivo, `node --check` se queda esperando código por teclado (salir con Ctrl+C).
+- **Excel:** generar el archivo con `buildWorkbook` en Node y leerlo con `XLSX.utils.sheet_to_json` **sin opciones**, como el backend. Comprobar que `sku`, `codigo_categoria` y `seguimiento` llegan bien y que ninguna celda llega como `''`.
 - **Scraper:** cargar `scraper.js` en **jsdom** con HTML de ejemplo de Amazon y llamar a `__amazonScraper(config)`.
 - **Popup:** ejecutar `popup.html` + módulos en jsdom con un `chrome` falso (`storage.local`/`sync`, `tabs`, `scripting`, `downloads`) y simular clics.
 - **Visual:** abrir el popup con datos de prueba en Chrome sin interfaz:
   ```powershell
   chrome --headless=new --screenshot=shot.png --window-size=420,560 file:///ruta/preview.html
   ```
-- **Siempre**, antes de publicar: probar en Chrome real una búsqueda y una tienda de marca, elegir categoría y descargar el CSV.
+- **Siempre**, antes de publicar: probar en Chrome real una búsqueda y una tienda de marca, elegir categoría, descargar el Excel, abrirlo en Google Sheets (vista previa de imágenes y desplegable de categorías) y comprobar que el sistema lo acepta.
 
 ## Convenciones
 

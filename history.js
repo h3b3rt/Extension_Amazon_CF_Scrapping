@@ -1,5 +1,5 @@
 // Historial de páginas ya extraídas, para avisar antes de agregar dos veces
-// la misma página. Se conserva aunque se vacíe la lista o se descargue el CSV.
+// la misma página. Se conserva aunque se vacíe la lista o se descargue el Excel.
 //
 // Es personal: vive en chrome.storage.sync, así que sigue a la cuenta de Google
 // del perfil de Chrome (con la sincronización activada) y cada persona ve solo
