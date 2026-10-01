@@ -27,8 +27,14 @@ export function validateConfig(cfg) {
   if (cfg.minExtensionVersion && compareVersions(extensionVersion(), cfg.minExtensionVersion) < 0) {
     return `Requiere la extensión ${cfg.minExtensionVersion} o superior.`;
   }
-  if (!Array.isArray(cfg.layouts) || !cfg.layouts.length || cfg.layouts.some(l => !l?.id || typeof l.item !== 'string')) {
-    return 'El campo "layouts" es inválido.';
+  const badLayouts = layouts => !Array.isArray(layouts) || !layouts.length || layouts.some(l => !l?.id || typeof l.item !== 'string');
+  if (badLayouts(cfg.layouts)) return 'El campo "layouts" es inválido.';
+  // "sites" (desde la v1.8.0): cada sitio con id, nombre y dominios; sus layouts, si los trae, como los generales.
+  if (cfg.sites !== undefined) {
+    if (!Array.isArray(cfg.sites) || cfg.sites.some(s => !s?.id || !s.name || !Array.isArray(s.hosts) || !s.hosts.length
+      || (s.layouts !== undefined && badLayouts(s.layouts)))) {
+      return 'El campo "sites" es inválido.';
+    }
   }
   // "csv" sigue en config.json solo para las versiones 1.5.x ya instaladas.
   if (!cfg.xlsx || typeof cfg.xlsx !== 'object' || !Array.isArray(cfg.xlsx.refColumns ?? [])) {

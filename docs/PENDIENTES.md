@@ -1,6 +1,6 @@
 # Pendientes y próximos pasos
 
-Estado al **01/10/2026** (versión publicada: **v1.6.0**; en preparación: **v1.7.0**, página de producto y grupos).
+Estado al **01/10/2026** (versión publicada: **v1.7.0**; en preparación: **v1.8.0**, Michael Kors y nombre COMPRAFACIL Scraper).
 
 ## 1. Categorías automáticas desde la API ✅
 - [x] Secrets **`CF_EMAIL`** y **`CF_PASSWORD`** creados en GitHub. Ver [CATEGORIAS.md](CATEGORIAS.md).
@@ -16,12 +16,15 @@ Varias funciones solo se probaron en simulación (jsdom) y con capturas de Chrom
 - [x] **v1.7.0:** extracción en Chrome real de búsquedas y de una página de producto: un solo producto (sin sugerencias), con precio y marca. Excel de prueba revisado el 01/10/2026: 80 filas, `ref_grupo` lleno y por bloques, sin celdas `''` ni columnas del backend llenas.
 - [x] **v1.7.0:** grupos en el popup: nombrar, separar, renombrar y enlace ↗ a la página original.
 - [ ] **v1.7.0:** página de producto **sin precio** ("Currently unavailable") y la marca cuando no hay fila "Marca" (solo `#bylineInfo`, en inglés: "Visit the X Store").
+- [ ] **v1.8.0:** Michael Kors en Chrome real: un listado con **Load More** (avance en el popup y el límite respetado), una página de producto normal y una en oferta, y una página de categoría (`/women/shoes/boots/`). Confirmar que Akamai no bloquea la extracción y que el botón de escritorio se detecta.
+- [ ] **v1.8.0:** subir al sistema un Excel con filas de Michael Kors y confirmar que se crean con el SKU del link.
+- [ ] **v1.8.0:** título del popup y del icono por sitio, y la lista de sitios en otra página.
 - [ ] **v1.6.0:** subir un Excel de prueba al sistema (`POST /product/upload/list`) y confirmar que se crean los productos con su categoría y condición.
 
 ## 3. Otros ecommerce de la plantilla
-La plantilla acepta Amazon, Sephora, Marc Jacobs, Kate Spade y Michael Kors. Hoy la extensión solo trabaja con Amazon.
-- [ ] Operaciones: una URL de listado y una fila de ejemplo llena por sitio. Elegir uno como piloto.
-- [ ] Sephora y Michael Kors: no escribir la celda `sku` cuando el ID va en el `link` (el backend no se modificará: una celda `''` hace que se pierda la fila).
+La plantilla acepta Amazon, Sephora, Marc Jacobs, Kate Spade y Michael Kors.
+- [x] **Michael Kors** (piloto, v1.8.0). El backend toma el SKU de la columna `sku` o, si falta, del link (`/<ID>.html` del pathname; ignora los parámetros). Si ambos vienen, gana `sku`. La extensión escribe los dos y saca el SKU del link, así siempre coinciden. Una fila sin SKU se descarta sin aviso.
+- [ ] Siguientes: Sephora, Marc Jacobs, Kate Spade. Por cada uno: URL de listado, de producto y de un producto en oferta, y cómo obtiene el SKU el backend. Se agregan en `config.json → sites` y en `host_permissions` (versión nueva).
 - Aviso para el backend (no bloquea): `SP_CreateProductList` solo crea productos nuevos (un SKU existente se ignora) y `p_updated`/`p_created` toman `ROW_COUNT()` de `SP_GenerateUpc`, así que el conteo que devuelve no es fiable.
 
 ## 4. Publicar en Chrome Web Store (recomendado)

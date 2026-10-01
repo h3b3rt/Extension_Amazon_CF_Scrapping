@@ -9,13 +9,16 @@ import {
   getCachedCategories, getCategories, refreshCategories, findCategory, searchCategories, categoryLabel, normalizeText,
   sourceLabel,
 } from './categories.js';
+import { appName, sitesOf, findSite, siteConfig, siteTitle, productKey, pageLabel, pageTypeByUrl } from './sites.js';
 
 const $ = id => document.getElementById(id);
-const AMAZON_RE = /^https:\/\/([a-z0-9-]+\.)*amazon\.com\//i;
 const STALE_MS = 30 * 60 * 1000;
 const MAX_RECENT_CATEGORIES = 15;
+const DEFAULT_LOAD_LIMIT = 50;
+const MAX_LOAD_LIMIT = 500;
 
-// Extracción en preparación: pestaña, URL normalizada y si reemplaza datos previos.
+// Extracción en preparación: pestaña, sitio y su configuración, URL normalizada
+// y si reemplaza datos previos.
 let pending = null;
 let defaultPrefix = 'Plantilla_Scraping';
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -211,14 +214,43 @@ function exportSummary(r) {
   return lines.join('\n');
 }
 
+// Título del popup según el sitio de la pestaña; fuera de los sitios disponibles,
+// el nombre general y la lista de sitios con su enlace.
+async function renderSite(config) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const site = findSite(config, tab?.url || '');
+  $('appTitle').textContent = site ? siteTitle(site) : appName(config);
+  $('sitesPanel').hidden = !!site;
+  $('scrape').hidden = !site;
+  const items = sitesOf(config).map(s => {
+    const li = document.createElement('li');
+    if (/^https:\/\//i.test(s.homeUrl || '')) {
+      const a = Object.assign(document.createElement('a'), { href: s.homeUrl, target: '_blank', textContent: s.name });
+      li.append(a);
+    } else {
+      li.textContent = s.name;
+    }
+    return li;
+  });
+  $('sitesList').replaceChildren(...items);
+}
+
 // Primer paso al pulsar "Extraer": valida la pestaña y consulta el historial.
 async function startExtraction() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) throw new Error('No se pudo identificar la pestaña.');
-    if (!AMAZON_RE.test(tab.url || '')) throw new Error('Debes abrir una página de Amazon.com.');
-    const url = normalizeUrl(tab.url, await getConfig());
-    pending = { tabId: tab.id, url, title: tab.title || '', replace: false };
+    const config = await getConfig();
+    const site = findSite(config, tab.url || '');
+    if (!site) throw new Error(`Abre una página de un sitio disponible: ${sitesOf(config).map(s => s.name).join(', ')}.`);
+    const cfg = siteConfig(config, site);
+    const url = normalizeUrl(tab.url, cfg);
+    pending = {
+      tabId: tab.id, url, title: tab.title || '', replace: false, site, cfg,
+      label: pageLabel(site, tab.url, tab.title || ''),
+      // Límite de productos: solo en listados de sitios con "Load More".
+      usaLimite: !!cfg.loadMore?.item && !pageTypeByUrl(cfg, tab.url),
+    };
 
     const previous = (await getHistory())[url];
     if (previous) return showDuplicate(previous);
@@ -269,9 +301,17 @@ async function askCategory() {
   $('fileName').value = '';
   updateFileNamePreview();
   // Nombre del grupo: título de la página recortado, sin repetir uno de la lista.
-  $('groupName').value = defaultGroupName(pending.title, ...groupsToCheck(groups, prefs));
+  $('groupName').value = defaultGroupName(pending.label, ...groupsToCheck(groups, prefs));
   $('groupHint').textContent = 'Se verá en la columna ref_grupo del Excel.';
   $('groupHint').className = 'hint';
+  // Máximo de productos: el último usado en este sitio, o 50.
+  $('limitGroup').hidden = !pending.usaLimite;
+  if (pending.usaLimite) {
+    const { loadLimits = {} } = await chrome.storage.local.get('loadLimits');
+    $('loadLimit').max = String(maxLimit());
+    $('loadLimit').value = String(loadLimits[pending.site.id] || pending.cfg.loadMore.defaultLimit || DEFAULT_LOAD_LIMIT);
+    setLimitHint();
+  }
   const input = $('category');
   const sugerida = previous?.categoria || recentCategories[0] || '';
   combo.selected = catalog.length ? findCategory(catalog, sugerida) : null;
@@ -588,9 +628,24 @@ function groupsToCheck(groups, prefs) {
 async function readGroupName() {
   const { groups, prefs } = await getState();
   const [existentes, excepto] = groupsToCheck(groups, prefs);
-  const nombre = cleanGroupName($('groupName').value) || defaultGroupName(pending.title, existentes, excepto);
+  const nombre = cleanGroupName($('groupName').value) || defaultGroupName(pending.label, existentes, excepto);
   if (nameTaken(existentes, nombre, excepto)) return { ok: false, error: 'Ya existe un grupo con ese nombre en la lista.' };
   return { ok: true, nombre };
+}
+
+const maxLimit = () => Number(pending?.cfg?.loadMore?.maxLimit) || MAX_LOAD_LIMIT;
+
+function setLimitHint(error = '') {
+  $('limitHint').textContent = error || `Pulsa "Load More" hasta llegar a este número (máx. ${maxLimit()}).`;
+  $('limitHint').className = `hint${error ? ' error' : ''}`;
+}
+
+// Límite del formulario (entero entre 1 y el máximo del sitio); 0 si no aplica.
+function readLimit() {
+  if (!pending.usaLimite) return { ok: true, limite: 0 };
+  const n = Number($('loadLimit').value);
+  if (!Number.isInteger(n) || n < 1 || n > maxLimit()) return { ok: false, error: `Escribe un número entero entre 1 y ${maxLimit()}.` };
+  return { ok: true, limite: n };
 }
 
 function hideCategoryForm() {
@@ -605,21 +660,29 @@ async function rememberCategory(categoria) {
   await chrome.storage.local.set({ recentCategories: next.slice(0, MAX_RECENT_CATEGORIES) });
 }
 
-async function scrape(cat, nombreGrupo) {
-  const { tabId, url, title, replace } = pending;
+// Avance de "Load More" que envía el scraper mientras carga productos.
+function onScrapeProgress(msg) {
+  if (msg?.type === 'scrapeProgress') showStatus(`Cargando productos… ${msg.cargados} de ${msg.limite}`);
+}
+
+async function scrape(cat, nombreGrupo, limite = 0) {
+  const { tabId, url, title, replace, site, cfg } = pending;
   const button = $('scrape');
   button.disabled = true;
   if (cat) await rememberCategory(cat.ruta);
   const { collected, groups, prefs } = await getState();
-  showStatus(prefs.autoScroll ? 'Desplazando la página y analizando productos...' : 'Analizando productos de Amazon...');
+  showStatus(limite ? `Cargando productos… 0 de ${limite}`
+    : prefs.autoScroll ? 'Desplazando la página y analizando productos...' : `Analizando productos de ${site.name}...`);
+  chrome.runtime.onMessage.addListener(onScrapeProgress);
   try {
     const config = await getConfig();
     await chrome.scripting.executeScript({ target: { tabId }, files: ['scraper.js'] });
     const [injection] = await chrome.scripting.executeScript({
       target: { tabId },
-      func: (cfg, opts) => globalThis.__amazonScraper(cfg, opts),
-      args: [config, { autoScroll: prefs.autoScroll }],
+      func: (c, opts) => globalThis.__cfScraper(c, opts),
+      args: [cfg, { autoScroll: prefs.autoScroll, limit: limite }],
     });
+    chrome.runtime.onMessage.removeListener(onScrapeProgress);
     const r = injection?.result;
     if (!r) throw new Error('El scraper no devolvió resultados.');
     if (r.error) throw new Error(r.error);
@@ -632,8 +695,8 @@ async function scrape(cat, nombreGrupo) {
     let eliminados = 0;
     if (replace) {
       // Reemplazar = empezar de cero: se borran los productos y el grupo de esta página.
-      for (const [asin, p] of Object.entries(lista)) {
-        if (p.origen === url) { delete lista[asin]; eliminados++; }
+      for (const [key, p] of Object.entries(lista)) {
+        if (p.origen === url) { delete lista[key]; eliminados++; }
       }
       for (const [id, g] of Object.entries(grupos)) if (g.origen === url) delete grupos[id];
     }
@@ -643,11 +706,13 @@ async function scrape(cat, nombreGrupo) {
     let movidos = 0;
     for (const p of r.productos) {
       // Mismo SKU en otro grupo: gana esta extracción (datos y grupo) y no se repite.
-      if (lista[p.asin]) movidos++;
+      const key = productKey(site, p.asin);
+      if (lista[key]) movidos++;
       else nuevos++;
-      delete lista[p.asin];
-      lista[p.asin] = {
+      delete lista[key];
+      lista[key] = {
         ...p,
+        ecomerce: cfg.ecomerce || config.xlsx?.ecomerce || site.name,
         categoria: cat?.principal || '',
         categoriaSecundaria: cat?.secundaria || '',
         categoriaTerciaria: cat?.terciaria || '',
@@ -672,7 +737,12 @@ async function scrape(cat, nombreGrupo) {
     const catTxt = cat ? `${cat.ruta}${cat.codigo ? ` (${cat.codigo})` : ''}` : 'sin llenar (elegir en la plantilla)';
     const marcaTxt = r.marcaPagina ? `Marca de la tienda (solo referencia): ${r.marcaPagina}\n` : '';
     const tipoTxt = r.tipoPagina ? `Tipo de página: ${r.tipoPagina.label}\n` : '';
-    let msg = `✓ ${replace ? 'Datos anteriores reemplazados' : 'Extracción completada'}\n\nGrupo: ${nombreGrupo}\nCategoría: ${catTxt}\n${tipoTxt}${marcaTxt}Productos en esta página: ${r.productos.length}\nSin imagen: ${sinImagen}\nSin precio: ${sinPrecio}\n\n${layoutsTxt}`;
+    const avisos = [];
+    if (r.cargaMas?.aviso) avisos.push(`⚠ ${r.cargaMas.aviso}`);
+    // Sitios con SKU en el link: un enlace sin "/<ID>.html" se omite aquí (el backend lo descartaría sin avisar).
+    if (cfg.skuFromLink && r.sinSku) avisos.push(`⚠ Omitidos sin SKU en el link: ${r.sinSku}`);
+    const cargaTxt = r.cargaMas ? `Cargados con "Load More": ${r.cargaMas.cargados} (límite ${r.cargaMas.limite})\n` : '';
+    let msg = `✓ ${replace ? 'Datos anteriores reemplazados' : 'Extracción completada'}\n\nSitio: ${site.name}\nGrupo: ${nombreGrupo}\nCategoría: ${catTxt}\n${tipoTxt}${marcaTxt}${cargaTxt}Productos en esta página: ${r.productos.length}\nSin imagen: ${sinImagen}\nSin precio: ${sinPrecio}${avisos.length ? `\n${avisos.join('\n')}` : ''}\n\n${layoutsTxt}`;
     if (prefs.accumulate) {
       if (replace) msg += `\n\nEliminados de la extracción anterior: ${eliminados}`;
       msg += `\n${replace ? '' : '\n'}Nuevos añadidos: ${nuevos}`;
@@ -686,6 +756,7 @@ async function scrape(cat, nombreGrupo) {
     console.error(error);
     showStatus(error.message || 'Ocurrió un error.', 'error');
   } finally {
+    chrome.runtime.onMessage.removeListener(onScrapeProgress);
     button.disabled = false;
     renderCollection();
   }
@@ -718,10 +789,20 @@ async function init() {
       $('groupName').focus();
       return $('groupName').select();
     }
+    const limit = readLimit();
+    if (!limit.ok) {
+      setLimitHint(limit.error);
+      return $('loadLimit').focus();
+    }
+    if (limit.limite) {
+      const { loadLimits = {} } = await chrome.storage.local.get('loadLimits');
+      await chrome.storage.local.set({ loadLimits: { ...loadLimits, [pending.site.id]: limit.limite } });
+    }
     pending.fileName = $('fileName').value;
     hideCategoryForm();
-    scrape(choice.cat, group.nombre);
+    scrape(choice.cat, group.nombre, limit.limite);
   });
+  $('loadLimit').addEventListener('input', () => setLimitHint());
   $('groupName').addEventListener('input', () => {
     $('groupHint').textContent = 'Se verá en la columna ref_grupo del Excel.';
     $('groupHint').className = 'hint';
@@ -786,6 +867,7 @@ async function init() {
   defaultPrefix = config.xlsx?.filenamePrefix || defaultPrefix;
   renderBanner(config);
   renderConfigInfo(config);
+  await renderSite(config);
   renderCollection();
 
   // Categorías: primero la caché (instantáneo) y luego se refresca si está vencida.

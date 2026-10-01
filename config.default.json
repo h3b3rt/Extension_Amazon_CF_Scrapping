@@ -1,12 +1,13 @@
 {
   "schemaVersion": 1,
-  "revision": 12,
+  "revision": 13,
   "updatedAt": "2026-10-01",
   "remoteConfigUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/config.json",
   "minExtensionVersion": "1.1.0",
-  "latestVersion": "1.7.0",
+  "latestVersion": "1.8.0",
   "downloadUrl": "https://github.com/h3b3rt/Extension_Amazon_CF_Scrapping/releases/latest",
   "notice": "",
+  "appName": "COMPRAFACIL Scraper",
 
   "categoriesUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/categories.json",
 
@@ -138,6 +139,84 @@
       "priceRoot": ["#apex_desktop", "#corePriceDisplay_desktop_feature_div", "#corePrice_feature_div"],
       "priceWhole": [".priceToPay .a-price-whole", ".apex-pricetopay-value:not(.a-text-price) .a-price-whole"],
       "priceFraction": [".priceToPay .a-price-fraction", ".apex-pricetopay-value:not(.a-text-price) .a-price-fraction"]
+    }
+  ],
+
+  "sites": [
+    {
+      "id": "amazon",
+      "name": "Amazon",
+      "title": "Amazon Product Scraper",
+      "hosts": ["amazon.com"],
+      "homeUrl": "https://www.amazon.com/",
+      "ecomerce": "Amazon"
+    },
+    {
+      "id": "michaelkors",
+      "name": "Michael Kors",
+      "title": "Michael Kors Product Scraper",
+      "hosts": ["michaelkors.com"],
+      "homeUrl": "https://www.michaelkors.com/",
+      "ecomerce": "Michael Kors",
+      "groupName": { "param": "q", "strip": ["\\s*\\|\\s*Michael Kors(\\s*\\[US\\])?\\s*$"] },
+      "skuPattern": "^[A-Z0-9]{6,20}$",
+      "skuFromLink": "/([^/]+)\\.html$",
+      "productUrl": "",
+      "pageBrand": null,
+      "price": {},
+      "image": {
+        "fullSize": false,
+        "hosts": ["assets\\.michaelkors\\.com/"],
+        "replace": [["/ECOM_Image_Medium/", "/ECOM_Image_Large/"]]
+      },
+      "history": {
+        "keepParams": ["q", "cgid", "srule", "pmin", "pmax"],
+        "keepParamsPattern": "^(prefn|prefv)\\d+$",
+        "productPattern": "/[^/]+\\.html$"
+      },
+      "loadMore": {
+        "item": ".product-grid div.product-tile-show[data-pid]",
+        "button": ["button.load-more-btn--js.desktop-load-more", "button.load-more-btn--js"],
+        "timeoutMs": 15000,
+        "delayMs": 500,
+        "defaultLimit": 50,
+        "maxLimit": 500
+      },
+      "pageTypes": [
+        {
+          "id": "producto",
+          "label": "Página de producto",
+          "urlPattern": "/[^/]+\\.html$",
+          "selectors": ["article.product-detail[data-pid] h1.product-name"],
+          "layouts": ["mk-detalle"],
+          "autoScroll": false
+        }
+      ],
+      "layouts": [
+        {
+          "id": "mk-grilla",
+          "label": "Listado",
+          "item": ".product-grid div.product-tile-show[data-pid]",
+          "asinFrom": ["link"],
+          "link": [".pdp-link a[href]", "a.product-tile-image-link[href]"],
+          "title": [".pdp-link a", ".pdp-link"],
+          "brand": [".product-brand"],
+          "image": ["img.tile-image.image-first", "img.tile-image"],
+          "priceText": [".sales .value", ".price"]
+        },
+        {
+          "id": "mk-detalle",
+          "label": "Página de producto",
+          "item": "article.product-detail[data-pid]",
+          "asinFrom": ["canonical", "url"],
+          "link": [],
+          "title": ["h1.product-name"],
+          "brand": [".product-brand"],
+          "image": ["li.large-thumbnail-0 img.zoom-image", "[data-slick-index=\"0\"] img.zoom-image", "img.zoom-image"],
+          "priceRoot": [".product-detail-content .prices", ".prices"],
+          "priceText": [".sales .value", ".price"]
+        }
+      ]
     }
   ],
 

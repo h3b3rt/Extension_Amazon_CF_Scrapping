@@ -15,14 +15,23 @@ const area = chrome.storage.sync;
 // sprefix…) son de rastreo y se descartan para comparar URLs.
 const DEFAULT_KEEP_PARAMS = ['k', 'i', 'rh', 'page', 'node', 'bbn', 's', 'field-keywords', 'low-price', 'high-price', 'me', 'srs'];
 
+// `config` es la configuración del sitio (ver sites.js): history.keepParams,
+// history.keepParamsPattern (p. ej. filtros "prefn1", "prefv1"…) y
+// history.productPattern (ruta de la página de producto, que se compara sin parámetros).
 export function normalizeUrl(raw, config = {}) {
   const u = new URL(raw);
+  const H = config.history || {};
   // Página de producto: "/Nombre/dp/ASIN/ref=…?th=1" y "/gp/product/ASIN" son la misma página.
   const asin = u.pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d)\/([A-Z0-9]{10})(?:[/?]|$)/i)?.[1];
-  if (asin) return `${u.origin}/dp/${asin.toUpperCase()}`;
-  const keep = new Set(config.history?.keepParams || DEFAULT_KEEP_PARAMS);
+  if (asin && !H.productPattern) return `${u.origin}/dp/${asin.toUpperCase()}`;
+  if (H.productPattern) {
+    try { if (new RegExp(H.productPattern, 'i').test(u.pathname)) return `${u.origin}${u.pathname}`; } catch { /* patrón remoto inválido */ }
+  }
+  const keep = new Set(H.keepParams || DEFAULT_KEEP_PARAMS);
+  let keepRe = null;
+  try { keepRe = H.keepParamsPattern ? new RegExp(H.keepParamsPattern) : null; } catch { /* patrón remoto inválido */ }
   const params = [...u.searchParams]
-    .filter(([k, v]) => keep.has(k) && !(k === 'page' && v === '1'))
+    .filter(([k, v]) => (keep.has(k) || keepRe?.test(k)) && !(k === 'page' && v === '1'))
     .sort(([a], [b]) => a.localeCompare(b));
   const path = u.pathname.replace(/\/ref=[^/]*$/, '').replace(/\/+$/, '') || '/';
   const qs = new URLSearchParams(params).toString();
@@ -77,7 +86,7 @@ function migrateLegacy() {
       await area.set(Object.fromEntries(recientes.map(([url, e]) => [keyFor(url), compact(url, e)])));
       await chrome.storage.local.remove(LEGACY_KEY);
     } catch (e) {
-      console.warn('[Amazon Scraper] No se pudo migrar el historial', e);
+      console.warn('[CF Scraper] No se pudo migrar el historial', e);
     }
   })();
   return migration;

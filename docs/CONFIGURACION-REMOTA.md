@@ -38,6 +38,8 @@ Si el archivo tiene un error, las extensiones lo **ignoran** y siguen con la úl
 | `pageBrand` | Marca de toda la página en las tiendas de marca. Solo se aplica si la ruta cumple `urlPattern` (`^/stores/`). Prueba los `selectors` en orden (breadcrumb, logo), les quita `strip` (`" home page"`) y, como respaldo, busca `scriptPattern` (el `"brandName"` del JSON de la página). Se usa en `ref_marca` cuando la tarjeta no trae marca (solo referencia). |
 | `price` | Selectores del precio estándar `.a-price`, ignorando el precio tachado. |
 | `pageTypes[]` | Páginas especiales que usan solo sus propios layouts (ver abajo). Desde la v1.7.0. |
+| `appName` | Nombre del popup fuera de los sitios disponibles (`COMPRAFACIL Scraper`). Desde la v1.8.0. |
+| `sites[]` | Sitios disponibles y lo propio de cada uno (ver abajo). Desde la v1.8.0. |
 | `layouts[]` | Tipos de página y cómo leer cada producto (ver abajo). |
 | `xlsx` | Salida Excel: prefijo del archivo, valores fijos, condición y columnas de ayuda. |
 | `csv` | Formato antiguo, solo para las versiones 1.5.x. |
@@ -100,6 +102,29 @@ Cada layout describe un contenedor de producto y cómo leer sus datos. Todos los
 - Un selector inválido no rompe nada: simplemente no encuentra elementos.
 - En el popup, tras extraer, verás `Layout: X de Y`, es decir, cuántos productos leyó de cuántos contenedores encontró. Sirve para diagnosticar.
 
+## Sitios (`sites`)
+
+Desde la v1.8.0 la extensión trabaja con varios ecommerce. Cada sitio de `sites[]` **sobrescribe** las claves generales de la configuración (`layouts`, `pageTypes`, `price`, `image`, `history`, `pageBrand`, `productUrl`…) con las suyas. Si no las trae, usa las generales, que son las de **Amazon**. Por eso Amazon sigue configurado en la raíz del archivo y las versiones 1.7.x lo leen igual (ignoran `sites`).
+
+| Clave | Uso |
+|---|---|
+| `id` / `name` | Identificador interno y nombre visible (`michaelkors` / `Michael Kors`). |
+| `title` | Título del popup y del icono en ese sitio (`Michael Kors Product Scraper`). |
+| `hosts` | Dominios del sitio; también vale cualquier subdominio (`michaelkors.com` cubre `www.michaelkors.com`). |
+| `homeUrl` | Enlace que muestra el popup en la lista de sitios disponibles. |
+| `ecomerce` | Valor de la columna `ecomerce`, **exactamente** como en el desplegable de la plantilla. |
+| `skuPattern` | Expresión regular que debe cumplir el SKU (por defecto, ASIN de 10 caracteres). |
+| `skuFromLink` | Expresión para sacar el SKU de la **ruta** del link (grupo 1). Michael Kors: `/([^/]+)\.html$`, la misma regla que usa el backend. Con esta clave el link del Excel es el enlace de donde salió el SKU. |
+| `productUrl` | Plantilla del link (`https://www.amazon.com/dp/{asin}`). Vacío = usar el enlace de donde salió el SKU. |
+| `groupName` | Nombre de grupo por defecto: `param` (parámetro de búsqueda, p. ej. `q`) y `strip` (expresiones que se quitan del título). |
+| `image.hosts` / `image.replace` | Dominios de imagen aceptados y reemplazos en la URL (`/ECOM_Image_Medium/` → `/ECOM_Image_Large/`). |
+| `history.keepParams` / `keepParamsPattern` / `productPattern` | Parámetros que identifican un listado (también por expresión, p. ej. filtros `prefn1`, `prefv1`…) y ruta de la página de producto, que se compara sin parámetros. |
+| `loadMore` | Listados con botón "Load More": `item` (tarjetas que se cuentan), `button` (selectores, se usa el primero visible), `timeoutMs` (espera por clic), `delayMs`, `defaultLimit` (50) y `maxLimit` (500). |
+
+En los layouts de un sitio, `asinFrom` admite además `canonical` (SKU del `<link rel="canonical">`) y `url` (SKU de la URL de la pestaña); `skuAttr` cambia el atributo que lee `attr` (por defecto `data-asin`).
+
+**Añadir un sitio nuevo** requiere versión nueva: hay que agregar su dominio a `host_permissions` en `manifest.json`. Después, sus selectores se corrigen solo con `config.json`.
+
 ## Salida Excel (`xlsx`)
 
 El archivo se genera desde `plantilla.xlsx`, una copia de la plantilla de scraping del sistema incluida en la extensión. Las columnas se buscan **por nombre** en la fila 1, no por posición. La hoja `Mapeo_categorias` se llena con las categorías actuales.
@@ -123,7 +148,7 @@ El archivo se genera desde `plantilla.xlsx`, una copia de la plantilla de scrapi
 | Clave | Uso |
 |---|---|
 | `filenamePrefix` | Nombre del archivo si no se escribe uno. |
-| `ecomerce` / `seguimiento` | Valores fijos de esas columnas. |
+| `ecomerce` / `seguimiento` | Valores fijos de esas columnas. Desde la v1.8.0, `ecomerce` sale del sitio de cada producto (`sites[].ecomerce`); este valor queda solo para los productos de versiones anteriores. |
 | `condicion` | Si el título cumple `pattern` (sin distinguir mayúsculas) se escribe `match`; si no, `default`. |
 | `imageFormula` | Fórmula de la vista previa; `{celda}` se reemplaza por la celda con la URL. |
 | `rowHeight` | Alto de las filas de productos, para que se vea la imagen. `0` = alto normal. |

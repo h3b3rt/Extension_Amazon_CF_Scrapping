@@ -16,9 +16,9 @@ Guía para cualquier persona del equipo. No se necesitan conocimientos técnicos
 4. En Chrome escribe en la barra de direcciones: `chrome://extensions`
 5. Activa **Modo de desarrollador** (interruptor arriba a la derecha).
 6. Pulsa **Cargar descomprimida** y elige la carpeta del paso 3. Debe quedar la carpeta que contiene `manifest.json`.
-7. Fija el icono: pulsa el puzzle 🧩 junto a la barra de direcciones y luego el pin 📌 de **Amazon Product Scraper**.
+7. Fija el icono: pulsa el puzzle 🧩 junto a la barra de direcciones y luego el pin 📌 de **COMPRAFACIL Scraper** (hasta la v1.7.0 se llamaba *Amazon Product Scraper*).
 
-Listo. Abre cualquier búsqueda de Amazon.com y pulsa el icono naranja de la bolsa.
+Listo. Abre una búsqueda de Amazon.com o de Michael Kors y pulsa el icono naranja de la bolsa.
 
 ## Actualizar a una versión nueva
 
@@ -30,6 +30,8 @@ Cuando haya una versión nueva, el popup de la extensión muestra: *"Hay una nue
 
 Tu lista en curso y tu historial se conservan.
 
+> **v1.8.0:** la extensión cambia de nombre a **COMPRAFACIL Scraper** y pide permiso para `michaelkors.com`. Si Chrome muestra un aviso de permisos nuevos, acéptalo.
+
 > **Alternativa con script:** desde PowerShell, en la carpeta de la extensión:
 > ```powershell
 > powershell -ExecutionPolicy Bypass -File tools\actualizar.ps1 -Url <enlace-del-zip>
@@ -38,15 +40,16 @@ Tu lista en curso y tu historial se conservan.
 
 ## Lo que se actualiza solo, sin reinstalar
 
-- **Selectores de Amazon:** si Amazon cambia su página, la corrección llega sola en unas horas. Para forzarla: **Opciones → Comprobar ahora**.
+- **Selectores de cada sitio:** si Amazon o Michael Kors cambian su página, la corrección llega sola en unas horas. Para forzarla: **Opciones → Comprobar ahora**.
 - **Categorías:** se revisan cada hora. Para forzarlas: **↻ Actualizar** en el formulario de categoría.
 
 ## Problemas frecuentes
 
 | Problema | Solución |
 |---|---|
-| "Debes abrir una página de Amazon.com" | La pestaña activa debe ser de `amazon.com` (no .es, .mx, etc.). |
-| "No se encontraron productos compatibles" | El resumen dice qué tipo de página encontró. Avisa al administrador con el enlace de la página: puede ser un diseño nuevo de Amazon. |
+| "Abre una página de un sitio disponible" | La pestaña activa debe ser de `amazon.com` (no .es, .mx, etc.) o de `michaelkors.com`. El popup muestra los sitios disponibles con su enlace. |
+| "No se encontraron productos compatibles" | El resumen dice qué tipo de página encontró. Avisa al administrador con el enlace de la página: puede ser un diseño nuevo del sitio. |
+| "Load More dejó de responder" | El botón de Michael Kors no cargó más productos en 15 segundos (conexión lenta o fin de la lista). Se extrae lo cargado; vuelve a intentar con **Reemplazar datos anteriores** si faltan productos. |
 | No aparecen categorías en el buscador | Pulsa **↻ Actualizar**. Si falla, revisa tu conexión o avisa al administrador. |
 | La extensión desapareció tras reiniciar | Comprueba que la carpeta sigue en su sitio y que el **Modo de desarrollador** sigue activo. |
 | Chrome muestra "Desactivar extensiones en modo de desarrollador" | Es un aviso normal para extensiones instaladas desde carpeta. Pulsa la **X** (no "Desactivar"). |

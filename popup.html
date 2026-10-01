@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Amazon Scraper</title>
+<title>COMPRAFACIL Scraper</title>
 <style>
 [hidden]{display:none !important}
 body{width:420px;margin:0;padding:18px;box-sizing:border-box;font-family:Arial,sans-serif;background:#f7f8fa;color:#111827}
@@ -30,6 +30,10 @@ button.ghost{background:#e5e7eb;color:#111;padding:10px;width:auto;flex:0 0 auto
 .sources li{font-size:12px;padding:6px 0;border-bottom:1px solid #f0f1f3;line-height:1.4}
 .sources a{color:#b45309;font-weight:700;text-decoration:none}
 .sources a:hover{text-decoration:underline}
+.sites-title{margin:0 0 8px;font-size:13px;font-weight:700}
+.sites-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.sites-list a{display:inline-block;padding:6px 10px;border:1px solid #fcd34d;border-radius:7px;background:#fff7e6;color:#b45309;font-size:12px;font-weight:700;text-decoration:none}
+.sites-list a:hover{background:#ffedc2}
 .sources .meta{color:#6b7280}
 .sources .group-name{color:#b45309;font-weight:700;cursor:text;user-select:none}
 .sources .open-page{font-weight:400}
@@ -74,10 +78,15 @@ footer a{color:#6b7280}
 </style>
 </head>
 <body>
-<h1>Amazon Product Scraper</h1>
+<h1 id="appTitle">COMPRAFACIL Scraper</h1>
 <div class="subtitle">Exportador a la plantilla de scraping · v<span id="version"></span></div>
 
 <div id="update" class="banner" hidden></div>
+
+<div id="sitesPanel" class="panel" hidden>
+  <p class="sites-title">Abre una página de un sitio disponible:</p>
+  <ul id="sitesList" class="sites-list"></ul>
+</div>
 
 <button id="scrape">Extraer productos</button>
 
@@ -115,6 +124,11 @@ footer a{color:#6b7280}
   <label class="field-label" for="groupName">Nombre del grupo</label>
   <input id="groupName" class="text-input" autocomplete="off" maxlength="60" placeholder="Ej: Audífonos HyperX">
   <div class="hint" id="groupHint"></div>
+  <div id="limitGroup" hidden>
+    <label class="field-label" for="loadLimit">Máximo de productos</label>
+    <input id="loadLimit" class="text-input" type="number" min="1" step="1" inputmode="numeric">
+    <div class="hint" id="limitHint"></div>
+  </div>
   <div id="fileNameGroup">
     <label class="field-label" for="fileName">Nombre del archivo Excel</label>
     <input id="fileName" class="text-input" autocomplete="off" placeholder="Ej: Audifonos_Hyperx">

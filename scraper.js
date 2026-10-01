@@ -1,10 +1,13 @@
-// Se inyecta en la pestaña de Amazon. Registra una función global que recibe la
-// configuración (layouts y selectores, posiblemente remota) y devuelve los
-// productos encontrados. Toda la lógica específica de cada layout vive en la
-// configuración, así que un cambio de HTML en Amazon se corrige sin publicar
-// una nueva versión de la extensión.
-globalThis.__amazonScraper = async function (config, options = {}) {
-  const ASIN_RE = /^[A-Z0-9]{10}$/;
+// Se inyecta en la pestaña del sitio (Amazon, Michael Kors…). Registra una función
+// global que recibe la configuración del sitio (layouts y selectores, posiblemente
+// remota) y devuelve los productos encontrados. Toda la lógica específica de cada
+// layout vive en la configuración, así que un cambio de HTML se corrige sin
+// publicar una nueva versión de la extensión.
+//
+// El SKU se guarda en el campo `asin` (nombre heredado de cuando solo había Amazon).
+globalThis.__cfScraper = async function (config, options = {}) {
+  let SKU_RE = /^[A-Z0-9]{10}$/;
+  try { if (config.skuPattern) SKU_RE = new RegExp(config.skuPattern); } catch { /* patrón remoto inválido */ }
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const list = v => (Array.isArray(v) ? v : v ? [v] : []);
   const text = el => (el?.textContent || '').replace(/\s+/g, ' ').trim();
@@ -25,32 +28,47 @@ globalThis.__amazonScraper = async function (config, options = {}) {
     return '';
   };
 
-  function asinFromUrl(url) {
+  // Con skuPattern propio el SKU se respeta tal cual; el ASIN de Amazon va en mayúsculas.
+  const valid = v => { v = (v || '').trim(); if (!config.skuPattern) v = v.toUpperCase(); return SKU_RE.test(v) ? v : ''; };
+  const absolute = href => { try { return new URL(href, location.href).href; } catch { return ''; } };
+
+  // SKU dentro de un enlace. Con skuFromLink (p. ej. Michael Kors: "/<ID>.html")
+  // se busca solo en la ruta, igual que el backend; si no, el /dp/ASIN de Amazon.
+  function skuFromUrl(url) {
     if (!url) return '';
+    if (config.skuFromLink) {
+      try { return valid(new URL(url, location.href).pathname.match(new RegExp(config.skuFromLink, 'i'))?.[1]); } catch { return ''; }
+    }
     let u = url;
     try { u = decodeURIComponent(url); } catch { /* URL mal codificada: usar tal cual */ }
     const m = u.match(/\/(?:dp|gp\/product|gp\/aw\/d)\/([A-Z0-9]{10})/i);
     return m ? m[1].toUpperCase() : '';
   }
 
+  // { asin, url }: el SKU y, si salió de un enlace, ese enlace (para el link del Excel).
   function findAsin(item, layout) {
-    const valid = v => { v = (v || '').trim().toUpperCase(); return ASIN_RE.test(v) ? v : ''; };
     for (const source of list(layout.asinFrom || ['attr', 'child', 'csaItemId', 'link'])) {
       let asin = '';
-      if (source === 'attr') asin = valid(item.getAttribute('data-asin'));
+      let url = '';
+      if (source === 'attr') asin = valid(item.getAttribute(layout.skuAttr || 'data-asin'));
       else if (source === 'child') asin = valid(qs(item, '[data-asin]:not([data-asin=""])')?.getAttribute('data-asin'));
       // Página de producto: campo oculto del formulario de compra (variante seleccionada).
       else if (source === 'input') asin = valid(firstValue(item, layout.asinInput, el => el.value || el.getAttribute('value')));
-      else if (source === 'url') asin = asinFromUrl(location.pathname);
+      else if (source === 'url') { url = location.href; asin = skuFromUrl(url); }
+      else if (source === 'canonical') { url = absolute(qs(document, 'link[rel="canonical"]')?.getAttribute('href') || ''); asin = skuFromUrl(url); }
       else if (source === 'csaItemId') {
         const m = (item.getAttribute('data-csa-c-item-id') || '').match(/amzn1\.asin\.([A-Z0-9]{10})/i);
         asin = m ? m[1].toUpperCase() : '';
       } else if (source === 'link') {
-        for (const sel of list(layout.link)) { asin = asinFromUrl(qs(item, sel)?.getAttribute('href')); if (asin) break; }
+        for (const sel of list(layout.link)) {
+          url = absolute(qs(item, sel)?.getAttribute('href') || '');
+          asin = skuFromUrl(url);
+          if (asin) break;
+        }
       }
-      if (asin) return asin;
+      if (asin) return { asin, url };
     }
-    return '';
+    return null;
   }
 
   function parseAmount(str) {
@@ -93,14 +111,19 @@ globalThis.__amazonScraper = async function (config, options = {}) {
     return '';
   }
 
+  // Dominios de imagen válidos del sitio (por defecto, los de Amazon).
+  const imageHosts = list(config.image?.hosts).length ? list(config.image.hosts) : ['media-amazon\\.com/images/', 'images-amazon\\.com'];
+  const isImageUrl = url => imageHosts.some(h => { try { return new RegExp(h, 'i').test(url); } catch { return false; } });
+
   function getImage(img) {
     if (!img) return '';
     const candidates = [];
     const add = (url, resolution = 0, priority = 0) => {
       if (!url) return;
       url = url.trim().replace(/^["']|["']$/g, '');
+      // Los marcadores de carga diferida (data:image/…) no pasan este filtro.
       if (!/^https?:\/\//i.test(url)) return;
-      if (!/media-amazon\.com\/images\/|images-amazon\.com/i.test(url)) return;
+      if (!isImageUrl(url)) return;
       candidates.push({ url, resolution, priority });
     };
     const addSrcset = (srcset, priority = 0) => {
@@ -139,9 +162,14 @@ globalThis.__amazonScraper = async function (config, options = {}) {
       const e = unique.get(c.url);
       if (!e || c.priority > e.priority || (c.priority === e.priority && c.resolution > e.resolution)) unique.set(c.url, c);
     }
-    const best = [...unique.values()].sort((a, b) => b.resolution - a.resolution || b.priority - a.priority)[0].url;
+    let best = [...unique.values()].sort((a, b) => b.resolution - a.resolution || b.priority - a.priority)[0].url;
     // "…/I/71abc._AC_UL320_.jpg" -> "…/I/71abc.jpg" (imagen original en alta resolución)
-    return config.image?.fullSize ? best.replace(/\._[^/]+?_\.(jpe?g|png|webp|gif)$/i, '.$1') : best;
+    if (config.image?.fullSize) best = best.replace(/\._[^/]+?_\.(jpe?g|png|webp|gif)$/i, '.$1');
+    // Reemplazos del sitio, p. ej. "/ECOM_Image_Medium/" -> "/ECOM_Image_Large/".
+    for (const [from, to] of list(config.image?.replace)) {
+      try { best = best.replace(new RegExp(from, 'i'), to ?? ''); } catch { /* patrón remoto inválido */ }
+    }
+    return best;
   }
 
   // Marca de la página en las tiendas de marca (/stores/...): está en el
@@ -185,12 +213,17 @@ globalThis.__amazonScraper = async function (config, options = {}) {
   }
 
   let marcaPagina = '';
+  let sinSku = 0;
 
   function parseItem(item, layout) {
-    const asin = findAsin(item, layout);
-    if (!asin) return null;
+    const id = findAsin(item, layout);
+    if (!id) { sinSku++; return null; }
+    const { asin } = id;
     const nombre = firstValue(item, layout.title, el => el.getAttribute('title') || text(el));
     if (!nombre) return null;
+    // Link: plantilla del sitio (Amazon: /dp/{asin}) o el enlace de donde salió el SKU.
+    const link = config.productUrl ? config.productUrl.replace('{asin}', asin) : id.url;
+    if (!link) { sinSku++; return null; }
     return {
       asin,
       nombre,
@@ -198,8 +231,42 @@ globalThis.__amazonScraper = async function (config, options = {}) {
       marca: cleanBrand(firstValue(item, layout.brand, text), layout.brandPatterns) || marcaPagina,
       imagen: getImage(firstEl(item, layout.image)),
       precio: getPrice(item, layout),
-      link: (config.productUrl || 'https://www.amazon.com/dp/{asin}').replace('{asin}', asin),
+      link,
     };
+  }
+
+  // Avance de la carga, para el popup (si está abierto).
+  function report(cargados, limite) {
+    try { chrome.runtime.sendMessage({ type: 'scrapeProgress', cargados: Math.min(cargados, limite), limite }).catch(() => {}); } catch { /* popup cerrado */ }
+  }
+
+  // Pulsa "Load More" hasta tener `limite` productos o hasta que no haya botón.
+  // Si el botón deja de cargar productos, se queda con lo cargado y avisa.
+  async function loadMore(L, limite) {
+    const count = () => qsa(document, L.item).length;
+    // Visible de verdad (offsetParent): Michael Kors tiene un botón para escritorio y otro para móvil, ocultos por CSS.
+    const visible = b => !b.disabled && !b.closest('[hidden]') && (b.offsetParent !== null || b.getClientRects().length > 0);
+    let n = count();
+    let clics = 0;
+    report(n, limite);
+    while (n < limite && clics < (Number(L.maxClicks) || 100)) {
+      const btn = list(L.button).flatMap(sel => qsa(document, sel)).find(visible);
+      if (!btn) break;
+      btn.scrollIntoView?.({ block: 'center' });
+      btn.click();
+      clics++;
+      const inicio = Date.now();
+      let m = count();
+      while (m <= n && Date.now() - inicio < (Number(L.timeoutMs) || 15000)) {
+        await sleep(250);
+        m = count();
+      }
+      if (m <= n) return { cargados: n, limite, clics, aviso: `"Load More" dejó de responder: se extrajo lo cargado (${n}).` };
+      n = m;
+      report(n, limite);
+      await sleep(Number(L.delayMs) || 400);
+    }
+    return { cargados: Math.min(n, limite), limite, clics, aviso: '' };
   }
 
   // Desplaza la página hasta el final para forzar la carga diferida de productos.
@@ -232,7 +299,10 @@ globalThis.__amazonScraper = async function (config, options = {}) {
     // Los layouts de un tipo de página no corren en las demás páginas.
     const reservados = new Set(list(config.pageTypes).flatMap(t => list(t.layouts)));
     const activos = (config.layouts || []).filter(l => (tipo ? list(tipo.layouts).includes(l.id) : !reservados.has(l.id)));
-    if (options.autoScroll && tipo?.autoScroll !== false) await autoScroll(config.scroll);
+    // Listados con "Load More": se carga hasta el límite pedido en lugar de desplazar.
+    const limite = Math.floor(Number(options.limit)) || 0;
+    const cargaMas = !tipo && config.loadMore?.item && limite > 0 ? await loadMore(config.loadMore, limite) : null;
+    if (!cargaMas && options.autoScroll && tipo?.autoScroll !== false) await autoScroll(config.scroll);
     marcaPagina = getPageBrand();
     const productos = [];
     const vistos = new Set();
@@ -248,13 +318,15 @@ globalThis.__amazonScraper = async function (config, options = {}) {
           productos.push(p);
           extraidos++;
         } catch (e) {
-          console.warn(`[Amazon Scraper] Error en layout ${layout.id}`, e);
+          console.warn(`[CF Scraper] Error en layout ${layout.id}`, e);
         }
       }
       layouts.push({ id: layout.id, label: layout.label || layout.id, encontrados: items.length, extraidos });
     }
-    console.table(productos.map(p => ({ ASIN: p.asin, MARCA: p.marca, NOMBRE: p.nombre, PRECIO: p.precio, IMAGEN: p.imagen })));
-    return { productos, layouts, marcaPagina, tipoPagina: tipo ? { id: tipo.id, label: tipo.label || tipo.id } : null };
+    // Con límite, solo los primeros `limite` productos (en el orden de la página).
+    if (cargaMas && productos.length > limite) productos.length = limite;
+    console.table(productos.map(p => ({ SKU: p.asin, MARCA: p.marca, NOMBRE: p.nombre, PRECIO: p.precio, IMAGEN: p.imagen })));
+    return { productos, layouts, marcaPagina, sinSku, cargaMas, tipoPagina: tipo ? { id: tipo.id, label: tipo.label || tipo.id } : null };
   } catch (e) {
     return { error: e.message || String(e) };
   }

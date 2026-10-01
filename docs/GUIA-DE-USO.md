@@ -2,15 +2,15 @@
 
 ## Flujo normal
 
-1. Abre en Amazon.com una **búsqueda**, una **tienda de marca** o la **página de un producto**.
-2. Pulsa el icono de la extensión → **Extraer productos**.
+1. Abre en un sitio disponible una **búsqueda**, una **categoría**, una **tienda de marca** o la **página de un producto**. Sitios disponibles: **Amazon.com** y **Michael Kors** (`www.michaelkors.com`).
+2. Pulsa el icono de la extensión → **Extraer productos**. El título del popup indica el sitio (*Amazon Product Scraper*, *Michael Kors Product Scraper*). En otra página, el popup se llama *COMPRAFACIL Scraper* y muestra los sitios disponibles con su enlace.
 3. Si esa página **ya se extrajo antes**, aparece un aviso con la fecha, la categoría y los productos. Elige:
    - **Reemplazar datos anteriores**: quita de la lista los productos y el grupo de la extracción anterior y la hace de nuevo desde cero.
    - **Cancelar**.
 4. Elige la **categoría** de los productos (ver abajo).
 5. Revisa el **nombre del grupo** (ver abajo) y pulsa **Extraer**.
-6. La extensión baja la página sola para cargar todos los productos y los añade a la lista. **No cierres el popup mientras trabaja.**
-7. Repite con otras páginas. La lista acumula productos sin repetir ASIN: si un ASIN ya estaba en otro grupo, se queda con los datos y el grupo de la última extracción.
+6. La extensión carga los productos y los añade a la lista: en Amazon baja la página sola; en Michael Kors pulsa **Load More** hasta el máximo indicado (ver abajo). **No cierres el popup mientras trabaja.**
+7. Repite con otras páginas, también de otro sitio: un mismo Excel puede tener productos de Amazon y de Michael Kors, cada fila con su `ecomerce`. La lista acumula productos sin repetir SKU: si un SKU ya estaba en otro grupo, se queda con los datos y el grupo de la última extracción.
 8. Al terminar, pulsa **Descargar Excel**. Opcionalmente escribe un nombre, por ejemplo `Audifonos Hyperx`, y pulsa **Descargar**.
    - Resultado: `Audifonos_Hyperx_2026-09-30_14-35.xlsx`
    - Sin nombre: `Plantilla_Scraping_2026-09-30_14-35.xlsx`
@@ -18,7 +18,16 @@
 
 ## Página de un producto
 
-En la página de un solo producto (`/dp/…` o `/gp/product/…`) se extrae **solo ese producto**: los carruseles de sugerencias, "productos relacionados" y accesorios se ignoran. Se capturan los mismos datos que en una búsqueda: ASIN de la variante que se ve en pantalla, nombre, marca, precio e imagen. Si el producto no tiene precio, se extrae igual sin precio. En esta página no se desplaza la página automáticamente.
+En la página de un solo producto de Amazon (`/dp/…` o `/gp/product/…`) se extrae **solo ese producto**: los carruseles de sugerencias, "productos relacionados" y accesorios se ignoran. Se capturan los mismos datos que en una búsqueda: ASIN de la variante que se ve en pantalla, nombre, marca, precio e imagen. Si el producto no tiene precio, se extrae igual sin precio. En esta página no se desplaza la página automáticamente.
+
+## Michael Kors
+
+- **Listados** (búsqueda o categoría): la página muestra 24 productos y un botón **Load More**. En el formulario aparece **Máximo de productos** (por defecto **50**; se recuerda el último que usaste). La extensión pulsa **Load More** sola y muestra el avance (*"Cargando productos… 48 de 50"*). Al final extrae como máximo ese número, en el orden de la página.
+- Si el botón deja de cargar productos, se extrae lo que ya cargó y el resumen lo avisa.
+- **Página de producto** (`…/<nombre>/<ID>.html`): se extrae solo ese producto, sin las sugerencias. No se pide el máximo.
+- **SKU y link:** el SKU es el ID del estilo (p. ej. `40F6HRMB5S`) y sale del link `/<ID>.html`, la misma regla que usa el sistema. Así `sku` y `link` siempre coinciden. Una variante de color va en el link (`?dwvar_…_color=0230`), pero el sistema no la usa: las variantes las extrae el bot.
+- Si un producto no tiene un link `/<ID>.html`, se omite y el resumen lo avisa (el sistema descartaría esa fila sin avisar).
+- El nombre del grupo por defecto es el texto buscado (*boots*) o el título de la página sin "| Michael Kors".
 
 ## Nombre del grupo
 
@@ -55,10 +64,10 @@ Es la **plantilla de scraping del sistema** (`Plantilla_Scraping_General.xlsx`) 
 
 | Columna | Valor |
 |---|---|
-| `ecomerce` | `Amazon` |
-| `sku` | ASIN |
+| `ecomerce` | `Amazon` o `Michael Kors`, según el sitio de cada producto |
+| `sku` | ASIN (Amazon) o ID del estilo (Michael Kors) |
 | `condicion` | `Reacondicionado` si el título dice *Renewed* / *Refurbished*; si no, `Nuevo`. **Revísala.** |
-| `link` | `https://www.amazon.com/dp/<ASIN>` |
+| `link` | Amazon: `https://www.amazon.com/dp/<ASIN>`. Michael Kors: el link del producto, terminado en `/<ID>.html` |
 | `Buscar categoria` | Ruta de la categoría elegida en el popup (vacía con *No llenar categoría*) |
 | `codigo_categoria` | Código de esa categoría. Es una fórmula: si cambias `Buscar categoria`, se actualiza sola |
 | `seguimiento` | `Scraping` |

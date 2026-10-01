@@ -238,7 +238,7 @@ function fillMapeo(xml, categories) {
 /**
  * Crea el xlsx de carga.
  * @param {ArrayBuffer} template plantilla.xlsx
- * @param {object[]} products productos de la lista (asin, nombre, marca, imagen, precio, link, codCategoria...)
+ * @param {object[]} products productos de la lista (asin = SKU, ecomerce, nombre, marca, imagen, precio, link, codCategoria...)
  * @param {{ config: object, categories: object[] }} opts config.xlsx y categorías del sistema
  * @returns {Promise<{ bytes: Uint8Array, summary: object }>}
  */
@@ -315,7 +315,8 @@ export async function buildWorkbook(template, products, { config = {}, categorie
     const condicion = condicionDe(p.nombre, config);
     if (condicion !== (config.condicion?.default || 'Nuevo')) reacondicionados++;
     const values = new Map([
-      [headers.get('ecomerce'), config.ecomerce || 'Amazon'],
+      // Cada producto trae el ecommerce de su sitio; los de versiones anteriores, el general.
+      [headers.get('ecomerce'), p.ecomerce || config.ecomerce || 'Amazon'],
       [headers.get('sku'), sku],
       [headers.get('condicion'), condicion],
       [headers.get('link'), p.link || ''],

@@ -1,6 +1,6 @@
-# Amazon Product Scraper · COMPRAFACIL
+# COMPRAFACIL Scraper
 
-Extensión para Google Chrome (Manifest V3) que extrae productos de páginas de **Amazon.com** y los exporta a la **plantilla de scraping de COMPRAFACIL** (.xlsx), con la categoría del sistema y columnas de ayuda (imagen, nombre, marca, precio).
+Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com** y **Michael Kors** y los exporta a la **plantilla de scraping de COMPRAFACIL** (.xlsx), con la categoría del sistema y columnas de ayuda (imagen, nombre, marca, precio).
 
 ## Descargar
 
@@ -11,7 +11,9 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de páginas de 
 ## Qué hace
 
 - Genera el Excel listo para subir al sistema: `ecomerce`, `sku` (ASIN), `link`, `condicion` (Nuevo / Reacondicionado), categoría y `seguimiento`. Nombre, marca, precio e imagen van solo como referencia (`ref_*`), con vista previa de la imagen en Google Sheets.
-- Funciona en resultados de búsqueda y en tiendas de marca: `ProductUIRender`, `ProductGridItem`, `ProductShowcase` y `EditorialTile`. En la página de un producto (`/dp/…`) extrae solo ese producto, sin las sugerencias.
+- **Amazon:** resultados de búsqueda y tiendas de marca (`ProductUIRender`, `ProductGridItem`, `ProductShowcase` y `EditorialTile`). En la página de un producto (`/dp/…`) extrae solo ese producto, sin las sugerencias.
+- **Michael Kors:** búsquedas y categorías, pulsando **Load More** hasta el máximo de productos que indiques (con el avance en el popup), y páginas de producto. El SKU sale del link `/<ID>.html`, igual que en el sistema.
+- El popup y el icono toman el nombre del sitio (*Michael Kors Product Scraper*). En otras páginas muestran *COMPRAFACIL Scraper* y la lista de sitios disponibles. Un mismo Excel puede mezclar sitios.
 - Cada extracción forma un **grupo** con nombre (renombrable con doble clic) que sale en la columna `ref_grupo` del Excel unificado.
 - Desplaza la página sola para cargar todos los productos y acumula varias páginas en un solo Excel, sin repetir productos.
 - Para cada extracción pide la categoría: se puede **buscar** o elegir **por niveles**. Las 410 categorías del sistema se actualizan solas.
@@ -38,11 +40,12 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de páginas de 
 ├── xlsx.js                  Genera el Excel desde plantilla.xlsx
 ├── plantilla.xlsx           Plantilla de scraping del sistema
 ├── options.html / options.js  Página de Opciones (estado, categorías, historial)
-├── scraper.js               Se inyecta en Amazon y extrae los productos
+├── scraper.js               Se inyecta en la pestaña del sitio y extrae los productos
 ├── config.js                Carga y validación de la configuración remota
 ├── categories.js            Lista de categorías: GitHub + copia incluida
 ├── history.js               Historial de páginas (chrome.storage.sync)
 ├── groups.js                Grupos de la lista (nombre, migración, orden del Excel)
+├── sites.js                 Sitios disponibles: detección, configuración y título
 ├── prefs.js                 Preferencias de extracción
 ├── background.js            Service worker: sincronización periódica
 ├── config.default.json      Configuración incluida en la extensión
