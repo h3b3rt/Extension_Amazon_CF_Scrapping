@@ -40,7 +40,7 @@ async function renderHistory() {
     remove.className = 'ghost';
     remove.textContent = 'Quitar';
     remove.addEventListener('click', async () => { await removeHistoryEntry(url); renderHistory(); });
-    tr.append(cell(formatDate(e.fecha)), cell(e.categoria || 'Múltiples'), cell(String(e.productos)), cell(a), cell(remove));
+    tr.append(cell(formatDate(e.fecha)), cell(e.categoria || 'Sin llenar'), cell(String(e.productos)), cell(a), cell(remove));
     return tr;
   });
   $('historyBody').replaceChildren(...rows);

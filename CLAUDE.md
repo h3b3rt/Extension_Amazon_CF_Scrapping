@@ -10,6 +10,8 @@ Chrome MV3 extension that scrapes Amazon.com product listings into the COMPRAFAC
 - `popup.js` injects `scraper.js` and calls `globalThis.__amazonScraper(config, options)`. All page-specific selectors live in `config.layouts` (JSON), not in code.
 - MV3 forbids remote code. Only data is fetched: `config.json` (selectors, xlsx output settings, version notice; the legacy `csv` key stays only for installed 1.5.x) and `categories.json`, both from raw.githubusercontent.com on `main`.
 - `categories.js`: GitHub, then cache, then the bundled `categories.json`. The `categorias.yml` workflow logs in to the COMPRAFACIL API with the repo secrets `CF_EMAIL`/`CF_PASSWORD` (JWT, no "Bearer") and commits `categories.json` when the data changes. Those secrets are configured (2026-10-01) and the workflow runs fine; it commits only when the API data changes.
+- `config.pageTypes` reserves layouts for one page type (product page `/dp/` uses only `detalle`, which never runs elsewhere).
+- `groups.js`: each "Extraer" creates a named group (`storage.local.groups`, product field `grupo`); names are unique; same ASIN re-extracted moves to the latest group; exported in `ref_grupo`.
 - `history.js`: per-user history in `chrome.storage.sync`, one key per page (`h_<fnv-hash>`), capped at 150 entries.
 - Never build DOM from remote data with innerHTML; use textContent.
 - Backend upload (`XLSX.sheet_to_json`, no options) reads the first sheet by header name. Never write empty cells (a `''` breaks its `??` fallbacks and an empty `sku` row is silently dropped). Never fill backend columns (`marca`, `nombre`, `precio`, `peso`...): they become fixed values. Helper columns use the `ref_` prefix. The backend will not be changed.

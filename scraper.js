@@ -39,6 +39,9 @@ globalThis.__amazonScraper = async function (config, options = {}) {
       let asin = '';
       if (source === 'attr') asin = valid(item.getAttribute('data-asin'));
       else if (source === 'child') asin = valid(qs(item, '[data-asin]:not([data-asin=""])')?.getAttribute('data-asin'));
+      // Página de producto: campo oculto del formulario de compra (variante seleccionada).
+      else if (source === 'input') asin = valid(firstValue(item, layout.asinInput, el => el.value || el.getAttribute('value')));
+      else if (source === 'url') asin = asinFromUrl(location.pathname);
       else if (source === 'csaItemId') {
         const m = (item.getAttribute('data-csa-c-item-id') || '').match(/amzn1\.asin\.([A-Z0-9]{10})/i);
         asin = m ? m[1].toUpperCase() : '';
@@ -62,8 +65,12 @@ globalThis.__amazonScraper = async function (config, options = {}) {
     return `${whole}.${frac}`;
   }
 
-  function getPrice(item, layout) {
+  function getPrice(card, layout) {
     const P = config.price || {};
+    // Con priceRoot el precio solo se busca en ese bloque (p. ej. el de compra en
+    // la página de producto), nunca en accesorios ni sugerencias. Sin bloque: sin precio.
+    const item = layout.priceRoot ? firstEl(card, layout.priceRoot) : card;
+    if (!item) return '';
     // 1. Precio específico del layout (p. ej. Price__whole / Price__fractional).
     const lw = firstEl(item, layout.priceWhole);
     if (lw) { const p = joinPrice(lw, firstEl(item, layout.priceFraction)); if (p) return p; }
@@ -166,6 +173,17 @@ globalThis.__amazonScraper = async function (config, options = {}) {
     return '';
   }
 
+  // "Visit the Apple Store" -> "Apple": primer patrón que coincide (grupo 1).
+  function cleanBrand(value, patterns) {
+    for (const p of list(patterns)) {
+      try {
+        const m = value.match(new RegExp(p, 'i'));
+        if (m?.[1]?.trim()) return m[1].trim();
+      } catch { /* patrón remoto inválido */ }
+    }
+    return value;
+  }
+
   let marcaPagina = '';
 
   function parseItem(item, layout) {
@@ -177,7 +195,7 @@ globalThis.__amazonScraper = async function (config, options = {}) {
       asin,
       nombre,
       // Sin marca segura queda vacía para completarla a mano (no se adivina).
-      marca: firstValue(item, layout.brand, text) || marcaPagina,
+      marca: cleanBrand(firstValue(item, layout.brand, text), layout.brandPatterns) || marcaPagina,
       imagen: getImage(firstEl(item, layout.image)),
       precio: getPrice(item, layout),
       link: (config.productUrl || 'https://www.amazon.com/dp/{asin}').replace('{asin}', asin),
@@ -198,13 +216,28 @@ globalThis.__amazonScraper = async function (config, options = {}) {
     window.scrollTo(0, 0);
   }
 
+  // Tipo de página especial (p. ej. la de un solo producto): coincide por la URL
+  // o porque existe alguno de sus selectores. En ese caso solo corren sus layouts.
+  function getPageType() {
+    for (const t of list(config.pageTypes)) {
+      let byUrl = false;
+      try { byUrl = !!t.urlPattern && new RegExp(t.urlPattern, 'i').test(location.pathname); } catch { /* regex inválida */ }
+      if (byUrl || firstEl(document, t.selectors)) return t;
+    }
+    return null;
+  }
+
   try {
-    if (options.autoScroll) await autoScroll(config.scroll);
+    const tipo = getPageType();
+    // Los layouts de un tipo de página no corren en las demás páginas.
+    const reservados = new Set(list(config.pageTypes).flatMap(t => list(t.layouts)));
+    const activos = (config.layouts || []).filter(l => (tipo ? list(tipo.layouts).includes(l.id) : !reservados.has(l.id)));
+    if (options.autoScroll && tipo?.autoScroll !== false) await autoScroll(config.scroll);
     marcaPagina = getPageBrand();
     const productos = [];
     const vistos = new Set();
     const layouts = [];
-    for (const layout of config.layouts || []) {
+    for (const layout of activos) {
       const items = qsa(document, layout.item);
       let extraidos = 0;
       for (const item of items) {
@@ -221,7 +254,7 @@ globalThis.__amazonScraper = async function (config, options = {}) {
       layouts.push({ id: layout.id, label: layout.label || layout.id, encontrados: items.length, extraidos });
     }
     console.table(productos.map(p => ({ ASIN: p.asin, MARCA: p.marca, NOMBRE: p.nombre, PRECIO: p.precio, IMAGEN: p.imagen })));
-    return { productos, layouts, marcaPagina };
+    return { productos, layouts, marcaPagina, tipoPagina: tipo ? { id: tipo.id, label: tipo.label || tipo.id } : null };
   } catch (e) {
     return { error: e.message || String(e) };
   }

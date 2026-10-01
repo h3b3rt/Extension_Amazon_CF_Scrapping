@@ -17,6 +17,9 @@ const DEFAULT_KEEP_PARAMS = ['k', 'i', 'rh', 'page', 'node', 'bbn', 's', 'field-
 
 export function normalizeUrl(raw, config = {}) {
   const u = new URL(raw);
+  // Página de producto: "/Nombre/dp/ASIN/ref=…?th=1" y "/gp/product/ASIN" son la misma página.
+  const asin = u.pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d)\/([A-Z0-9]{10})(?:[/?]|$)/i)?.[1];
+  if (asin) return `${u.origin}/dp/${asin.toUpperCase()}`;
   const keep = new Set(config.history?.keepParams || DEFAULT_KEEP_PARAMS);
   const params = [...u.searchParams]
     .filter(([k, v]) => keep.has(k) && !(k === 'page' && v === '1'))

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Amazon Product Scraper",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Extrae productos de Amazon y los exporta a la plantilla de scraping de COMPRAFACIL (xlsx).",
   "permissions": ["activeTab", "scripting", "storage", "alarms", "downloads"],
   "host_permissions": ["https://*.amazon.com/*", "https://raw.githubusercontent.com/*"],

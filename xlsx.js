@@ -17,7 +17,7 @@ const BACKEND_COLUMNS = new Set([
 const REQUIRED = ['ecomerce', 'sku', 'condicion', 'link', 'seguimiento'];
 const SEARCH_HEADER = 'Buscar categoria';
 const CODE_HEADER = 'codigo_categoria';
-const REF_FIELDS = new Set(['imagen', 'nombre', 'marca', 'precio', 'link', 'asin', 'duplicado']);
+const REF_FIELDS = new Set(['imagen', 'nombre', 'marca', 'precio', 'link', 'asin', 'duplicado', 'grupo']);
 
 // ---------- zip ----------
 
@@ -322,7 +322,7 @@ export async function buildWorkbook(template, products, { config = {}, categorie
       [headers.get('seguimiento'), config.seguimiento || 'Scraping'],
     ]);
     // Categoría elegida en el popup: ruta en "Buscar categoria" y código ya calculado.
-    // Con "Múltiples categorías" quedan vacías para usar el buscador de la plantilla.
+    // Con "No llenar categoría" quedan vacías para usar el buscador de la plantilla.
     const codigo = p.codCategoria || '';
     const ruta = codigo ? rutaMapeo({ primaria: p.categoria, secundaria: p.categoriaSecundaria, terciaria: p.categoriaTerciaria }) : '';
     if (headers.has(SEARCH_HEADER) && ruta) values.set(headers.get(SEARCH_HEADER), ruta);

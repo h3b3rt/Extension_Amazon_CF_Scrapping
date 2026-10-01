@@ -1,6 +1,6 @@
 # Pendientes y próximos pasos
 
-Estado al **01/10/2026** (versión publicada: **v1.5.2**; en preparación: **v1.6.0**, salida xlsx).
+Estado al **01/10/2026** (versión publicada: **v1.6.0**; en preparación: **v1.7.0**, página de producto y grupos).
 
 ## 1. Categorías automáticas desde la API ✅
 - [x] Secrets **`CF_EMAIL`** y **`CF_PASSWORD`** creados en GitHub. Ver [CATEGORIAS.md](CATEGORIAS.md).
@@ -13,6 +13,9 @@ Varias funciones solo se probaron en simulación (jsdom) y con capturas de Chrom
 - [ ] Historial sincronizado entre dos PCs con la misma cuenta de Google.
 - [ ] Extracción en una tienda de marca con **EditorialTile**.
 - [x] **v1.6.0:** abrir el Excel descargado en **Google Sheets** y revisar la vista previa `ref_imagen`, el desplegable de `Buscar categoria` y que `codigo_categoria` cambie al elegir otra ruta.
+- [x] **v1.7.0:** extracción en Chrome real de búsquedas y de una página de producto: un solo producto (sin sugerencias), con precio y marca. Excel de prueba revisado el 01/10/2026: 80 filas, `ref_grupo` lleno y por bloques, sin celdas `''` ni columnas del backend llenas.
+- [x] **v1.7.0:** grupos en el popup: nombrar, separar, renombrar y enlace ↗ a la página original.
+- [ ] **v1.7.0:** página de producto **sin precio** ("Currently unavailable") y la marca cuando no hay fila "Marca" (solo `#bylineInfo`, en inglés: "Visit the X Store").
 - [ ] **v1.6.0:** subir un Excel de prueba al sistema (`POST /product/upload/list`) y confirmar que se crean los productos con su categoría y condición.
 
 ## 3. Otros ecommerce de la plantilla

@@ -11,7 +11,8 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de páginas de 
 ## Qué hace
 
 - Genera el Excel listo para subir al sistema: `ecomerce`, `sku` (ASIN), `link`, `condicion` (Nuevo / Reacondicionado), categoría y `seguimiento`. Nombre, marca, precio e imagen van solo como referencia (`ref_*`), con vista previa de la imagen en Google Sheets.
-- Funciona en resultados de búsqueda y en tiendas de marca: `ProductUIRender`, `ProductGridItem`, `ProductShowcase` y `EditorialTile`.
+- Funciona en resultados de búsqueda y en tiendas de marca: `ProductUIRender`, `ProductGridItem`, `ProductShowcase` y `EditorialTile`. En la página de un producto (`/dp/…`) extrae solo ese producto, sin las sugerencias.
+- Cada extracción forma un **grupo** con nombre (renombrable con doble clic) que sale en la columna `ref_grupo` del Excel unificado.
 - Desplaza la página sola para cargar todos los productos y acumula varias páginas en un solo Excel, sin repetir productos.
 - Para cada extracción pide la categoría: se puede **buscar** o elegir **por niveles**. Las 410 categorías del sistema se actualizan solas.
 - Avisa si una página ya se extrajo antes y ofrece reemplazar los datos. El historial es personal y se sincroniza con la cuenta de Google.
@@ -41,6 +42,7 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de páginas de 
 ├── config.js                Carga y validación de la configuración remota
 ├── categories.js            Lista de categorías: GitHub + copia incluida
 ├── history.js               Historial de páginas (chrome.storage.sync)
+├── groups.js                Grupos de la lista (nombre, migración, orden del Excel)
 ├── prefs.js                 Preferencias de extracción
 ├── background.js            Service worker: sincronización periódica
 ├── config.default.json      Configuración incluida en la extensión

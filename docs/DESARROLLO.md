@@ -26,19 +26,21 @@ popup.js ──executeScript──▶ scraper.js (en la pestaña de Amazon)
    ├─ config.js      ◀── config.json (GitHub) / config.default.json
    ├─ categories.js  ◀── categories.json (GitHub) / copia incluida
    ├─ history.js     ──▶ chrome.storage.sync (historial personal)
+   ├─ groups.js      (grupos de la lista: nombres, migración, orden del Excel)
    └─ prefs.js
 background.js: refresca la configuración al iniciar y cada 3 h (chrome.alarms)
 ```
 
 - **Sin código remoto:** todo lo que viene de GitHub son datos (JSON). El HTML nunca se construye con `innerHTML` a partir de datos remotos; se usa `textContent`.
-- **`scraper.js`** define `globalThis.__amazonScraper(config, options)` y el popup lo llama con `chrome.scripting.executeScript`. Todo lo específico de cada tipo de página está en `config.layouts`, no en el código.
+- **`scraper.js`** define `globalThis.__amazonScraper(config, options)` y el popup lo llama con `chrome.scripting.executeScript`. Todo lo específico de cada tipo de página está en `config.layouts`, no en el código. `config.pageTypes` reserva layouts para un tipo de página (p. ej. `detalle` para la página de producto): en esa página solo corren esos, y en las demás no corren.
 - **Módulos ES:** `popup.js`, `options.js` y `background.js` (`"type": "module"`) importan `config.js`, `categories.js`, `history.js` y `prefs.js`. El popup importa además `xlsx.js`, que genera el Excel desde `plantilla.xlsx` sin librerías (zip con `DecompressionStream`/`CompressionStream`).
 
 ### Almacenamiento
 
 | Dónde | Clave | Contenido |
 |---|---|---|
-| `storage.local` | `collected` | Lista en curso: `{ ASIN: producto }` |
+| `storage.local` | `collected` | Lista en curso: `{ ASIN: producto }`; cada producto guarda su `grupo` (id) |
+| `storage.local` | `groups` | Grupos de la lista: `{ id: { nombre, origen, fecha, titulo, categoria } }` |
 | `storage.local` | `remoteConfig`, `configMeta`, `settings` | Configuración remota en caché y su estado |
 | `storage.local` | `cfCategories` | Categorías en caché `{ items, fetchedAt, source, error }` |
 | `storage.local` | `extractPrefs` | `autoScroll`, `accumulate` (por defecto `true`) |
@@ -48,17 +50,17 @@ background.js: refresca la configuración al iniciar y cada 3 h (chrome.alarms)
 ## Publicar una versión nueva
 
 1. Sube la versión en **tres sitios**:
-   - `manifest.json` → `"version": "1.6.0"`
-   - `config.json` y `config.default.json` → `"latestVersion": "1.6.0"` y sube `"revision"`
+   - `manifest.json` → `"version": "1.7.0"`
+   - `config.json` y `config.default.json` → `"latestVersion": "1.7.0"` y sube `"revision"`
 2. Commit y push a `main`.
 3. Crea y sube la etiqueta:
    ```powershell
-   git tag v1.6.0
-   git push origin v1.6.0
+   git tag v1.7.0
+   git push origin v1.7.0
    ```
 4. El workflow [`release.yml`](../.github/workflows/release.yml):
    - comprueba que la etiqueta coincida con `manifest.json`,
-   - genera `amazon-product-scraper-1.6.0.zip` (con `categories.json` y `plantilla.xlsx` incluidos),
+   - genera `amazon-product-scraper-1.7.0.zip` (con `categories.json` y `plantilla.xlsx` incluidos),
    - lo publica en **Releases**.
 5. Las extensiones instaladas muestran el aviso de versión nueva.
 
@@ -82,7 +84,7 @@ No hay suite de pruebas automáticas en el repo. Durante el desarrollo se probó
   ```powershell
   chrome --headless=new --screenshot=shot.png --window-size=420,560 file:///ruta/preview.html
   ```
-- **Siempre**, antes de publicar: probar en Chrome real una búsqueda y una tienda de marca, elegir categoría, descargar el Excel, abrirlo en Google Sheets (vista previa de imágenes y desplegable de categorías) y comprobar que el sistema lo acepta.
+- **Siempre**, antes de publicar: probar en Chrome real una búsqueda, una tienda de marca y una página de producto (`/dp/…`), elegir categoría, descargar el Excel, abrirlo en Google Sheets (vista previa de imágenes y desplegable de categorías) y comprobar que el sistema lo acepta.
 
 ## Convenciones
 

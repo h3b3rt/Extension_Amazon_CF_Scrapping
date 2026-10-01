@@ -31,6 +31,10 @@ button.ghost{background:#e5e7eb;color:#111;padding:10px;width:auto;flex:0 0 auto
 .sources a{color:#b45309;font-weight:700;text-decoration:none}
 .sources a:hover{text-decoration:underline}
 .sources .meta{color:#6b7280}
+.sources .group-name{color:#b45309;font-weight:700;cursor:text;user-select:none}
+.sources .open-page{font-weight:400}
+.sources .rename{padding:5px 8px;font-size:12px}
+.sources .hint{margin:4px 0 0}
 .panel{background:#fff;border-radius:7px;padding:12px}
 .field-label{display:block;font-size:12px;font-weight:700;margin-bottom:6px}
 .text-input{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px}
@@ -107,7 +111,10 @@ footer a{color:#6b7280}
     <ul id="categoryList" class="combo-list" role="listbox" hidden></ul>
   </div>
   <div class="hint" id="categoryHint" hidden></div>
-  <label class="check"><input type="checkbox" id="multiCategory"> Múltiples categorías (dejar vacío y completar a mano)</label>
+  <label class="check"><input type="checkbox" id="multiCategory"> No llenar categoría</label>
+  <label class="field-label" for="groupName">Nombre del grupo</label>
+  <input id="groupName" class="text-input" autocomplete="off" maxlength="60" placeholder="Ej: Audífonos HyperX">
+  <div class="hint" id="groupHint"></div>
   <div id="fileNameGroup">
     <label class="field-label" for="fileName">Nombre del archivo Excel</label>
     <input id="fileName" class="text-input" autocomplete="off" placeholder="Ej: Audifonos_Hyperx">

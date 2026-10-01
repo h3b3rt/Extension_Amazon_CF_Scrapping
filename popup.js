@@ -3,6 +3,9 @@ import { normalizeUrl, getHistory, saveHistoryEntry, formatDate } from './histor
 import { getPrefs } from './prefs.js';
 import { buildWorkbook } from './xlsx.js';
 import {
+  MAX_GROUP_NAME, cleanGroupName, nameTaken, defaultGroupName, newGroupId, syncGroups, sortedGroups, productsForExport,
+} from './groups.js';
+import {
   getCachedCategories, getCategories, refreshCategories, findCategory, searchCategories, categoryLabel, normalizeText,
   sourceLabel,
 } from './categories.js';
@@ -28,63 +31,101 @@ function showStatus(message, type = '') {
   status.textContent = message;
 }
 
+// Lista actual y sus grupos. Los productos de versiones anteriores (sin grupo)
+// reciben uno por página de origen la primera vez que se abre el popup.
 async function getState() {
-  const { collected = {} } = await chrome.storage.local.get('collected');
-  return { collected, prefs: await getPrefs() };
+  const { collected = {}, groups = {} } = await chrome.storage.local.get(['collected', 'groups']);
+  if (syncGroups(collected, groups, await getHistory())) await chrome.storage.local.set({ collected, groups });
+  return { collected, groups, prefs: await getPrefs() };
 }
 
 async function renderCollection() {
-  const { collected, prefs } = await getState();
+  const { collected, groups, prefs } = await getState();
   const n = Object.keys(collected).length;
   $('count').textContent = n;
   $('collection').hidden = !(prefs.accumulate || n);
   $('download').disabled = !n;
   $('clear').disabled = !n;
-  await renderSources(collected);
+  renderSources(collected, groups);
 }
 
-// Páginas que forman la lista actual, en orden de extracción, con su categoría
-// ("Multicategoría N" si se dejó vacía) y un enlace a la página original.
-async function renderSources(collected) {
-  const history = await getHistory();
-  const groups = new Map();
-  for (const p of Object.values(collected)) {
-    const key = p.origen || '';
-    const g = groups.get(key) || {
-      url: key,
-      categoria: p.categoriaTerciaria || p.categoria || '',
-      ruta: p.categoriaRuta || '',
-      productos: 0,
-    };
-    g.productos++;
-    groups.set(key, g);
-  }
-  const fechaDe = g => history[g.url]?.fecha || '';
-  const sorted = [...groups.values()].sort((a, b) => fechaDe(a).localeCompare(fechaDe(b)));
+// Grupos que forman la lista actual, en orden de extracción. Doble clic en el
+// nombre para renombrarlo; "↗" abre la página original.
+function renderSources(collected, groups) {
+  const conteo = {};
+  for (const p of Object.values(collected)) conteo[p.grupo] = (conteo[p.grupo] || 0) + 1;
 
-  let multi = 0;
-  const items = sorted.map(g => {
+  const items = sortedGroups(groups).map(g => {
     const li = document.createElement('li');
-    const nombre = g.url ? (g.categoria || `Multicategoría ${++multi}`) : 'Extracciones anteriores';
-    const titulo = history[g.url]?.titulo || g.url;
-    if (g.url) {
-      const a = document.createElement('a');
-      a.href = g.url;
-      a.target = '_blank';
-      a.title = g.ruta ? `${g.ruta}\n${titulo}` : titulo;
-      a.textContent = nombre;
-      li.append(a);
-    } else {
-      li.append(nombre);
-    }
+    const name = document.createElement('span');
+    name.className = 'group-name';
+    name.textContent = g.nombre;
+    name.title = [g.categoria ? `Categoría: ${g.categoria}` : 'Sin categoría', g.titulo, 'Doble clic para renombrar']
+      .filter(Boolean).join('\n');
+    name.addEventListener('dblclick', () => startRename(li, g.id));
+    li.append(name);
     const info = document.createElement('span');
     info.className = 'meta';
-    info.textContent = ` · ${g.productos} producto${g.productos === 1 ? '' : 's'}`;
+    const n = conteo[g.id] || 0;
+    info.textContent = ` · ${n} producto${n === 1 ? '' : 's'}`;
     li.append(info);
+    if (/^https:\/\//i.test(g.origen || '')) {
+      const a = document.createElement('a');
+      a.href = g.origen;
+      a.target = '_blank';
+      a.className = 'open-page';
+      a.title = 'Abrir la página original';
+      a.textContent = '↗';
+      li.append(' ', a);
+    }
     return li;
   });
   $('sources').replaceChildren(...items);
   $('sources').hidden = !items.length;
+}
+
+// Renombrar en el mismo lugar: Enter o salir del campo guarda, Esc cancela.
+// Un nombre vacío deja el anterior; uno repetido no se acepta.
+async function startRename(li, id) {
+  const { groups } = await getState();
+  const actual = groups[id]?.nombre;
+  if (actual === undefined) return;
+  const input = Object.assign(document.createElement('input'), {
+    className: 'text-input rename', value: actual, maxLength: MAX_GROUP_NAME,
+  });
+  input.setAttribute('aria-label', 'Nuevo nombre del grupo');
+  const hint = Object.assign(document.createElement('div'), { className: 'hint error', hidden: true });
+  li.replaceChildren(input, hint);
+  input.focus();
+  input.select();
+
+  // `fromBlur`: al salir del campo con un nombre repetido se descarta el cambio.
+  let busy = false;
+  const finish = async (save, fromBlur = false) => {
+    if (busy) return;
+    busy = true;
+    const nombre = cleanGroupName(input.value);
+    if (save && nombre && nombre !== actual) {
+      const { groups: fresh } = await getState();
+      if (nameTaken(fresh, nombre, [id]) && !fromBlur) {
+        hint.textContent = 'Ya existe un grupo con ese nombre.';
+        hint.hidden = false;
+        input.focus();
+        busy = false;
+        return;
+      }
+      if (fresh[id] && !nameTaken(fresh, nombre, [id])) {
+        fresh[id].nombre = nombre;
+        await chrome.storage.local.set({ groups: fresh });
+      }
+    }
+    renderCollection();
+  };
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+  });
+  input.addEventListener('blur', () => finish(true, true));
 }
 
 // Aviso de nueva versión y mensajes publicados en la configuración remota.
@@ -193,7 +234,7 @@ async function showDuplicate(previous) {
   $('duplicateInfo').textContent = [
     `Fecha: ${formatDate(previous.fecha)}`,
     `Productos: ${previous.productos}`,
-    `Categoría: ${previous.categoria || 'múltiples'}`,
+    `Categoría: ${previous.categoria || 'sin llenar'}`,
     enLista ? `En la lista actual: ${enLista} productos de esta página` : 'Sus productos ya no están en la lista actual.',
   ].join('\n');
   $('scrape').hidden = true;
@@ -214,7 +255,7 @@ function hideDuplicate() {
 async function askCategory() {
   const { recentCategories = [] } = await chrome.storage.local.get('recentCategories');
   const previous = pending?.previous;
-  // Siempre empieza desmarcada: "Múltiples categorías" es la excepción, no la regla.
+  // Siempre empieza desmarcada: "No llenar categoría" es la excepción, no la regla.
   $('multiCategory').checked = false;
 
   const catalog = catalogCache.items;
@@ -223,10 +264,14 @@ async function askCategory() {
   $('scrape').hidden = true;
   $('categoryForm').hidden = false;
   // En modo acumular el nombre se pide al descargar, no en cada extracción.
-  const { prefs } = await getState();
+  const { groups, prefs } = await getState();
   $('fileNameGroup').hidden = prefs.accumulate;
   $('fileName').value = '';
   updateFileNamePreview();
+  // Nombre del grupo: título de la página recortado, sin repetir uno de la lista.
+  $('groupName').value = defaultGroupName(pending.title, ...groupsToCheck(groups, prefs));
+  $('groupHint').textContent = 'Se verá en la columna ref_grupo del Excel.';
+  $('groupHint').className = 'hint';
   const input = $('category');
   const sugerida = previous?.categoria || recentCategories[0] || '';
   combo.selected = catalog.length ? findCategory(catalog, sugerida) : null;
@@ -504,7 +549,7 @@ async function onRefreshCategories() {
 }
 
 // Categoría elegida en el formulario, con los 3 niveles y el código.
-// null = múltiples categorías (columnas vacías para completar a mano).
+// null = "No llenar categoría" (columnas vacías para completar a mano).
 function readCategory() {
   if ($('multiCategory').checked) return { ok: true, cat: null };
   const toCat = c => ({ principal: c.primaria, secundaria: c.secundaria, terciaria: c.terciaria, codigo: c.codigo, ruta: categoryLabel(c) });
@@ -524,11 +569,28 @@ function readCategory() {
   return { ok: true, cat: toCat(c) };
 }
 
-// "Múltiples categorías": las columnas quedan vacías para completarlas a mano.
+// "No llenar categoría": las columnas quedan vacías para completarlas a mano.
 function syncMultiCategory() {
   const multi = $('multiCategory').checked;
   $('category').disabled = multi;
   if (categoryMode === 'browse') renderLevels(levelsOf(combo.selected));
+}
+
+// Grupos contra los que no se puede repetir el nombre: ninguno si cada extracción
+// empieza una lista nueva; al reemplazar, sin los de esta página (se borran).
+function groupsToCheck(groups, prefs) {
+  if (!prefs.accumulate) return [{}, []];
+  const reemplazados = pending?.replace ? Object.keys(groups).filter(id => groups[id].origen === pending.url) : [];
+  return [groups, reemplazados];
+}
+
+// Nombre del grupo del formulario; vacío = el propuesto por defecto.
+async function readGroupName() {
+  const { groups, prefs } = await getState();
+  const [existentes, excepto] = groupsToCheck(groups, prefs);
+  const nombre = cleanGroupName($('groupName').value) || defaultGroupName(pending.title, existentes, excepto);
+  if (nameTaken(existentes, nombre, excepto)) return { ok: false, error: 'Ya existe un grupo con ese nombre en la lista.' };
+  return { ok: true, nombre };
 }
 
 function hideCategoryForm() {
@@ -543,12 +605,12 @@ async function rememberCategory(categoria) {
   await chrome.storage.local.set({ recentCategories: next.slice(0, MAX_RECENT_CATEGORIES) });
 }
 
-async function scrape(cat) {
+async function scrape(cat, nombreGrupo) {
   const { tabId, url, title, replace } = pending;
   const button = $('scrape');
   button.disabled = true;
   if (cat) await rememberCategory(cat.ruta);
-  const { collected, prefs } = await getState();
+  const { collected, groups, prefs } = await getState();
   showStatus(prefs.autoScroll ? 'Desplazando la página y analizando productos...' : 'Analizando productos de Amazon...');
   try {
     const config = await getConfig();
@@ -566,15 +628,24 @@ async function scrape(cat) {
     if (!r.productos.length) throw new Error(`No se encontraron productos compatibles en esta página.\n\n${layoutsTxt}`);
 
     const lista = prefs.accumulate ? { ...collected } : {};
+    const grupos = prefs.accumulate ? { ...groups } : {};
     let eliminados = 0;
     if (replace) {
+      // Reemplazar = empezar de cero: se borran los productos y el grupo de esta página.
       for (const [asin, p] of Object.entries(lista)) {
         if (p.origen === url) { delete lista[asin]; eliminados++; }
       }
+      for (const [id, g] of Object.entries(grupos)) if (g.origen === url) delete grupos[id];
     }
+    const grupo = newGroupId();
+    grupos[grupo] = { nombre: nombreGrupo, origen: url, fecha: new Date().toISOString(), titulo: title, categoria: cat?.ruta || '' };
     let nuevos = 0;
+    let movidos = 0;
     for (const p of r.productos) {
-      if (!lista[p.asin]) nuevos++;
+      // Mismo SKU en otro grupo: gana esta extracción (datos y grupo) y no se repite.
+      if (lista[p.asin]) movidos++;
+      else nuevos++;
+      delete lista[p.asin];
       lista[p.asin] = {
         ...p,
         categoria: cat?.principal || '',
@@ -583,9 +654,11 @@ async function scrape(cat) {
         codCategoria: cat?.codigo || '',
         categoriaRuta: cat?.ruta || '',
         origen: url,
+        grupo,
       };
     }
-    await chrome.storage.local.set({ collected: lista });
+    syncGroups(lista, grupos);
+    await chrome.storage.local.set({ collected: lista, groups: grupos });
     await saveHistoryEntry(url, {
       fecha: new Date().toISOString(),
       categoria: cat?.ruta || '',
@@ -596,14 +669,17 @@ async function scrape(cat) {
 
     const sinImagen = r.productos.filter(p => !p.imagen).length;
     const sinPrecio = r.productos.filter(p => !p.precio).length;
-    const catTxt = cat ? `${cat.ruta}${cat.codigo ? ` (${cat.codigo})` : ''}` : 'múltiples (elegir en la plantilla)';
+    const catTxt = cat ? `${cat.ruta}${cat.codigo ? ` (${cat.codigo})` : ''}` : 'sin llenar (elegir en la plantilla)';
     const marcaTxt = r.marcaPagina ? `Marca de la tienda (solo referencia): ${r.marcaPagina}\n` : '';
-    let msg = `✓ ${replace ? 'Datos anteriores reemplazados' : 'Extracción completada'}\n\nCategoría: ${catTxt}\n${marcaTxt}Productos en esta página: ${r.productos.length}\nSin imagen: ${sinImagen}\nSin precio: ${sinPrecio}\n\n${layoutsTxt}`;
+    const tipoTxt = r.tipoPagina ? `Tipo de página: ${r.tipoPagina.label}\n` : '';
+    let msg = `✓ ${replace ? 'Datos anteriores reemplazados' : 'Extracción completada'}\n\nGrupo: ${nombreGrupo}\nCategoría: ${catTxt}\n${tipoTxt}${marcaTxt}Productos en esta página: ${r.productos.length}\nSin imagen: ${sinImagen}\nSin precio: ${sinPrecio}\n\n${layoutsTxt}`;
     if (prefs.accumulate) {
       if (replace) msg += `\n\nEliminados de la extracción anterior: ${eliminados}`;
-      msg += `\n${replace ? '' : '\n'}Nuevos añadidos: ${nuevos}\nTotal en la lista: ${Object.keys(lista).length}`;
+      msg += `\n${replace ? '' : '\n'}Nuevos añadidos: ${nuevos}`;
+      if (movidos) msg += `\nYa estaban en otro grupo (pasan a este): ${movidos}`;
+      msg += `\nTotal en la lista: ${Object.keys(lista).length}`;
     } else {
-      msg += `\n\n${exportSummary(await downloadXlsx(Object.values(lista), config, pending.fileName))}`;
+      msg += `\n\n${exportSummary(await downloadXlsx(productsForExport(lista, grupos), config, pending.fileName))}`;
     }
     showStatus(msg, 'success');
   } catch (error) {
@@ -628,16 +704,27 @@ async function init() {
     pending = null;
     hideDuplicate();
   });
-  $('categoryForm').addEventListener('submit', e => {
+  $('categoryForm').addEventListener('submit', async e => {
     e.preventDefault();
     const choice = readCategory();
     if (!choice.ok) {
       updateCategoryHint(choice.error);
       return focusCategoryField();
     }
+    const group = await readGroupName();
+    if (!group.ok) {
+      $('groupHint').textContent = group.error;
+      $('groupHint').className = 'hint error';
+      $('groupName').focus();
+      return $('groupName').select();
+    }
     pending.fileName = $('fileName').value;
     hideCategoryForm();
-    scrape(choice.cat);
+    scrape(choice.cat, group.nombre);
+  });
+  $('groupName').addEventListener('input', () => {
+    $('groupHint').textContent = 'Se verá en la columna ref_grupo del Excel.';
+    $('groupHint').className = 'hint';
   });
   for (const [id, mode] of [['modeSearch', 'search'], ['modeBrowse', 'browse']]) {
     $(id).addEventListener('click', () => {
@@ -676,9 +763,9 @@ async function init() {
   });
   $('exportForm').addEventListener('submit', async e => {
     e.preventDefault();
-    const { collected } = await getState();
+    const { collected, groups } = await getState();
     try {
-      const r = await downloadXlsx(Object.values(collected), await getConfig(), $('exportName').value);
+      const r = await downloadXlsx(productsForExport(collected, groups), await getConfig(), $('exportName').value);
       hideExportForm();
       showStatus(exportSummary(r), 'success');
     } catch (error) {
@@ -689,7 +776,7 @@ async function init() {
   $('cancelExport').addEventListener('click', hideExportForm);
   $('exportName').addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); hideExportForm(); } });
   $('clear').addEventListener('click', async () => {
-    await chrome.storage.local.set({ collected: {} });
+    await chrome.storage.local.set({ collected: {}, groups: {} });
     showStatus('Lista vaciada.');
     renderCollection();
   });

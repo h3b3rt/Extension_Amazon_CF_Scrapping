@@ -37,6 +37,7 @@ Si el archivo tiene un error, las extensiones lo **ignoran** y siguen con la úl
 | `history.keepParams` | Parámetros de URL que **sí** cambian la página (`k`, `page`, `rh`…). El resto se ignora al detectar páginas repetidas. |
 | `pageBrand` | Marca de toda la página en las tiendas de marca. Solo se aplica si la ruta cumple `urlPattern` (`^/stores/`). Prueba los `selectors` en orden (breadcrumb, logo), les quita `strip` (`" home page"`) y, como respaldo, busca `scriptPattern` (el `"brandName"` del JSON de la página). Se usa en `ref_marca` cuando la tarjeta no trae marca (solo referencia). |
 | `price` | Selectores del precio estándar `.a-price`, ignorando el precio tachado. |
+| `pageTypes[]` | Páginas especiales que usan solo sus propios layouts (ver abajo). Desde la v1.7.0. |
 | `layouts[]` | Tipos de página y cómo leer cada producto (ver abajo). |
 | `xlsx` | Salida Excel: prefijo del archivo, valores fijos, condición y columnas de ayuda. |
 | `csv` | Formato antiguo, solo para las versiones 1.5.x. |
@@ -64,12 +65,34 @@ Cada layout describe un contenedor de producto y cómo leer sus datos. Todos los
 | Clave | Uso |
 |---|---|
 | `item` | Selector del contenedor de **un** producto. |
-| `asinFrom` | Dónde buscar el ASIN, en orden. `attr` usa el `data-asin` del contenedor, `child` el `[data-asin]` de un hijo, `csaItemId` el `data-csa-c-item-id="amzn1.asin.XXXX"` y `link` el ASIN que aparece en el enlace `/dp/XXXX`. |
+| `asinFrom` | Dónde buscar el ASIN, en orden. `attr` usa el `data-asin` del contenedor, `child` el `[data-asin]` de un hijo, `csaItemId` el `data-csa-c-item-id="amzn1.asin.XXXX"` y `link` el ASIN que aparece en el enlace `/dp/XXXX`. Desde la v1.7.0: `input` lee el valor del primer campo de `asinInput` y `url` el ASIN de la URL de la página. |
+| `asinInput` | Campos con el ASIN (para `asinFrom: "input"`), p. ej. `#addToCart input#ASIN`. |
 | `title` | Nombre. Si el elemento tiene atributo `title`, se usa ese; si no, su texto. |
 | `brand` | Marca escrita en la tarjeta del producto. Solo va a `ref_marca`. Si no se encuentra, se usa la marca de la tienda (`pageBrand`); nunca se adivina a partir del nombre. |
+| `brandPatterns` | Expresiones regulares para limpiar la marca: se usa el grupo 1 de la primera que coincide (`^Visit the (.+?) Store$` → `Apple`). Si ninguna coincide, el texto queda igual. |
 | `image` | Imagen. Se elige la mayor resolución de `srcset` / `data-a-dynamic-image`. |
+| `priceRoot` | Bloque donde se busca el precio (el primero que exista). Si se indica y no existe, el producto queda **sin precio**: así no se toma el precio de un accesorio o sugerencia. |
 | `priceWhole` / `priceFraction` | Precio partido en entero + decimales. Es opcional; si falta, se usa el `.a-price` estándar. |
 | `priceText` | Último recurso: busca `$123.45` en el texto de esos elementos. |
+
+### Página de un producto (`pageTypes`)
+
+```json
+"pageTypes": [{
+  "id": "producto",
+  "label": "Página de producto",
+  "urlPattern": "/(dp|gp/product|gp/aw/d)/[A-Z0-9]{10}",
+  "selectors": ["#dp-container #productTitle"],
+  "layouts": ["detalle"],
+  "autoScroll": false
+}]
+```
+
+- La página es de este tipo si la ruta cumple `urlPattern` **o** existe alguno de los `selectors`.
+- En esa página solo corren los `layouts` indicados; en las demás páginas esos layouts no corren.
+- `autoScroll: false` evita el desplazamiento automático, que en la página de producto solo carga sugerencias.
+- El layout `detalle` usa `item: "#dp-container"` (el bloque principal del producto), el ASIN de `#addToCart input#ASIN` y el precio `.priceToPay` dentro de `#apex_desktop`.
+- Las versiones 1.6.x ignoran `pageTypes` y no encuentran ASIN en `detalle` (no conocen `input`/`url`), así que en ellas no cambia nada.
 
 **Consejos:**
 - Evita las clases con hash, que cambian en cada despliegue de Amazon (`ProductGridItem__itemOuter__KUtvv`). Usa `[class*="ProductGridItem__itemOuter"]`.
@@ -90,6 +113,7 @@ El archivo se genera desde `plantilla.xlsx`, una copia de la plantilla de scrapi
   "imageFormula": "IMAGE({celda})",
   "rowHeight": 60,
   "refColumns": [
+    { "header": "ref_grupo", "field": "grupo", "width": 28 },
     { "header": "ref_imagen_link", "field": "imagen", "width": 30 },
     { "header": "ref_imagen", "imageOf": "ref_imagen_link", "width": 12 }
   ]
@@ -103,7 +127,7 @@ El archivo se genera desde `plantilla.xlsx`, una copia de la plantilla de scrapi
 | `condicion` | Si el título cumple `pattern` (sin distinguir mayúsculas) se escribe `match`; si no, `default`. |
 | `imageFormula` | Fórmula de la vista previa; `{celda}` se reemplaza por la celda con la URL. |
 | `rowHeight` | Alto de las filas de productos, para que se vea la imagen. `0` = alto normal. |
-| `refColumns[]` | Columnas de ayuda, después de la última columna de la plantilla. `field` puede ser `imagen`, `nombre`, `marca`, `precio`, `link`, `asin` o `duplicado`; `imageOf` crea la vista previa de otra columna. |
+| `refColumns[]` | Columnas de ayuda, después de la última columna de la plantilla. `field` puede ser `imagen`, `nombre`, `marca`, `precio`, `link`, `asin`, `duplicado` o `grupo` (nombre del grupo; desde la v1.7.0, las versiones anteriores ignoran esa columna); `imageOf` crea la vista previa de otra columna. |
 
 **Nombres prohibidos en `refColumns`:** el sistema lee estas columnas y las tomaría como datos fijos, así que la extensión las descarta aunque estén en la configuración: `ecomerce`, `sku`, `link`, `variacion`, `condicion`, `marca`, `nombre`, `categoria_general`, `codigo_categoria`, `color`, `talla`, `seguimiento`, `guia_talla`, `cantidad_imagen`, `peso`, `precio`, `stock`, `created_code`, `variant_id`, `parent_sku`, `base_sku`. Usa el prefijo `ref_`.
 

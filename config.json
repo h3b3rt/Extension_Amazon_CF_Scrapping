@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "revision": 11,
+  "revision": 12,
   "updatedAt": "2026-10-01",
   "remoteConfigUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/config.json",
   "minExtensionVersion": "1.1.0",
-  "latestVersion": "1.6.0",
+  "latestVersion": "1.7.0",
   "downloadUrl": "https://github.com/h3b3rt/Extension_Amazon_CF_Scrapping/releases/latest",
   "notice": "",
 
@@ -26,6 +26,17 @@
     "strip": " home page$",
     "scriptPattern": "\"brandName\":\"([^\"]+)\""
   },
+
+  "pageTypes": [
+    {
+      "id": "producto",
+      "label": "Página de producto",
+      "urlPattern": "/(dp|gp/product|gp/aw/d)/[A-Z0-9]{10}",
+      "selectors": ["#dp-container #productTitle"],
+      "layouts": ["detalle"],
+      "autoScroll": false
+    }
+  ],
 
   "price": {
     "offscreen": [".a-price:not(.a-text-price) .a-offscreen", ".a-price .a-offscreen"],
@@ -112,6 +123,21 @@
       "priceText": [
         "[data-testid=\"editorial-tile-product-price\"]"
       ]
+    },
+    {
+      "id": "detalle",
+      "label": "Página de producto",
+      "item": "#dp-container",
+      "asinFrom": ["input", "url"],
+      "asinInput": ["#addToCart input#ASIN", "input#ASIN"],
+      "link": [],
+      "title": ["#productTitle", "#title"],
+      "brand": ["tr.po-brand td.a-span9 span", "tr.po-brand td.a-span9", "#bylineInfo"],
+      "brandPatterns": ["^Visit the (.+?) Store$", "^Visita la tienda (?:de )?(.+?)$", "^Brand:\\s*(.+)$", "^Marca:\\s*(.+)$"],
+      "image": ["#landingImage", "#imgTagWrapperId img", "#main-image-container img"],
+      "priceRoot": ["#apex_desktop", "#corePriceDisplay_desktop_feature_div", "#corePrice_feature_div"],
+      "priceWhole": [".priceToPay .a-price-whole", ".apex-pricetopay-value:not(.a-text-price) .a-price-whole"],
+      "priceFraction": [".priceToPay .a-price-fraction", ".apex-pricetopay-value:not(.a-text-price) .a-price-fraction"]
     }
   ],
 
@@ -127,6 +153,7 @@
     "imageFormula": "IMAGE({celda})",
     "rowHeight": 60,
     "refColumns": [
+      { "header": "ref_grupo", "field": "grupo", "width": 28 },
       { "header": "ref_imagen_link", "field": "imagen", "width": 30 },
       { "header": "ref_imagen", "imageOf": "ref_imagen_link", "width": 12 },
       { "header": "ref_nombre", "field": "nombre", "width": 60 },

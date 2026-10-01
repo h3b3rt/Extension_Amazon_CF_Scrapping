@@ -2,18 +2,31 @@
 
 ## Flujo normal
 
-1. Abre en Amazon.com una **búsqueda** o una **tienda de marca**.
+1. Abre en Amazon.com una **búsqueda**, una **tienda de marca** o la **página de un producto**.
 2. Pulsa el icono de la extensión → **Extraer productos**.
 3. Si esa página **ya se extrajo antes**, aparece un aviso con la fecha, la categoría y los productos. Elige:
-   - **Reemplazar datos anteriores**: quita de la lista los productos de la extracción anterior y la hace de nuevo.
+   - **Reemplazar datos anteriores**: quita de la lista los productos y el grupo de la extracción anterior y la hace de nuevo desde cero.
    - **Cancelar**.
-4. Elige la **categoría** de los productos (ver abajo) y pulsa **Extraer**.
-5. La extensión baja la página sola para cargar todos los productos y los añade a la lista. **No cierres el popup mientras trabaja.**
-6. Repite con otras páginas. La lista acumula productos sin repetir ASIN.
-7. Al terminar, pulsa **Descargar Excel**. Opcionalmente escribe un nombre, por ejemplo `Audifonos Hyperx`, y pulsa **Descargar**.
+4. Elige la **categoría** de los productos (ver abajo).
+5. Revisa el **nombre del grupo** (ver abajo) y pulsa **Extraer**.
+6. La extensión baja la página sola para cargar todos los productos y los añade a la lista. **No cierres el popup mientras trabaja.**
+7. Repite con otras páginas. La lista acumula productos sin repetir ASIN: si un ASIN ya estaba en otro grupo, se queda con los datos y el grupo de la última extracción.
+8. Al terminar, pulsa **Descargar Excel**. Opcionalmente escribe un nombre, por ejemplo `Audifonos Hyperx`, y pulsa **Descargar**.
    - Resultado: `Audifonos_Hyperx_2026-09-30_14-35.xlsx`
    - Sin nombre: `Plantilla_Scraping_2026-09-30_14-35.xlsx`
-8. Pulsa **Limpiar** para empezar una lista nueva.
+9. Pulsa **Limpiar** para empezar una lista nueva. También se borran los grupos.
+
+## Página de un producto
+
+En la página de un solo producto (`/dp/…` o `/gp/product/…`) se extrae **solo ese producto**: los carruseles de sugerencias, "productos relacionados" y accesorios se ignoran. Se capturan los mismos datos que en una búsqueda: ASIN de la variante que se ve en pantalla, nombre, marca, precio e imagen. Si el producto no tiene precio, se extrae igual sin precio. En esta página no se desplaza la página automáticamente.
+
+## Nombre del grupo
+
+Cada vez que pulsas **Extraer** se crea un **grupo** con los productos de esa extracción. Su nombre sale en la columna `ref_grupo` del Excel, para distinguir las extracciones dentro del archivo unificado.
+
+- Por defecto se propone el **título de la página** recortado (por ejemplo *hyperx headset* o *Apple AirPods Pro (2ª generación)*). Puedes cambiarlo antes de extraer.
+- **No se permiten dos grupos con el mismo nombre** (sin distinguir mayúsculas ni tildes). Si el título ya existe, se propone con un número: *hyperx headset (2)*.
+- El nombre del grupo **no** cambia el nombre del archivo Excel.
 
 ## Elegir la categoría
 
@@ -30,7 +43,7 @@ No distingue tildes ni mayúsculas, y las palabras pueden ir en cualquier orden.
 
 Al elegir, debajo aparece el **código** (por ejemplo `Código: CF130704`).
 
-**Múltiples categorías:** si la página mezcla productos de varias categorías, marca esta casilla. `Buscar categoria` y `codigo_categoria` quedan vacías para elegirlas fila por fila con el desplegable de la plantilla. Empieza siempre desmarcada.
+**No llenar categoría:** si no quieres elegir la categoría ahora (por ejemplo, la página mezcla productos de varias categorías), marca esta casilla. `Buscar categoria` y `codigo_categoria` quedan vacías para elegirlas fila por fila con el desplegable de la plantilla. Empieza siempre desmarcada.
 
 **↻ Actualizar:** vuelve a descargar la lista de categorías. Úsalo si acaban de crear una categoría en el sistema.
 
@@ -46,7 +59,7 @@ Es la **plantilla de scraping del sistema** (`Plantilla_Scraping_General.xlsx`) 
 | `sku` | ASIN |
 | `condicion` | `Reacondicionado` si el título dice *Renewed* / *Refurbished*; si no, `Nuevo`. **Revísala.** |
 | `link` | `https://www.amazon.com/dp/<ASIN>` |
-| `Buscar categoria` | Ruta de la categoría elegida en el popup (vacía con *Múltiples categorías*) |
+| `Buscar categoria` | Ruta de la categoría elegida en el popup (vacía con *No llenar categoría*) |
 | `codigo_categoria` | Código de esa categoría. Es una fórmula: si cambias `Buscar categoria`, se actualiza sola |
 | `seguimiento` | `Scraping` |
 
@@ -56,6 +69,7 @@ Es la **plantilla de scraping del sistema** (`Plantilla_Scraping_General.xlsx`) 
 
 | Columna | Para qué |
 |---|---|
+| `ref_grupo` | Nombre del grupo (la extracción) de donde salió el producto. Las filas salen ordenadas por grupo, en orden de extracción |
 | `ref_imagen_link` | URL de la imagen |
 | `ref_imagen` | Vista previa con `=IMAGE()`. Funciona en **Google Sheets** (en LibreOffice o Excel antiguo muestra `#NAME?`) |
 | `ref_nombre` / `ref_marca` / `ref_precio` | Nombre, marca y precio que muestra Amazon, solo como referencia |
@@ -70,7 +84,12 @@ Es la **plantilla de scraping del sistema** (`Plantilla_Scraping_General.xlsx`) 
 
 ## Panel de la lista
 
-Debajo del botón principal verás cuántos productos hay en la lista y las páginas agregadas, por ejemplo *"Juegos de ollas · 24 productos"*. Cada nombre es un **enlace a la página** de donde salieron. Las extracciones sin categoría aparecen como **Multicategoría 1, 2…**.
+Debajo del botón principal verás cuántos productos hay en la lista y los grupos, por ejemplo *"hyperx headset · 24 productos ↗"*.
+
+- **Doble clic en el nombre** para renombrar el grupo. **Enter** o salir del campo guarda; **Esc** cancela. Un nombre vacío o repetido no se acepta.
+- **↗** abre la página de donde salieron los productos.
+- Al pasar el ratón por el nombre se ve la categoría y el título de la página.
+- Los productos que ya estaban en la lista antes de la v1.7.0 reciben un grupo por página, con el título guardado en el historial.
 
 ## Opciones
 
