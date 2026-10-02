@@ -22,9 +22,44 @@ export function findSite(config, url) {
   return sitesOf(config).find(s => list(s.hosts).some(h => host === h || host.endsWith(`.${h}`))) || null;
 }
 
+// Versión de otra región de un sitio (p. ej. sephora.fr o sephora.com/ca/en/...):
+// { site, target } con la página equivalente en el sitio de EE. UU., o null.
+// - Mismo dominio con prefijo de región (pathPrefix): misma ruta sin el prefijo.
+// - Otro dominio (hostPattern): los productos tienen otros ID, así que se busca en
+//   el sitio de EE. UU. por el término de búsqueda de la URL o por el título.
+export function regionRedirect(config, url, title = '') {
+  let u;
+  try { u = new URL(url); } catch { return null; }
+  if (!/^https?:$/.test(u.protocol)) return null;
+  const host = u.hostname.toLowerCase();
+  const test = (p, v) => { try { return !!p && new RegExp(p, 'i').test(v); } catch { return false; } };
+  for (const site of sitesOf(config)) {
+    const R = site.regions;
+    if (!R || !/^https:\/\//i.test(site.homeUrl || '')) continue;
+    const home = new URL(site.homeUrl);
+    const propio = list(site.hosts).some(h => host === h || host.endsWith(`.${h}`));
+    if (propio && R.pathPrefix) {
+      let path = u.pathname;
+      try { path = path.replace(new RegExp(R.pathPrefix, 'i'), ''); } catch { continue; }
+      if (path !== u.pathname) return { site, target: `${home.origin}${path || '/'}${u.search}` };
+    }
+    if (propio || !test(R.hostPattern, host)) continue;
+    let q = '';
+    for (const k of list(R.queryParams)) { q = u.searchParams.get(k)?.trim() || ''; if (q) break; }
+    if (!q) {
+      q = title;
+      for (const p of list(R.titleStrip)) { try { q = q.replace(new RegExp(p, 'i'), ''); } catch { /* patrón remoto inválido */ } }
+      q = q.trim();
+    }
+    const target = q && R.searchUrl ? R.searchUrl.replace('{q}', encodeURIComponent(q)) : home.href;
+    return { site, target, query: q };
+  }
+  return null;
+}
+
 // Configuración efectiva para un sitio: la general con lo propio del sitio encima.
 export function siteConfig(config, site) {
-  const { id, name, title, hosts, homeUrl, ...own } = site;
+  const { id, name, title, hosts, homeUrl, regions, ...own } = site;
   return { ...config, ...own, site: { id, name } };
 }
 

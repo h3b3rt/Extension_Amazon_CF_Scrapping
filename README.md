@@ -1,6 +1,6 @@
 # COMPRAFACIL Scraper
 
-Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com** y **Michael Kors** y los exporta a la **plantilla de scraping de COMPRAFACIL** (.xlsx), con la categoría del sistema y columnas de ayuda (imagen, nombre, marca, precio).
+Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com**, **Michael Kors** y **Sephora** y los exporta a la **plantilla de scraping de COMPRAFACIL** (.xlsx), con la categoría del sistema y columnas de ayuda (imagen, nombre, marca, precio).
 
 ## Descargar
 
@@ -11,10 +11,12 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com
 ## Qué hace
 
 - Genera el Excel listo para subir al sistema: `ecomerce`, `sku` (ASIN), `link`, `condicion` (Nuevo / Reacondicionado), categoría y `seguimiento`. Nombre, marca, precio e imagen van solo como referencia (`ref_*`), con vista previa de la imagen en Google Sheets.
-- **Amazon:** resultados de búsqueda y tiendas de marca (`ProductUIRender`, `ProductGridItem`, `ProductShowcase` y `EditorialTile`). En la página de un producto (`/dp/…`) extrae solo ese producto, sin las sugerencias.
+- **Amazon:** resultados de búsqueda y tiendas de marca (`ProductUIRender`, `ProductGridItem`, `ProductShowcase` y `EditorialTile`). En la página de un producto (`/dp/…`) extrae solo ese producto, sin las sugerencias. En búsquedas sigue con las páginas siguientes hasta el máximo indicado, sin anuncios (*Patrocinado*); también lee las portadas de categoría (`/b?node=…`).
 - **Michael Kors:** búsquedas y categorías, pulsando **Load More** hasta el máximo de productos que indiques (con el avance en el popup), y páginas de producto. El SKU sale del link `/<ID>.html`, igual que en el sistema.
+- **Sephora:** búsquedas, categorías y marcas, leyendo los productos mientras baja la página y pasando con **Show More Products** hasta el máximo indicado, y páginas de producto. El sistema saca el SKU (`skuId`) y el ID `P…` del link, así que la columna `sku` queda vacía. Desde otra región (por ejemplo `sephora.fr`) ofrece abrir la versión de EE. UU.
 - El popup y el icono toman el nombre del sitio (*Michael Kors Product Scraper*). En otras páginas muestran *COMPRAFACIL Scraper* y la lista de sitios disponibles. Un mismo Excel puede mezclar sitios.
-- Cada extracción forma un **grupo** con nombre (renombrable con doble clic) que sale en la columna `ref_grupo` del Excel unificado.
+- Las extracciones siguen **en segundo plano** aunque cierres el popup, se ponen **en cola** si ya hay una en curso y avisan con una notificación al terminar. Se pueden detener guardando lo leído.
+- Cada extracción forma un **grupo** con nombre (renombrable con doble clic), con su resumen desplegable y 🗑 para eliminarlo, que sale en la columna `ref_grupo` del Excel unificado.
 - Desplaza la página sola para cargar todos los productos y acumula varias páginas en un solo Excel, sin repetir productos.
 - Para cada extracción pide la categoría: se puede **buscar** o elegir **por niveles**. Las 410 categorías del sistema se actualizan solas.
 - Avisa si una página ya se extrajo antes y ofrece reemplazar los datos. El historial es personal y se sincroniza con la cuenta de Google.
@@ -47,7 +49,9 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com
 ├── groups.js                Grupos de la lista (nombre, migración, orden del Excel)
 ├── sites.js                 Sitios disponibles: detección, configuración y título
 ├── prefs.js                 Preferencias de extracción
-├── background.js            Service worker: sincronización periódica
+├── jobs.js                  Cola de extracciones y guardado de su resultado
+├── export.js                Descarga del Excel (popup y service worker)
+├── background.js            Service worker: cola de extracciones, aviso al terminar, sincronización
 ├── config.default.json      Configuración incluida en la extensión
 ├── config.json              Configuración remota (la leen todas las extensiones)
 ├── categories.json          Lista de categorías (la mantiene un workflow)

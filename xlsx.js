@@ -17,7 +17,7 @@ const BACKEND_COLUMNS = new Set([
 const REQUIRED = ['ecomerce', 'sku', 'condicion', 'link', 'seguimiento'];
 const SEARCH_HEADER = 'Buscar categoria';
 const CODE_HEADER = 'codigo_categoria';
-const REF_FIELDS = new Set(['imagen', 'nombre', 'marca', 'precio', 'link', 'asin', 'duplicado', 'grupo']);
+const REF_FIELDS = new Set(['imagen', 'nombre', 'marca', 'precio', 'link', 'asin', 'variante', 'duplicado', 'grupo']);
 
 // ---------- zip ----------
 
@@ -306,17 +306,21 @@ export async function buildWorkbook(template, products, { config = {}, categorie
     return `>${cells.map(c => c.xml).join('')}</row>`;
   });
 
+  // Ecommerce cuyo SKU el backend saca del link (Sephora: skuId e ID "P…"): la
+  // celda sku no se escribe, porque llena reemplazaría el ID "P…" del link.
+  const skuSoloLink = new Set(Array.isArray(config.skuOnlyInLink) ? config.skuOnlyInLink : ['Sephora']);
   let reacondicionados = 0;
   let conGuion = 0;
   const dataRows = conSku.map((p, i) => {
     const r = i + 2;
-    const sku = p.asin.trim();
+    const ecomerce = p.ecomerce || config.ecomerce || 'Amazon';
+    const sku = skuSoloLink.has(ecomerce) ? '' : p.asin.trim();
     if (sku.includes('-')) conGuion++;
     const condicion = condicionDe(p.nombre, config);
     if (condicion !== (config.condicion?.default || 'Nuevo')) reacondicionados++;
     const values = new Map([
       // Cada producto trae el ecommerce de su sitio; los de versiones anteriores, el general.
-      [headers.get('ecomerce'), p.ecomerce || config.ecomerce || 'Amazon'],
+      [headers.get('ecomerce'), ecomerce],
       [headers.get('sku'), sku],
       [headers.get('condicion'), condicion],
       [headers.get('link'), p.link || ''],

@@ -1,27 +1,31 @@
 import { getConfig, getConfigMeta, refreshRemoteConfig, compareVersions, extensionVersion } from './config.js';
-import { normalizeUrl, getHistory, saveHistoryEntry, formatDate } from './history.js';
+import { normalizeUrl, getHistory, removeHistoryEntry, formatDate } from './history.js';
 import { getPrefs } from './prefs.js';
-import { buildWorkbook } from './xlsx.js';
+import { downloadXlsx, exportSummary, exportFileName, DEFAULT_PREFIX } from './export.js';
+import { getJobs, jobForUrl } from './jobs.js';
 import {
-  MAX_GROUP_NAME, cleanGroupName, nameTaken, defaultGroupName, newGroupId, syncGroups, sortedGroups, productsForExport,
+  MAX_GROUP_NAME, cleanGroupName, nameTaken, defaultGroupName, syncGroups, sortedGroups, productsForExport,
 } from './groups.js';
 import {
   getCachedCategories, getCategories, refreshCategories, findCategory, searchCategories, categoryLabel, normalizeText,
   sourceLabel,
 } from './categories.js';
-import { appName, sitesOf, findSite, siteConfig, siteTitle, productKey, pageLabel, pageTypeByUrl } from './sites.js';
+import {
+  appName, sitesOf, findSite, siteConfig, siteTitle, productKey, pageLabel, pageTypeByUrl, regionRedirect,
+} from './sites.js';
 
 const $ = id => document.getElementById(id);
 const STALE_MS = 30 * 60 * 1000;
 const MAX_RECENT_CATEGORIES = 15;
 const DEFAULT_LOAD_LIMIT = 50;
 const MAX_LOAD_LIMIT = 500;
+const DEFAULT_PAGES = 1;
+const MAX_PAGES = 10;
 
 // Extracción en preparación: pestaña, sitio y su configuración, URL normalizada
 // y si reemplaza datos previos.
 let pending = null;
-let defaultPrefix = 'Plantilla_Scraping';
-const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+let defaultPrefix = DEFAULT_PREFIX;
 let updateFileNamePreview = () => {};
 let updateExportNamePreview = () => {};
 // Categorías del sistema (en caché; vacía si la API no está configurada).
@@ -52,14 +56,27 @@ async function renderCollection() {
   renderSources(collected, groups);
 }
 
-// Grupos que forman la lista actual, en orden de extracción. Doble clic en el
-// nombre para renombrarlo; "↗" abre la página original.
+// Grupos que forman la lista actual, en orden de extracción. "▸" despliega el
+// resumen de su extracción; doble clic en el nombre para renombrarlo; "↗" abre la
+// página original; "🗑" elimina el grupo y sus productos.
+const abiertos = new Set();
 function renderSources(collected, groups) {
   const conteo = {};
   for (const p of Object.values(collected)) conteo[p.grupo] = (conteo[p.grupo] || 0) + 1;
 
   const items = sortedGroups(groups).map(g => {
     const li = document.createElement('li');
+    const n = conteo[g.id] || 0;
+    const toggle = Object.assign(document.createElement('button'), {
+      type: 'button', className: 'group-toggle', textContent: abiertos.has(g.id) ? '▾' : '▸', title: 'Ver el resumen de la extracción',
+    });
+    toggle.setAttribute('aria-expanded', String(abiertos.has(g.id)));
+    toggle.addEventListener('click', () => {
+      if (abiertos.has(g.id)) abiertos.delete(g.id);
+      else abiertos.add(g.id);
+      renderSources(collected, groups);
+    });
+    li.append(toggle);
     const name = document.createElement('span');
     name.className = 'group-name';
     name.textContent = g.nombre;
@@ -69,7 +86,6 @@ function renderSources(collected, groups) {
     li.append(name);
     const info = document.createElement('span');
     info.className = 'meta';
-    const n = conteo[g.id] || 0;
     info.textContent = ` · ${n} producto${n === 1 ? '' : 's'}`;
     li.append(info);
     if (/^https:\/\//i.test(g.origen || '')) {
@@ -81,10 +97,45 @@ function renderSources(collected, groups) {
       a.textContent = '↗';
       li.append(' ', a);
     }
+    const borrar = Object.assign(document.createElement('button'), {
+      type: 'button', className: 'group-delete', textContent: '🗑', title: 'Eliminar este grupo y sus productos',
+    });
+    borrar.addEventListener('click', () => confirmDelete(li, g, n));
+    li.append(borrar);
+    if (abiertos.has(g.id)) {
+      const det = document.createElement('div');
+      det.className = 'group-details';
+      const fecha = g.fecha ? `Extraído: ${formatDate(g.fecha)}` : '';
+      det.textContent = [...(g.resumen || ['Sin resumen (extraído con una versión anterior).']), fecha].filter(Boolean).join('\n');
+      li.append(det);
+    }
     return li;
   });
   $('sources').replaceChildren(...items);
   $('sources').hidden = !items.length;
+}
+
+// Eliminar un grupo: pide confirmación en el mismo lugar. Quita sus productos y su
+// página del historial (para poder extraerla de nuevo sin aviso).
+function confirmDelete(li, g, n) {
+  const p = Object.assign(document.createElement('span'), { className: 'confirm-text', textContent: `¿Eliminar «${g.nombre}» y sus ${n} producto${n === 1 ? '' : 's'}? ` });
+  const si = Object.assign(document.createElement('button'), { type: 'button', className: 'mini danger', textContent: 'Eliminar' });
+  const no = Object.assign(document.createElement('button'), { type: 'button', className: 'mini', textContent: 'Cancelar' });
+  no.addEventListener('click', renderCollection);
+  si.addEventListener('click', async () => {
+    const { collected, groups } = await getState();
+    for (const [key, prod] of Object.entries(collected)) if (prod.grupo === g.id) delete collected[key];
+    const origen = groups[g.id]?.origen;
+    delete groups[g.id];
+    abiertos.delete(g.id);
+    await chrome.storage.local.set({ collected, groups });
+    // Si otro grupo viene de la misma página, el historial se conserva.
+    if (origen && !Object.values(groups).some(x => x.origen === origen)) await removeHistoryEntry(origen);
+    showStatus(`Grupo «${g.nombre}» eliminado (${n} producto${n === 1 ? '' : 's'}).`);
+    renderCollection();
+  });
+  li.replaceChildren(p, si, ' ', no);
+  si.focus();
 }
 
 // Renombrar en el mismo lugar: Enter o salir del campo guarda, Esc cancela.
@@ -160,68 +211,34 @@ function renderConfigInfo(config) {
   $('configInfo').textContent = `Config ${config._source} · rev ${config.revision ?? '?'}`;
 }
 
-function timestamp() {
-  const d = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}`;
-}
-
-// "Audífonos HyperX" -> "Audífonos_HyperX". Quita caracteres no válidos en Windows.
-function sanitizeFileName(name) {
-  return (name || '')
-    .replace(/[<>:"/\\|?*\x00-\x1f\s]+/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^[_.]+|[_.]+$/g, '')
-    .slice(0, 80);
-}
-
-// Nombre final: <nombre elegido o prefijo por defecto>_<fecha>_<hora>.xlsx
-function exportFileName(name) {
-  return `${sanitizeFileName(name) || defaultPrefix}_${timestamp()}.xlsx`;
-}
-
 function bindFileNamePreview(inputId, previewId) {
-  const update = () => { $(previewId).textContent = `Se guardará como: ${exportFileName($(inputId).value)}`; };
+  const update = () => { $(previewId).textContent = `Se guardará como: ${exportFileName($(inputId).value, defaultPrefix)}`; };
   $(inputId).addEventListener('input', update);
   return update;
-}
-
-function toBase64(bytes) {
-  let bin = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(bin);
-}
-
-// Genera el xlsx desde plantilla.xlsx con las categorías actuales en Mapeo_categorias.
-async function downloadXlsx(products, config, name = '') {
-  const template = await (await fetch(chrome.runtime.getURL('plantilla.xlsx'))).arrayBuffer();
-  const { bytes, summary } = await buildWorkbook(template, products, { config: config.xlsx, categories: catalogCache.items });
-  if (!summary.filas) throw new Error('Ningún producto tiene SKU: no se generó el archivo.');
-  const url = `data:${XLSX_MIME};base64,${toBase64(bytes)}`;
-  const filename = exportFileName(name);
-  await chrome.downloads.download({ url, filename });
-  return { filename, ...summary };
-}
-
-// Resumen del archivo descargado (avisos solo si hay algo que revisar).
-function exportSummary(r) {
-  const lines = [`Excel descargado: ${r.filename}`, `Filas: ${r.filas}`];
-  if (r.reacondicionados) lines.push(`Condición "Reacondicionado": ${r.reacondicionados} (revisar)`);
-  if (r.sinCategoria) lines.push(`Sin categoría (elegir en la plantilla): ${r.sinCategoria}`);
-  if (r.duplicados) lines.push(`Posibles variantes repetidas: ${r.duplicados} (ver ref_duplicado)`);
-  if (r.omitidos) lines.push(`⚠ Omitidos sin SKU: ${r.omitidos}`);
-  if (r.conGuion) lines.push(`⚠ SKU con guion: ${r.conGuion} (el sistema lo corta en el primer "-")`);
-  return lines.join('\n');
 }
 
 // Título del popup según el sitio de la pestaña; fuera de los sitios disponibles,
 // el nombre general y la lista de sitios con su enlace.
 async function renderSite(config) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const site = findSite(config, tab?.url || '');
-  $('appTitle').textContent = site ? siteTitle(site) : appName(config);
-  $('sitesPanel').hidden = !!site;
+  // Otra región del sitio: no se extrae; se ofrece abrir la página en EE. UU.
+  const region = regionRedirect(config, tab?.url || '', tab?.title || '');
+  const site = region ? null : findSite(config, tab?.url || '');
+  $('appTitle').textContent = site ? siteTitle(site) : region ? siteTitle(region.site) : appName(config);
+  $('regionPanel').hidden = !region;
+  $('sitesPanel').hidden = !!site || !!region;
   $('scrape').hidden = !site;
+  if (region) {
+    $('regionTitle').textContent = `Esta página es de otra región de ${region.site.name}.`;
+    $('regionText').textContent = region.query
+      ? `La extensión solo trabaja con la versión de EE. UU. Se buscará allí: "${region.query}".`
+      : 'La extensión solo trabaja con la versión de EE. UU. Se abrirá la misma página allí.';
+    $('regionOpen').textContent = `Abrir en ${new URL(region.site.homeUrl).hostname}`;
+    $('regionOpen').onclick = async () => {
+      await chrome.tabs.update(tab.id, { url: region.target });
+      window.close();
+    };
+  }
   const items = sitesOf(config).map(s => {
     const li = document.createElement('li');
     if (/^https:\/\//i.test(s.homeUrl || '')) {
@@ -235,21 +252,33 @@ async function renderSite(config) {
   $('sitesList').replaceChildren(...items);
 }
 
+// ¿La página es un listado con páginas siguientes? (Amazon: /s; no las portadas
+// de categoría /b ni las tiendas de marca, que se extraen enteras).
+function listadoConPaginas(cfg, url) {
+  const p = cfg.loadMore?.urlPattern;
+  if (!p) return true;
+  try { return new RegExp(p, 'i').test(new URL(url).pathname); } catch { return true; }
+}
+
 // Primer paso al pulsar "Extraer": valida la pestaña y consulta el historial.
 async function startExtraction() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) throw new Error('No se pudo identificar la pestaña.');
     const config = await getConfig();
+    if (regionRedirect(config, tab.url || '')) throw new Error('Abre la versión de EE. UU. de esta página para extraer.');
     const site = findSite(config, tab.url || '');
     if (!site) throw new Error(`Abre una página de un sitio disponible: ${sitesOf(config).map(s => s.name).join(', ')}.`);
     const cfg = siteConfig(config, site);
     const url = normalizeUrl(tab.url, cfg);
+    const enCola = jobForUrl(await getJobs(), url);
+    if (enCola) throw new Error(`Esta página ya está ${enCola.progreso ? 'en extracción' : 'en la cola'} («${enCola.nombreGrupo}»).`);
     pending = {
       tabId: tab.id, url, title: tab.title || '', replace: false, site, cfg,
       label: pageLabel(site, tab.url, tab.title || ''),
-      // Límite de productos: solo en listados de sitios con "Load More".
-      usaLimite: !!cfg.loadMore?.item && !pageTypeByUrl(cfg, tab.url),
+      // Límite solo en listados con páginas (loadMore.urlPattern, si el sitio lo define).
+      usaLimite: !!cfg.loadMore?.item && !pageTypeByUrl(cfg, tab.url) && listadoConPaginas(cfg, tab.url),
+      tabUrl: tab.url,
     };
 
     const previous = (await getHistory())[url];
@@ -307,10 +336,11 @@ async function askCategory() {
   // Máximo de productos: el último usado en este sitio, o 50.
   $('limitGroup').hidden = !pending.usaLimite;
   if (pending.usaLimite) {
-    const { loadLimits = {} } = await chrome.storage.local.get('loadLimits');
-    $('loadLimit').max = String(maxLimit());
-    $('loadLimit').value = String(loadLimits[pending.site.id] || pending.cfg.loadMore.defaultLimit || DEFAULT_LOAD_LIMIT);
-    setLimitHint();
+    // Lo último usado en este sitio; la primera vez, 1 página (solo la actual).
+    const { loadPrefs = {} } = await chrome.storage.local.get('loadPrefs');
+    const p = loadPrefs[pending.site.id] || {};
+    const modo = p.modo === 'productos' ? 'productos' : 'paginas';
+    setLimitMode(modo, modo === 'paginas' ? p.paginas || DEFAULT_PAGES : p.productos || pending.cfg.loadMore.defaultLimit || DEFAULT_LOAD_LIMIT);
   }
   const input = $('category');
   const sugerida = previous?.categoria || recentCategories[0] || '';
@@ -633,19 +663,78 @@ async function readGroupName() {
   return { ok: true, nombre };
 }
 
-const maxLimit = () => Number(pending?.cfg?.loadMore?.maxLimit) || MAX_LOAD_LIMIT;
+// ---- Límite de la extracción: por páginas (por defecto, 1 = solo la actual) o por productos ----
 
+let limitMode = 'paginas';
+const maxLimit = () => Number(pending?.cfg?.loadMore?.maxLimit) || MAX_LOAD_LIMIT;
+const maxPages = () => Number(pending?.cfg?.loadMore?.maxPages) || MAX_PAGES;
+const maxFor = modo => (modo === 'paginas' ? maxPages() : maxLimit());
+
+// Número de la página abierta según la URL (Sephora ?currentPage=3, Amazon &page=3).
+function currentPageNumber() {
+  const param = pending?.cfg?.loadMore?.pageParam;
+  if (!param) return 1;
+  try { return Math.max(1, parseInt(new URL(pending.tabUrl).searchParams.get(param), 10) || 1); } catch { return 1; }
+}
+
+function setLimitMode(modo, valor) {
+  limitMode = modo === 'productos' ? 'productos' : 'paginas';
+  for (const [id, m] of [['limitPages', 'paginas'], ['limitProducts', 'productos']]) {
+    $(id).classList.toggle('active', m === limitMode);
+    $(id).setAttribute('aria-selected', String(m === limitMode));
+  }
+  $('loadLimit').max = String(maxFor(limitMode));
+  if (valor !== undefined) $('loadLimit').value = String(valor);
+  setLimitHint();
+}
+
+// Debajo del número: qué páginas se van a extraer, o hasta cuántos productos.
 function setLimitHint(error = '') {
-  $('limitHint').textContent = error || `Pulsa "Load More" hasta llegar a este número (máx. ${maxLimit()}).`;
+  const L = pending?.cfg?.loadMore || {};
+  const boton = L.name || 'Load More';
+  let ayuda;
+  if (limitMode === 'paginas') {
+    const n = Number($('loadLimit').value);
+    const valido = Number.isInteger(n) && n >= 1 && n <= maxPages();
+    if (!valido) ayuda = `Escribe cuántas páginas extraer, de 1 a ${maxPages()}.`;
+    else if (L.pageParam) {
+      const desde = currentPageNumber();
+      ayuda = n === 1
+        ? `Solo la página actual (página ${desde}).`
+        : `Páginas a extraer: ${desde} a ${desde + n - 1}, siguiendo con "${boton}" (máx. ${maxPages()}).`;
+    } else {
+      const lote = Number(L.pageSize) || 0;
+      ayuda = n === 1
+        ? `Solo los productos que muestra la página, sin pulsar "${boton}".`
+        : `La página actual y ${n - 1} ${n === 2 ? 'vez' : 'veces'} "${boton}"${lote ? ` (unos ${lote * n} productos)` : ''} (máx. ${maxPages()}).`;
+    }
+  } else {
+    ayuda = L.mode === 'scroll'
+      ? `Baja por la página y pasa con "${boton}" hasta llegar a este número (máx. ${maxLimit()}).`
+      : L.mode === 'fetch'
+        ? `Lee esta página y las siguientes ("${boton}") hasta llegar a este número (máx. ${maxLimit()}).`
+        : `Pulsa "${boton}" hasta llegar a este número (máx. ${maxLimit()}).`;
+  }
+  $('limitHint').textContent = error || ayuda;
   $('limitHint').className = `hint${error ? ' error' : ''}`;
 }
 
-// Límite del formulario (entero entre 1 y el máximo del sitio); 0 si no aplica.
+// Límite del formulario: { modo, valor } (entero entre 1 y el máximo del modo); null si no aplica.
 function readLimit() {
-  if (!pending.usaLimite) return { ok: true, limite: 0 };
+  if (!pending.usaLimite) return { ok: true, limite: null };
   const n = Number($('loadLimit').value);
-  if (!Number.isInteger(n) || n < 1 || n > maxLimit()) return { ok: false, error: `Escribe un número entero entre 1 y ${maxLimit()}.` };
-  return { ok: true, limite: n };
+  const max = maxFor(limitMode);
+  if (!Number.isInteger(n) || n < 1 || n > max) return { ok: false, error: `Escribe un número entero entre 1 y ${max}.` };
+  return { ok: true, limite: { modo: limitMode, valor: n } };
+}
+
+// Al cambiar de modo, el número recordado de ese modo (o el valor inicial).
+async function onLimitModeClick(modo) {
+  if (modo === limitMode) return;
+  const { loadPrefs = {} } = await chrome.storage.local.get('loadPrefs');
+  const p = loadPrefs[pending.site.id] || {};
+  setLimitMode(modo, modo === 'paginas' ? p.paginas || DEFAULT_PAGES : p.productos || pending.cfg.loadMore.defaultLimit || DEFAULT_LOAD_LIMIT);
+  $('loadLimit').focus();
 }
 
 function hideCategoryForm() {
@@ -660,107 +749,77 @@ async function rememberCategory(categoria) {
   await chrome.storage.local.set({ recentCategories: next.slice(0, MAX_RECENT_CATEGORIES) });
 }
 
-// Avance de "Load More" que envía el scraper mientras carga productos.
-function onScrapeProgress(msg) {
-  if (msg?.type === 'scrapeProgress') showStatus(`Cargando productos… ${msg.cargados} de ${msg.limite}`);
-}
-
-async function scrape(cat, nombreGrupo, limite = 0) {
-  const { tabId, url, title, replace, site, cfg } = pending;
-  const button = $('scrape');
-  button.disabled = true;
+// Envía la extracción a la cola del service worker: sigue aunque el popup se cierre.
+// `limite`: { modo: 'paginas' | 'productos', valor } o null (página sin límite).
+async function enqueue(cat, nombreGrupo, limite = null) {
+  const { tabId, tabUrl, url, title, replace, site, cfg } = pending;
   if (cat) await rememberCategory(cat.ruta);
-  const { collected, groups, prefs } = await getState();
-  showStatus(limite ? `Cargando productos… 0 de ${limite}`
-    : prefs.autoScroll ? 'Desplazando la página y analizando productos...' : `Analizando productos de ${site.name}...`);
-  chrome.runtime.onMessage.addListener(onScrapeProgress);
-  try {
-    const config = await getConfig();
-    await chrome.scripting.executeScript({ target: { tabId }, files: ['scraper.js'] });
-    const [injection] = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: (c, opts) => globalThis.__cfScraper(c, opts),
-      args: [cfg, { autoScroll: prefs.autoScroll, limit: limite }],
-    });
-    chrome.runtime.onMessage.removeListener(onScrapeProgress);
-    const r = injection?.result;
-    if (!r) throw new Error('El scraper no devolvió resultados.');
-    if (r.error) throw new Error(r.error);
-
-    const layoutsTxt = r.layouts.map(l => `${l.label}: ${l.extraidos} de ${l.encontrados}`).join('\n');
-    if (!r.productos.length) throw new Error(`No se encontraron productos compatibles en esta página.\n\n${layoutsTxt}`);
-
-    const lista = prefs.accumulate ? { ...collected } : {};
-    const grupos = prefs.accumulate ? { ...groups } : {};
-    let eliminados = 0;
-    if (replace) {
-      // Reemplazar = empezar de cero: se borran los productos y el grupo de esta página.
-      for (const [key, p] of Object.entries(lista)) {
-        if (p.origen === url) { delete lista[key]; eliminados++; }
-      }
-      for (const [id, g] of Object.entries(grupos)) if (g.origen === url) delete grupos[id];
-    }
-    const grupo = newGroupId();
-    grupos[grupo] = { nombre: nombreGrupo, origen: url, fecha: new Date().toISOString(), titulo: title, categoria: cat?.ruta || '' };
-    let nuevos = 0;
-    let movidos = 0;
-    for (const p of r.productos) {
-      // Mismo SKU en otro grupo: gana esta extracción (datos y grupo) y no se repite.
-      const key = productKey(site, p.asin);
-      if (lista[key]) movidos++;
-      else nuevos++;
-      delete lista[key];
-      lista[key] = {
-        ...p,
-        ecomerce: cfg.ecomerce || config.xlsx?.ecomerce || site.name,
-        categoria: cat?.principal || '',
-        categoriaSecundaria: cat?.secundaria || '',
-        categoriaTerciaria: cat?.terciaria || '',
-        codCategoria: cat?.codigo || '',
-        categoriaRuta: cat?.ruta || '',
-        origen: url,
-        grupo,
-      };
-    }
-    syncGroups(lista, grupos);
-    await chrome.storage.local.set({ collected: lista, groups: grupos });
-    await saveHistoryEntry(url, {
-      fecha: new Date().toISOString(),
-      categoria: cat?.ruta || '',
-      codigo: cat?.codigo || '',
-      productos: r.productos.length,
-      titulo: title,
-    });
-
-    const sinImagen = r.productos.filter(p => !p.imagen).length;
-    const sinPrecio = r.productos.filter(p => !p.precio).length;
-    const catTxt = cat ? `${cat.ruta}${cat.codigo ? ` (${cat.codigo})` : ''}` : 'sin llenar (elegir en la plantilla)';
-    const marcaTxt = r.marcaPagina ? `Marca de la tienda (solo referencia): ${r.marcaPagina}\n` : '';
-    const tipoTxt = r.tipoPagina ? `Tipo de página: ${r.tipoPagina.label}\n` : '';
-    const avisos = [];
-    if (r.cargaMas?.aviso) avisos.push(`⚠ ${r.cargaMas.aviso}`);
-    // Sitios con SKU en el link: un enlace sin "/<ID>.html" se omite aquí (el backend lo descartaría sin avisar).
-    if (cfg.skuFromLink && r.sinSku) avisos.push(`⚠ Omitidos sin SKU en el link: ${r.sinSku}`);
-    const cargaTxt = r.cargaMas ? `Cargados con "Load More": ${r.cargaMas.cargados} (límite ${r.cargaMas.limite})\n` : '';
-    let msg = `✓ ${replace ? 'Datos anteriores reemplazados' : 'Extracción completada'}\n\nSitio: ${site.name}\nGrupo: ${nombreGrupo}\nCategoría: ${catTxt}\n${tipoTxt}${marcaTxt}${cargaTxt}Productos en esta página: ${r.productos.length}\nSin imagen: ${sinImagen}\nSin precio: ${sinPrecio}${avisos.length ? `\n${avisos.join('\n')}` : ''}\n\n${layoutsTxt}`;
-    if (prefs.accumulate) {
-      if (replace) msg += `\n\nEliminados de la extracción anterior: ${eliminados}`;
-      msg += `\n${replace ? '' : '\n'}Nuevos añadidos: ${nuevos}`;
-      if (movidos) msg += `\nYa estaban en otro grupo (pasan a este): ${movidos}`;
-      msg += `\nTotal en la lista: ${Object.keys(lista).length}`;
-    } else {
-      msg += `\n\n${exportSummary(await downloadXlsx(productsForExport(lista, grupos), config, pending.fileName))}`;
-    }
-    showStatus(msg, 'success');
-  } catch (error) {
-    console.error(error);
-    showStatus(error.message || 'Ocurrió un error.', 'error');
-  } finally {
-    chrome.runtime.onMessage.removeListener(onScrapeProgress);
-    button.disabled = false;
-    renderCollection();
-  }
+  const job = {
+    tabId, tabUrl, url, title, replace, cfg, cat, nombreGrupo, limite,
+    site: { id: site.id, name: site.name },
+    fileName: pending.fileName || '',
+    paginaInicial: currentPageNumber(),
+    conNumeroDePagina: !!cfg.loadMore?.pageParam,
+  };
+  const r = await chrome.runtime.sendMessage({ type: 'enqueue', job });
+  if (!r || r.error) return showStatus(`No se pudo iniciar la extracción${r?.error ? `: ${r.error}` : '.'}`, 'error');
+  showStatus(r.posicion
+    ? `En cola (posición ${r.posicion}): «${nombreGrupo}». Empezará cuando termine la extracción en curso.`
+    : `Extracción iniciada: «${nombreGrupo}».\nPuedes cerrar este popup o ir a otra página: avisaré al terminar.`);
+  pending = null;
+  renderJobs();
 }
+
+const limiteTxt = l => (!l ? 'toda la página'
+  : l.modo === 'paginas' ? `${l.valor} página${l.valor === 1 ? '' : 's'}` : `${l.valor} productos`);
+
+// Extracción en curso y cola (las ejecuta el service worker). Se actualiza sola
+// mientras el popup está abierto (storage.onChanged).
+async function renderJobs() {
+  const st = await getJobs();
+  const a = st.actual;
+  $('jobsPanel').hidden = !a && !st.cola.length;
+  $('jobCurrent').hidden = !a;
+  if (a) {
+    const p = a.progreso || {};
+    $('jobTitle').textContent = `⏳ Extrayendo «${a.nombreGrupo}» (${a.site.name})`;
+    const avance = p.paginas ? `Página ${p.pagina || 1} de ${p.paginas}`
+      : p.limite ? `${p.cargados ?? 0} de ${p.limite} productos` : 'Leyendo la página…';
+    const cuenta = p.paginas && p.cargados != null ? ` · ${p.cargados} productos` : '';
+    $('jobProgress').textContent = p.pausada
+      ? `⏸ En pausa: vuelve a la pestaña de ${a.site.name} para continuar (${avance}). Esta página solo se lee con la pestaña a la vista.`
+      : `${avance}${cuenta}. No cierres esa pestaña.`;
+    $('jobProgress').className = `hint${p.pausada ? ' error' : ''}`;
+    $('jobGo').onclick = () => chrome.runtime.sendMessage({ type: 'focusJob', tabId: a.tabId });
+  }
+  $('jobQueueTitle').hidden = !st.cola.length;
+  $('jobQueueTitle').textContent = `En cola (${st.cola.length}):`;
+  $('jobQueue').replaceChildren(...st.cola.map((j, i) => {
+    const li = document.createElement('li');
+    li.append(Object.assign(document.createElement('span'), { textContent: `${i + 1}. «${j.nombreGrupo}» · ${j.site.name} · ${limiteTxt(j.limite)}` }));
+    const x = Object.assign(document.createElement('button'), { type: 'button', className: 'mini', textContent: '✕', title: 'Quitar de la cola' });
+    x.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'removeJob', id: j.id }));
+    li.append(x);
+    return li;
+  }));
+}
+
+// Al terminar una extracción con el popup abierto, se muestra su resultado.
+let ultimoVisto = null;
+function onStorageChanged(changes, area) {
+  if (area !== 'local') return;
+  if (changes.jobs) {
+    renderJobs();
+    const u = changes.jobs.newValue?.ultimo;
+    if (u && u.id !== ultimoVisto && u.id !== changes.jobs.oldValue?.ultimo?.id) {
+      ultimoVisto = u.id;
+      showStatus(u.mensaje, u.ok ? 'success' : 'error');
+      chrome.runtime.sendMessage({ type: 'seen' });
+    }
+  }
+  if (changes.collected || changes.groups) renderCollection();
+}
+
 
 async function init() {
   $('version').textContent = extensionVersion();
@@ -795,14 +854,26 @@ async function init() {
       return $('loadLimit').focus();
     }
     if (limit.limite) {
-      const { loadLimits = {} } = await chrome.storage.local.get('loadLimits');
-      await chrome.storage.local.set({ loadLimits: { ...loadLimits, [pending.site.id]: limit.limite } });
+      // Se recuerdan por sitio el modo y el número de cada modo.
+      const { loadPrefs = {} } = await chrome.storage.local.get('loadPrefs');
+      const { modo, valor } = limit.limite;
+      const previo = loadPrefs[pending.site.id] || {};
+      await chrome.storage.local.set({ loadPrefs: { ...loadPrefs, [pending.site.id]: { ...previo, modo, [modo]: valor } } });
     }
     pending.fileName = $('fileName').value;
     hideCategoryForm();
-    scrape(choice.cat, group.nombre, limit.limite);
+    enqueue(choice.cat, group.nombre, limit.limite);
   });
+  $('jobStop').addEventListener('click', async () => {
+    $('jobStop').disabled = true;
+    $('jobProgress').textContent = 'Deteniendo… se guardará lo leído hasta ahora.';
+    await chrome.runtime.sendMessage({ type: 'stopJob' });
+    setTimeout(() => { $('jobStop').disabled = false; }, 3000);
+  });
+  chrome.storage.onChanged.addListener(onStorageChanged);
   $('loadLimit').addEventListener('input', () => setLimitHint());
+  $('limitPages').addEventListener('click', () => onLimitModeClick('paginas'));
+  $('limitProducts').addEventListener('click', () => onLimitModeClick('productos'));
   $('groupName').addEventListener('input', () => {
     $('groupHint').textContent = 'Se verá en la columna ref_grupo del Excel.';
     $('groupHint').className = 'hint';
@@ -846,7 +917,7 @@ async function init() {
     e.preventDefault();
     const { collected, groups } = await getState();
     try {
-      const r = await downloadXlsx(productsForExport(collected, groups), await getConfig(), $('exportName').value);
+      const r = await downloadXlsx(productsForExport(collected, groups), await getConfig(), catalogCache.items, $('exportName').value);
       hideExportForm();
       showStatus(exportSummary(r), 'success');
     } catch (error) {
@@ -869,6 +940,11 @@ async function init() {
   renderConfigInfo(config);
   await renderSite(config);
   renderCollection();
+  renderJobs();
+  // Abrir el popup "ve" el último resultado: el icono deja de mostrar ✓.
+  const { ultimo } = await getJobs();
+  ultimoVisto = ultimo?.id || null;
+  chrome.runtime.sendMessage({ type: 'seen' }).catch(() => {});
 
   // Categorías: primero la caché (instantáneo) y luego se refresca si está vencida.
   catalogCache = await getCachedCategories();

@@ -26,7 +26,7 @@ button.ghost{background:#e5e7eb;color:#111;padding:10px;width:auto;flex:0 0 auto
 #collection{margin-top:12px;padding:11px;background:#fff;border-radius:7px}
 .count{font-size:13px;margin-bottom:9px}
 .row{display:flex;gap:8px}
-.sources{list-style:none;margin:0 0 10px;padding:0;max-height:150px;overflow-y:auto;border-top:1px solid #f0f1f3}
+.sources{list-style:none;margin:0 0 10px;padding:0;max-height:260px;overflow-y:auto;border-top:1px solid #f0f1f3}
 .sources li{font-size:12px;padding:6px 0;border-bottom:1px solid #f0f1f3;line-height:1.4}
 .sources a{color:#b45309;font-weight:700;text-decoration:none}
 .sources a:hover{text-decoration:underline}
@@ -34,6 +34,20 @@ button.ghost{background:#e5e7eb;color:#111;padding:10px;width:auto;flex:0 0 auto
 .sites-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
 .sites-list a{display:inline-block;padding:6px 10px;border:1px solid #fcd34d;border-radius:7px;background:#fff7e6;color:#b45309;font-size:12px;font-weight:700;text-decoration:none}
 .sites-list a:hover{background:#ffedc2}
+.jobs{margin-top:12px;border:1px solid #fcd34d;background:#fff7e6}
+.job-title{margin:0 0 4px;font-size:13px;font-weight:700}
+.jobs .hint{margin:0 0 8px;word-break:normal;white-space:pre-line}
+.queue-title{margin:10px 0 4px;font-size:12px;font-weight:700}
+.queue{list-style:none;margin:0;padding:0}
+.queue li{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;padding:4px 0;border-top:1px solid #f3e3b5}
+button.mini{width:auto;padding:2px 8px;font-size:11px;font-weight:700;background:#e5e7eb;color:#111;border-radius:6px}
+button.mini.danger{background:#b91c1c;color:#fff}
+.sources .group-toggle,.sources .group-delete{width:auto;padding:0 4px;background:none;font-size:12px;font-weight:400;color:#6b7280;border-radius:4px}
+.sources .group-delete{float:right;opacity:.7;font-size:14px}
+.sources .group-delete:hover{opacity:1}
+.sources .group-details{margin:4px 0 2px 18px;padding:6px 8px;background:#f9fafb;border-radius:6px;color:#374151;white-space:pre-line;font-size:11px;line-height:1.5}
+.sources .confirm-text{color:#b91c1c}
+.region-text{margin:0 0 10px;font-size:12px;line-height:1.45;color:#374151;word-break:break-word}
 .sources .meta{color:#6b7280}
 .sources .group-name{color:#b45309;font-weight:700;cursor:text;user-select:none}
 .sources .open-page{font-weight:400}
@@ -88,7 +102,26 @@ footer a{color:#6b7280}
   <ul id="sitesList" class="sites-list"></ul>
 </div>
 
+<div id="regionPanel" class="panel" hidden>
+  <p class="sites-title" id="regionTitle"></p>
+  <p class="region-text" id="regionText"></p>
+  <button id="regionOpen" class="secondary"></button>
+</div>
+
 <button id="scrape">Extraer productos</button>
+
+<div id="jobsPanel" class="panel jobs" hidden>
+  <div id="jobCurrent">
+    <p class="job-title" id="jobTitle"></p>
+    <div class="hint" id="jobProgress"></div>
+    <div class="row">
+      <button id="jobGo" class="ghost" type="button">Ir a la pestaña</button>
+      <button id="jobStop" class="secondary" type="button">Detener y guardar lo leído</button>
+    </div>
+  </div>
+  <p class="queue-title" id="jobQueueTitle" hidden></p>
+  <ul id="jobQueue" class="queue"></ul>
+</div>
 
 <div id="duplicatePanel" hidden>
   <p class="title">⚠ Esta página ya fue extraída</p>
@@ -125,7 +158,11 @@ footer a{color:#6b7280}
   <input id="groupName" class="text-input" autocomplete="off" maxlength="60" placeholder="Ej: Audífonos HyperX">
   <div class="hint" id="groupHint"></div>
   <div id="limitGroup" hidden>
-    <label class="field-label" for="loadLimit">Máximo de productos</label>
+    <label class="field-label" for="loadLimit">Límite de la extracción</label>
+    <div class="mode-switch" role="tablist" aria-label="Límite por páginas o por productos">
+      <button type="button" id="limitPages" class="mode" role="tab">Páginas</button>
+      <button type="button" id="limitProducts" class="mode" role="tab">Productos</button>
+    </div>
     <input id="loadLimit" class="text-input" type="number" min="1" step="1" inputmode="numeric">
     <div class="hint" id="limitHint"></div>
   </div>

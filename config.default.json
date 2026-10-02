@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "revision": 13,
-  "updatedAt": "2026-10-01",
+  "revision": 18,
+  "updatedAt": "2026-10-02",
   "remoteConfigUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/config.json",
   "minExtensionVersion": "1.1.0",
-  "latestVersion": "1.8.0",
+  "latestVersion": "1.9.0",
   "downloadUrl": "https://github.com/h3b3rt/Extension_Amazon_CF_Scrapping/releases/latest",
   "notice": "",
   "appName": "COMPRAFACIL Scraper",
@@ -22,7 +22,7 @@
   },
 
   "pageBrand": {
-    "urlPattern": "^/stores/",
+    "urlPattern": "^(/-/[a-z]{2})?/stores/",
     "selectors": ["nav[data-testid=\"breadcrumb\"] li:first-child [itemprop=\"name\"]", "[data-testid=\"header-logo\"] img[alt$=\" home page\"]"],
     "strip": " home page$",
     "scriptPattern": "\"brandName\":\"([^\"]+)\""
@@ -55,7 +55,8 @@
       "link": ["[data-cy=\"title-recipe\"] a[href*=\"/dp/\"]", "a.s-no-outline[href*=\"/dp/\"]", "a[href*=\"/dp/\"]", "[data-cy=\"title-recipe\"] a[href]"],
       "title": ["[data-cy=\"title-recipe\"] a h2 span", "[data-cy=\"title-recipe\"] h2 span", "[data-cy=\"title-recipe\"] h2", "h2 span", "h2"],
       "brand": ["[data-cy=\"title-recipe\"] div.a-row.a-color-secondary :is(h2, h5) span.a-color-base"],
-      "image": ["[data-cy=\"image-container\"] img.s-image", "img.s-image"]
+      "image": ["[data-cy=\"image-container\"] img.s-image", "img.s-image"],
+      "exclude": { "self": ".AdHolder", "selector": ".puis-sponsored-label-text" }
     },
     {
       "id": "nuevos",
@@ -126,6 +127,15 @@
       ]
     },
     {
+      "id": "categoria",
+      "label": "Portada de categoría",
+      "item": "div.dcl-product-wrapper[data-csa-c-item-type=\"asin\"]",
+      "asinFrom": ["csaItemId", "link"],
+      "link": ["a.dcl-product-link[href*=\"/dp/\"]"],
+      "title": [".dcl-product-title"],
+      "image": ["img.dcl-dynamic-image", "img"]
+    },
+    {
       "id": "detalle",
       "label": "Página de producto",
       "item": "#dp-container",
@@ -149,7 +159,19 @@
       "title": "Amazon Product Scraper",
       "hosts": ["amazon.com"],
       "homeUrl": "https://www.amazon.com/",
-      "ecomerce": "Amazon"
+      "ecomerce": "Amazon",
+      "loadMore": {
+        "mode": "fetch",
+        "name": "Siguiente",
+        "pageParam": "page",
+        "urlPattern": "^(/-/[a-z]{2})?/s/?$",
+        "item": "div[data-component-type=\"s-search-result\"], div.dcl-product-wrapper, li[class*=\"ProductGridItem__itemOuter\"], li[class*=\"ProductUIRender__grid-item\"]",
+        "next": ["a.s-pagination-next[href]:not(.s-pagination-disabled)"],
+        "delayMs": 1500,
+        "maxPages": 10,
+        "defaultLimit": 60,
+        "maxLimit": 500
+      }
     },
     {
       "id": "michaelkors",
@@ -176,7 +198,15 @@
       },
       "loadMore": {
         "item": ".product-grid div.product-tile-show[data-pid]",
+        "name": "Load More",
+        "mode": "fetch",
+        "next": ["button.load-more-btn--js[data-url]", "[data-url*=\"UpdateGrid\"]"],
+        "nextAttr": "data-url",
+        "startParam": "start",
+        "sizeParam": "sz",
         "button": ["button.load-more-btn--js.desktop-load-more", "button.load-more-btn--js"],
+        "pageSize": 24,
+        "maxPages": 10,
         "timeoutMs": 15000,
         "delayMs": 500,
         "defaultLimit": 50,
@@ -197,6 +227,7 @@
           "id": "mk-grilla",
           "label": "Listado",
           "item": ".product-grid div.product-tile-show[data-pid]",
+          "fetchItem": "div.product-tile-show[data-pid]",
           "asinFrom": ["link"],
           "link": [".pdp-link a[href]", "a.product-tile-image-link[href]"],
           "title": [".pdp-link a", ".pdp-link"],
@@ -217,6 +248,110 @@
           "priceText": [".sales .value", ".price"]
         }
       ]
+    },
+    {
+      "id": "sephora",
+      "name": "Sephora",
+      "title": "Sephora Product Scraper",
+      "hosts": ["sephora.com"],
+      "homeUrl": "https://www.sephora.com/",
+      "ecomerce": "Sephora",
+      "regions": {
+        "pathPrefix": "^/ca/(en|fr)(?=/|$)",
+        "hostPattern": "(^|\\.)sephora\\.(?!com$)[a-z]{2,3}(\\.[a-z]{2})?$",
+        "queryParams": ["keyword", "q", "searchTerm", "text"],
+        "titleStrip": ["\\s*[|–≡]\\s*Sephora.*$"],
+        "searchUrl": "https://www.sephora.com/search?keyword={q}"
+      },
+      "groupName": { "param": "keyword", "strip": ["\\s*\\|\\s*Sephora\\s*$"] },
+      "skuPattern": "^P\\d+$",
+      "productUrl": "",
+      "pageBrand": null,
+      "price": {},
+      "variant": {
+        "attr": "data-cnstrc-item-variation-id",
+        "pattern": "^\\d+$",
+        "param": "skuId",
+        "origin": "https://www.sephora.com",
+        "pathStrip": ["^/ca/(en|fr)(?=/)"],
+        "linkCheck": "-([A-Z]\\d+)"
+      },
+      "image": { "fullSize": false, "hosts": ["sephora\\.com/productimages/"], "replace": [["([?&]imwidth=)\\d+", "$1930"]] },
+      "history": {
+        "keepParams": ["keyword", "currentPage", "pl", "ph", "ref", "sortBy", "node"],
+        "productPattern": "^/product/"
+      },
+      "loadMore": {
+        "mode": "scroll",
+        "name": "Show More Products",
+        "pageParam": "currentPage",
+        "json": {
+          "script": "script#linkStore",
+          "products": "page.*.products",
+          "total": "page.*.totalProducts",
+          "pageSize": "page.*.pageSize",
+          "page": "page.*.currentPage",
+          "fields": {
+            "asin": "productId",
+            "variante": "currentSku.skuId",
+            "link": "targetUrl",
+            "nombre": "displayName",
+            "marca": "brandName",
+            "imagen": "heroImage",
+            "precio": ["currentSku.salePrice", "currentSku.listPrice"],
+            "excluir": "sponsored"
+          }
+        },
+        "item": "[data-comp~=\"ProductGrid\"] a[data-cnstrc-item-id]",
+        "button": ["[data-comp~=\"CatalogLayout\"] main p + button", "main p + button"],
+        "buttonText": "^show more products$",
+        "firstAttr": "data-cnstrc-item-id",
+        "stepDelayMs": 400,
+        "stableSteps": 4,
+        "maxSteps": 300,
+        "maxPages": 10,
+        "timeoutMs": 15000,
+        "defaultLimit": 60,
+        "maxLimit": 500
+      },
+      "pageTypes": [
+        {
+          "id": "producto",
+          "label": "Página de producto",
+          "urlPattern": "^/product/",
+          "selectors": ["main[data-cnstrc-product-detail=\"true\"][data-cnstrc-item-id]"],
+          "layouts": ["sephora-detalle"],
+          "autoScroll": false
+        }
+      ],
+      "layouts": [
+        {
+          "id": "sephora-grilla",
+          "label": "Listado",
+          "item": "[data-comp~=\"ProductGrid\"] a[data-cnstrc-item-id]",
+          "asinFrom": ["variant"],
+          "skuAttr": "data-cnstrc-item-id",
+          "link": [],
+          "title": [".ProductTile-content > span:nth-of-type(2)"],
+          "brand": [".ProductTile-content > span:nth-of-type(1)"],
+          "image": ["[data-comp~=\"ProductImage\"] img", "img"],
+          "priceAttr": "data-cnstrc-item-price",
+          "priceText": [".ProductTile-content b"],
+          "exclude": { "selector": ".ProductTile-content > span", "text": "^Sponsored$" }
+        },
+        {
+          "id": "sephora-detalle",
+          "label": "Página de producto",
+          "item": "main[data-cnstrc-product-detail=\"true\"][data-cnstrc-item-id]",
+          "asinFrom": ["variant"],
+          "skuAttr": "data-cnstrc-item-id",
+          "link": [],
+          "title": ["h1 [data-at=\"product_name\"]"],
+          "brand": ["h1 [data-at=\"brand_name\"]"],
+          "image": ["[data-comp~=\"ProductMediaItem\"] img"],
+          "priceAttr": "data-cnstrc-item-price"
+        }
+      ]
     }
   ],
 
@@ -231,6 +366,7 @@
     },
     "imageFormula": "IMAGE({celda})",
     "rowHeight": 60,
+    "skuOnlyInLink": ["Sephora"],
     "refColumns": [
       { "header": "ref_grupo", "field": "grupo", "width": 28 },
       { "header": "ref_imagen_link", "field": "imagen", "width": 30 },
@@ -238,6 +374,7 @@
       { "header": "ref_nombre", "field": "nombre", "width": 60 },
       { "header": "ref_marca", "field": "marca", "width": 18 },
       { "header": "ref_precio", "field": "precio", "width": 10 },
+      { "header": "ref_sku_id", "field": "variante", "width": 12 },
       { "header": "ref_duplicado", "field": "duplicado", "width": 26 }
     ]
   },

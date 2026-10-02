@@ -1,6 +1,9 @@
 # Pendientes y próximos pasos
 
-Estado al **01/10/2026** (versión publicada: **v1.8.0**, Michael Kors y nombre COMPRAFACIL Scraper; siguiente: **v1.9.0**, con el próximo ecommerce).
+Estado al **02/10/2026**.
+
+- **Publicada: v1.9.0** (02/10/2026): Sephora; anuncios fuera, páginas siguientes y portada de categoría en Amazon; límite por páginas; extracciones en segundo plano con cola, notificación y "Detener"; resumen desplegable y 🗑 por grupo.
+- **Siguiente: v1.10.0**, con Marc Jacobs y Kate Spade (sección 3). Mientras esté en preparación, sus commits se quedan locales (sin push ni etiqueta); el commit que la publique cambia este estado a *"Publicada: v1.10.0"*.
 
 ## 1. Categorías automáticas desde la API ✅
 - [x] Secrets **`CF_EMAIL`** y **`CF_PASSWORD`** creados en GitHub. Ver [CATEGORIAS.md](CATEGORIAS.md).
@@ -19,12 +22,22 @@ Varias funciones solo se probaron en simulación (jsdom) y con capturas de Chrom
 - [x] **v1.8.0:** Michael Kors en Chrome real (comprobado el 01/10/2026): listado con **Load More**, avance en el popup y límite respetado, y páginas de producto.
 - [x] **v1.8.0:** título del popup por sitio (*COMPRAFACIL Scraper* fuera de los sitios, con la lista de sitios disponibles).
 - [ ] **v1.8.0:** subir al sistema un Excel con filas de Michael Kors y confirmar que se crean con el SKU del link.
+- [x] **v1.9.0:** Sephora en Chrome real (02/10/2026): "Show More Products" cambia de página sin recargar, y las categorías y marcas se leen desde los datos de la página.
+- [x] **v1.9.0:** Sephora: página de producto con otro tamaño o tono elegido, y el botón **Abrir en www.sephora.com** desde otra región.
+- [x] **v1.9.0:** Sephora en Chrome real (02/10/2026): listado con paso de página, sin anuncios.
+- [x] **v1.9.0:** extracciones en segundo plano en Chrome real (02/10/2026): popup cerrado y otra pestaña durante la extracción, cola, notificación, icono, "Detener y guardar lo leído", pestaña cerrada a mitad, pausa en una búsqueda de Sephora, desplegable ▸ y 🗑 por grupo.
+- [ ] **v1.9.0:** al actualizar con el zip de la Release, comprobar si Chrome pide aceptar los permisos nuevos (`sephora.com` y notificaciones) y avisar al equipo.
+- [x] **v1.9.0:** límite por páginas en Chrome real (02/10/2026): 1 página, varias páginas desde una que no es la primera, cambio a Productos y valor recordado por sitio.
+- [x] **v1.9.0:** Amazon en Chrome real (02/10/2026): búsqueda con más de una página (descarga de las páginas siguientes, sin captcha), anuncios omitidos, portada de categoría `/b?node=` y tienda de marca con `/-/es/`.
+- [ ] **v1.9.0:** subir al sistema un Excel con filas de Sephora (sin `sku`) y confirmar que se crean con el `skuId` y el `P…` del link.
 - [ ] **v1.6.0:** subir un Excel de prueba al sistema (`POST /product/upload/list`) y confirmar que se crean los productos con su categoría y condición.
 
 ## 3. Otros ecommerce de la plantilla
 La plantilla acepta Amazon, Sephora, Marc Jacobs, Kate Spade y Michael Kors.
 - [x] **Michael Kors** (piloto, v1.8.0). El backend toma el SKU de la columna `sku` o, si falta, del link (`/<ID>.html` del pathname; ignora los parámetros). Si ambos vienen, gana `sku`. La extensión escribe los dos y saca el SKU del link, así siempre coinciden. Una fila sin SKU se descarta sin aviso.
-- [ ] **v1.9.0:** siguiente ecommerce (Sephora, Marc Jacobs o Kate Spade). Para cada uno hace falta: HTML de un listado, de un producto y de un producto en oferta (guardado desde Chrome con `copy(document.documentElement.outerHTML)`), y cómo obtiene el SKU el backend. Se agrega en `config.json → sites` y en `host_permissions` (versión nueva).
+- [x] **Sephora** (v1.9.0). El backend (`parseSephoraUrl`) saca del link el `skuId` (sku) y el primer `-<letra><dígitos>` de la ruta (`product_id`, el `P…`). La extensión deja `sku` vacía (llena, borraría el `P…`), arma el link limpio `…-P123?skuId=…`, omite los links sin `skuId` o con otro código antes del `P…`, y deja una fila por `P…` (el SP solo elimina duplicados por sku). El backend no se modifica.
+- [ ] **Marc Jacobs y Kate Spade** (entran juntos en la v1.10.0: no se publica, es decir, sin push ni etiqueta, hasta tenerlos). Criterios en CLAUDE.md ("Adding an ecommerce"). Para cada uno hace falta: cómo obtiene el SKU el backend, y HTML de un producto, un producto en oferta, una búsqueda, una categoría y una marca o submarca (guardado desde Chrome con `copy(document.documentElement.outerHTML)`, sin bloqueador de anuncios), más URLs reales de búsqueda, filtro y página 2. Se agrega en `config.json → sites` y en `host_permissions`.
+- [ ] **Al terminar todos los ecommerce:** icono por sitio. Hoy solo cambia el título; el icono es el mismo en todos. Se haría con `chrome.action.setIcon` por pestaña (como el título en `background.js`), con iconos de 16 y 32 px por sitio incluidos en el paquete: Chrome no acepta imágenes remotas, así que requiere versión nueva. Propuesta: la bolsa naranja con un distintivo de texto ("A", "MK"…), sin logos de marcas. Definir antes si se usan iconos propios.
 - Aviso para el backend (no bloquea): `SP_CreateProductList` solo crea productos nuevos (un SKU existente se ignora) y `p_updated`/`p_created` toman `ROW_COUNT()` de `SP_GenerateUpc`, así que el conteo que devuelve no es fiable.
 
 ## 4. Publicar en Chrome Web Store (recomendado)
