@@ -85,6 +85,8 @@ export async function guardarResultado(job, r, motivo = '') {
   // Sitios con SKU en el link: un producto sin SKU válido se omite (el backend lo descartaría o lo guardaría mal).
   if ((cfg.skuFromLink || cfg.variant) && r.sinSku) avisos.push(`⚠ Omitidos sin SKU en el link: ${r.sinSku}`);
   if (r.excluidos) avisos.push(`Anuncios omitidos (Sponsored): ${r.excluidos}`);
+  // Marc Jacobs: el backend guarda un producto por modelo (corta el color tras el "-").
+  if (r.agrupados) avisos.push(`Colores agrupados en su modelo (una fila por modelo): ${r.agrupados}`);
   const catTxt = cat ? `${cat.ruta}${cat.codigo ? ` (${cat.codigo})` : ''}` : 'sin llenar (elegir en la plantilla)';
   const resumen = [
     `Sitio: ${site.name}`,

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "revision": 18,
+  "revision": 19,
   "updatedAt": "2026-10-02",
   "remoteConfigUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/config.json",
   "minExtensionVersion": "1.1.0",
-  "latestVersion": "1.9.0",
+  "latestVersion": "1.10.0",
   "downloadUrl": "https://github.com/h3b3rt/Extension_Amazon_CF_Scrapping/releases/latest",
   "notice": "",
   "appName": "COMPRAFACIL Scraper",
@@ -350,6 +350,107 @@
           "brand": ["h1 [data-at=\"brand_name\"]"],
           "image": ["[data-comp~=\"ProductMediaItem\"] img"],
           "priceAttr": "data-cnstrc-item-price"
+        }
+      ]
+    },
+    {
+      "id": "marcjacobs",
+      "name": "Marc Jacobs",
+      "title": "Marc Jacobs Product Scraper",
+      "hosts": ["marcjacobs.com"],
+      "homeUrl": "https://www.marcjacobs.com/us-en/homepage",
+      "ecomerce": "Marc Jacobs",
+      "onlyPath": { "pattern": "^/us-en(/|$)", "message": "Solo se extrae la tienda de EE. UU. de Marc Jacobs (www.marcjacobs.com/us-en/). Cambia la región en la página." },
+      "regions": { "otherPath": "^/(?!us-en(/|$))[a-z]{2}-[a-z]{2}(/|$)" },
+      "searchOverlay": {
+        "selector": "body.search-modal-open .search-result-wrapper.xgen-show",
+        "query": [".search-result-wrapper .search-keyword", "input.search-field[name=\"q\"]"],
+        "url": "https://www.marcjacobs.com/us-en/search?q={q}"
+      },
+      "groupName": { "param": "q", "strip": ["\\s*\\|\\s*Marc Jacobs.*$", "^Search Results Page\\s*-\\s*Marc Jacobs$"] },
+      "skuPattern": "^[A-Z0-9]{4,15}$",
+      "skuFromLink": "/([^/]+)\\.html$",
+      "skuBase": { "cutAt": "-", "strip": "[^A-Z0-9]" },
+      "brandDefault": "Marc Jacobs",
+      "productUrl": "",
+      "pageBrand": null,
+      "price": {},
+      "image": { "fullSize": false, "hosts": ["media\\.marcjacobs\\.com/"] },
+      "history": {
+        "keepParams": ["q", "cgid", "srule", "pmin", "pmax"],
+        "keepParamsPattern": "^(filter|prefn|prefv)",
+        "productPattern": "\\.html$"
+      },
+      "loadMore": {
+        "item": ".plp .prod-l-g-tile > .p-tile",
+        "name": "View more",
+        "mode": "fetch",
+        "limitModes": ["productos"],
+        "next": [".show-more-tiles[data-url]"],
+        "nextAttr": "data-url",
+        "startParam": "start",
+        "sizeParam": "sz",
+        "maxPages": 40,
+        "delayMs": 500,
+        "defaultLimit": 50,
+        "maxLimit": 500
+      },
+      "pageTypes": [
+        {
+          "id": "busqueda",
+          "label": "Búsqueda (productos cargados)",
+          "selectors": ["body.search-modal-open .search-result-wrapper.xgen-show"],
+          "layouts": ["mj-busqueda"],
+          "autoScroll": false
+        },
+        {
+          "id": "producto",
+          "label": "Página de producto",
+          "urlPattern": "^/us-en/(.+/)?[^/]+\\.html$",
+          "selectors": ["section.pdp-header.product-detail h1"],
+          "layouts": ["mj-detalle"],
+          "autoScroll": false
+        }
+      ],
+      "layouts": [
+        {
+          "id": "mj-grilla",
+          "label": "Listado",
+          "item": "body:not(.search-modal-open) .plp .prod-l-g-tile > .p-tile",
+          "fetchItem": "div.p-tile",
+          "asinFrom": ["linkBase"],
+          "link": ["a.tile-link[href]", "a.tile-img-link[href]"],
+          "title": [".tile-title", "a.tile-link"],
+          "brand": [],
+          "image": [".tile-media picture img", "img.tile-img"],
+          "priceContent": [".price > span[content]:not(.price-strike)"],
+          "priceText": [".price"]
+        },
+        {
+          "id": "mj-busqueda",
+          "label": "Búsqueda",
+          "item": ".search-result-wrapper.xgen-show .prod-l-g-tile > .p-tile",
+          "asinFrom": ["linkBase"],
+          "link": ["a.tile-link[href]", "a.tile-img-link[href]"],
+          "title": [".tile-title", "a.tile-link"],
+          "brand": [],
+          "image": [".tile-media picture img", "img.tile-img"],
+          "priceContent": [".price > span[content]:not(.price-strike)"],
+          "priceText": [".price"]
+        },
+        {
+          "id": "mj-detalle",
+          "label": "Página de producto",
+          "item": "section.pdp-header.product-detail",
+          "asinFrom": ["urlBase", "childBase"],
+          "skuChild": [".js-wishlist-tile[data-product-id]"],
+          "skuAttr": "data-product-id",
+          "link": [],
+          "title": ["h1"],
+          "brand": [],
+          "image": [".pdp-image-container picture img", ".pdp-image-container img"],
+          "priceContent": [".price > span[content]:not(.price-strike)"],
+          "priceText": [".price"]
         }
       ]
     }

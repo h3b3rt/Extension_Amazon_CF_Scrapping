@@ -2,15 +2,15 @@
 
 ## Flujo normal
 
-1. Abre en un sitio disponible una **búsqueda**, una **categoría**, una **tienda de marca** o la **página de un producto**. Sitios disponibles: **Amazon.com**, **Michael Kors** (`www.michaelkors.com`) y **Sephora** (`www.sephora.com`).
-2. Pulsa el icono de la extensión → **Extraer productos**. El título del popup indica el sitio (*Amazon Product Scraper*, *Michael Kors Product Scraper*, *Sephora Product Scraper*). En otra página, el popup se llama *COMPRAFACIL Scraper* y muestra los sitios disponibles con su enlace.
+1. Abre en un sitio disponible una **búsqueda**, una **categoría**, una **tienda de marca** o la **página de un producto**. Sitios disponibles: **Amazon.com**, **Michael Kors** (`www.michaelkors.com`), **Sephora** (`www.sephora.com`) y **Marc Jacobs** (`www.marcjacobs.com/us-en/`).
+2. Pulsa el icono de la extensión → **Extraer productos**. El título del popup indica el sitio (*Amazon Product Scraper*, *Michael Kors Product Scraper*, *Sephora Product Scraper*, *Marc Jacobs Product Scraper*). En otra página, el popup se llama *COMPRAFACIL Scraper* y muestra los sitios disponibles con su enlace.
 3. Si esa página **ya se extrajo antes**, aparece un aviso con la fecha, la categoría y los productos. Elige:
    - **Reemplazar datos anteriores**: quita de la lista los productos y el grupo de la extracción anterior y la hace de nuevo desde cero.
    - **Cancelar**.
 4. Elige la **categoría** de los productos (ver abajo).
 5. Revisa el **nombre del grupo** (ver abajo) y pulsa **Extraer**.
-6. La extensión carga los productos y los añade a la lista: en Amazon lee la página y las siguientes; en Michael Kors pulsa **Load More** y en Sephora baja la página y pasa de página, hasta el límite indicado (ver *Límite de la extracción*). **No cierres el popup mientras trabaja.**
-7. Repite con otras páginas, también de otro sitio: un mismo Excel puede tener productos de Amazon, Michael Kors y Sephora, cada fila con su `ecomerce`. La lista acumula productos sin repetir SKU: si un SKU ya estaba en otro grupo, se queda con los datos y el grupo de la última extracción.
+6. La extensión carga los productos y los añade a la lista: en Amazon lee la página y las siguientes; en Michael Kors y Marc Jacobs descarga los productos que traerían **Load More** o el scroll, y en Sephora baja la página y pasa de página, hasta el límite indicado (ver *Límite de la extracción*). **No cierres el popup mientras trabaja.**
+7. Repite con otras páginas, también de otro sitio: un mismo Excel puede tener productos de Amazon, Michael Kors, Sephora y Marc Jacobs, cada fila con su `ecomerce`. La lista acumula productos sin repetir SKU: si un SKU ya estaba en otro grupo, se queda con los datos y el grupo de la última extracción.
 8. Al terminar, pulsa **Descargar Excel**. Opcionalmente escribe un nombre, por ejemplo `Audifonos Hyperx`, y pulsa **Descargar**.
    - Resultado: `Audifonos_Hyperx_2026-09-30_14-35.xlsx`
    - Sin nombre: `Plantilla_Scraping_2026-09-30_14-35.xlsx`
@@ -31,7 +31,7 @@ En la página de un solo producto de Amazon (`/dp/…` o `/gp/product/…`) se e
 
 ## Límite de la extracción
 
-En los listados con varias páginas (búsquedas y categorías de Amazon, Michael Kors y Sephora) el formulario muestra **Límite de la extracción**, con dos modos. Se usa uno a la vez:
+En los listados con varias páginas (búsquedas y categorías de Amazon, Michael Kors, Sephora y Marc Jacobs) el formulario muestra **Límite de la extracción**, con dos modos (en Marc Jacobs, solo **Productos**: no tiene páginas). Se usa uno a la vez:
 
 - **Páginas** (modo inicial, con **1**): **1 = solo la página actual**. Con más, sigue con las siguientes. Se cuenta desde la página abierta: en `currentPage=3` con 2 páginas se extraen la 3 y la 4, y el popup lo indica (*"Páginas a extraer: 3 a 4"*). Máximo **10** páginas por extracción. Entran todos los productos de esas páginas.
   - Sephora: cada página es una `currentPage` (unos 60 productos, sin anuncios).
@@ -71,6 +71,17 @@ Se recuerdan **por sitio** el modo y el número. Durante la carga verás *"Carga
 - **Otra región** (por ejemplo `sephora.fr` o `sephora.com/ca/en/…`): no se extrae. El popup ofrece **Abrir en www.sephora.com**: la misma página si es de Canadá; si es de otro país, una búsqueda del producto en EE. UU. (los códigos de otros países no sirven aquí).
 - El nombre del grupo por defecto es el texto buscado (*parfum for woman*) o el título de la página sin "| Sephora".
 
+## Marc Jacobs
+
+- Solo la tienda de **EE. UU.** (`www.marcjacobs.com/us-en/…`). En otra región (`/es-es/`, `/gb-en/`…) no se extrae: el popup ofrece **Abrir en www.marcjacobs.com**, que abre la página principal de EE. UU. (`/us-en/homepage`; las categorías tienen otros nombres en cada región).
+- **Listados** (categoría con o sin filtros, y la página de resultados `/us-en/search?q=…`): la página muestra 18 productos y carga más al bajar. La extensión descarga esos tramos en segundo plano (18 cada uno), sin bajar por la página ni necesitar verla. El límite es **solo por productos** (50 por defecto, máximo 500): no hay páginas.
+- **Búsqueda:** el buscador abre un **panel** encima de la página y la URL no cambia. Con el panel abierto, el popup no extrae y ofrece **Abrir resultados como página**, que abre `/us-en/search?q=<texto>` en la misma pestaña. Ahí pulsa de nuevo **Extraer productos**.
+- **Página de producto** (`…/<nombre>/<ID>.html`): se extrae solo ese producto, con el precio de venta (no el tachado). No se pide el máximo.
+- **SKU:** el sistema solo lee la columna `sku`, y la corta en el primer `-`: todos los colores de un modelo son **un solo producto**. Por eso la extensión escribe el modelo base (`H004L01PF21-545` → `H004L01PF21`), deja una fila por modelo (la del primer color que aparece) y el resumen dice cuántos colores se agruparon. Los colores los extrae el bot con `variacion = Sí`.
+- Se omite (y el resumen lo avisa) un producto sin ID en el link o con un SKU de más de 15 caracteres.
+- Las recomendaciones (*You may also like*) no se extraen. No hay anuncios.
+- El nombre del grupo por defecto es el texto buscado (*tote*) o el título de la página sin "| Marc Jacobs".
+
 ## Nombre del grupo
 
 Cada vez que pulsas **Extraer** se crea un **grupo** con los productos de esa extracción. Su nombre sale en la columna `ref_grupo` del Excel, para distinguir las extracciones dentro del archivo unificado.
@@ -106,10 +117,10 @@ Es la **plantilla de scraping del sistema** (`Plantilla_Scraping_General.xlsx`) 
 
 | Columna | Valor |
 |---|---|
-| `ecomerce` | `Amazon`, `Michael Kors` o `Sephora`, según el sitio de cada producto |
-| `sku` | ASIN (Amazon) o ID del estilo (Michael Kors). **Vacía en Sephora**: el sistema la saca del link |
+| `ecomerce` | `Amazon`, `Michael Kors`, `Sephora` o `Marc Jacobs`, según el sitio de cada producto |
+| `sku` | ASIN (Amazon), ID del estilo (Michael Kors) o modelo base sin color (Marc Jacobs: `H004L01PF21`). **Vacía en Sephora**: el sistema la saca del link |
 | `condicion` | `Reacondicionado` si el título dice *Renewed* / *Refurbished*; si no, `Nuevo`. **Revísala.** |
-| `link` | Amazon: `https://www.amazon.com/dp/<ASIN>`. Michael Kors: el link del producto, terminado en `/<ID>.html`. Sephora: `…/product/<nombre>-P<ID>?skuId=<SKU>` |
+| `link` | Amazon: `https://www.amazon.com/dp/<ASIN>`. Michael Kors: el link del producto, terminado en `/<ID>.html`. Sephora: `…/product/<nombre>-P<ID>?skuId=<SKU>`. Marc Jacobs: el link del producto sin parámetros (solo referencia: el sistema no lo lee) |
 | `Buscar categoria` | Ruta de la categoría elegida en el popup (vacía con *No llenar categoría*) |
 | `codigo_categoria` | Código de esa categoría. Es una fórmula: si cambias `Buscar categoria`, se actualiza sola |
 | `seguimiento` | `Scraping` |

@@ -31,13 +31,34 @@ globalThis.__cfScraper = async function (config, options = {}) {
   // Con skuPattern propio el SKU se respeta tal cual; el ASIN de Amazon va en mayúsculas.
   const valid = v => { v = (v || '').trim(); if (!config.skuPattern) v = v.toUpperCase(); return SKU_RE.test(v) ? v : ''; };
   const absolute = href => { try { return new URL(href, location.href).href; } catch { return ''; } };
+  const sinParametros = url => { try { const u = new URL(url); return `${u.origin}${u.pathname}`; } catch { return ''; } };
+
+  // Modelo base del SKU, igual que el backend (Marc Jacobs: normalizeSku): corta en
+  // el primer `cutAt`, mayúsculas y quita lo que cumpla `strip`.
+  // "h001m01sp21-001" → "H001M01SP21": los colores de un modelo son un solo producto.
+  function base(v) {
+    const B = config.skuBase || {};
+    v = String(v || '').trim();
+    if (B.cutAt) v = v.split(B.cutAt)[0];
+    v = v.toUpperCase();
+    try { if (B.strip) v = v.replace(new RegExp(B.strip, 'g'), ''); } catch { return ''; }
+    return valid(v);
+  }
+  // SKU tal como venía (con color), para contar los colores agrupados en un modelo.
+  let crudo = '';
 
   // SKU dentro de un enlace. Con skuFromLink (p. ej. Michael Kors: "/<ID>.html")
   // se busca solo en la ruta, igual que el backend; si no, el /dp/ASIN de Amazon.
-  function skuFromUrl(url) {
+  // Con `aBase`, el modelo base del ID (ver base()).
+  function skuFromUrl(url, aBase = false) {
     if (!url) return '';
     if (config.skuFromLink) {
-      try { return valid(new URL(url, location.href).pathname.match(new RegExp(config.skuFromLink, 'i'))?.[1]); } catch { return ''; }
+      try {
+        const id = new URL(url, location.href).pathname.match(new RegExp(config.skuFromLink, 'i'))?.[1];
+        if (!aBase) return valid(id);
+        crudo = (id || '').toUpperCase();
+        return base(id);
+      } catch { return ''; }
     }
     let u = url;
     try { u = decodeURIComponent(url); } catch { /* URL mal codificada: usar tal cual */ }
@@ -78,10 +99,34 @@ globalThis.__cfScraper = async function (config, options = {}) {
   }
 
   // { asin, url }: el SKU y, si salió de un enlace, ese enlace (para el link del Excel).
+  // Fuentes "…Base" (Marc Jacobs): el modelo base del ID (ver base()); las versiones
+  // anteriores no las conocen, así que en ellas el sitio no extrae nada.
   function findAsin(item, layout) {
     for (const source of list(layout.asinFrom || ['attr', 'child', 'csaItemId', 'link'])) {
       let asin = '';
       let url = '';
+      crudo = '';
+      // El link queda sin parámetros (?dwvar_…): el backend no lo lee, es solo referencia.
+      if (source === 'linkBase') {
+        for (const sel of list(layout.link)) {
+          url = sinParametros(absolute(qs(item, sel)?.getAttribute('href') || ''));
+          asin = skuFromUrl(url, true);
+          if (asin) return { asin, url, crudo };
+        }
+        continue;
+      }
+      if (source === 'urlBase') {
+        asin = skuFromUrl(location.href, true);
+        if (asin) return { asin, url: sinParametros(location.href), crudo };
+        continue;
+      }
+      // Atributo de un elemento del producto (p. ej. data-product-id del botón de favoritos).
+      if (source === 'childBase') {
+        const v = firstValue(item, layout.skuChild, el => el.getAttribute(layout.skuAttr || 'data-pid'));
+        asin = base(v);
+        if (asin) return { asin, url: sinParametros(location.href), crudo: v.toUpperCase() };
+        continue;
+      }
       if (source === 'variant') {
         asin = valid(item.getAttribute(layout.skuAttr || ''));
         const v = asin ? variantLink(item, layout, asin) : null;
@@ -136,6 +181,8 @@ globalThis.__cfScraper = async function (config, options = {}) {
     // la página de producto), nunca en accesorios ni sugerencias. Sin bloque: sin precio.
     const item = layout.priceRoot ? firstEl(card, layout.priceRoot) : card;
     if (!item) return '';
+    // 0. Precio en el atributo `content` (schema.org; Marc Jacobs: el de venta, no el tachado).
+    for (const sel of list(layout.priceContent)) { const p = parseAmount(qs(item, sel)?.getAttribute('content')); if (p) return p; }
     // 1. Precio específico del layout (p. ej. Price__whole / Price__fractional).
     const lw = firstEl(item, layout.priceWhole);
     if (lw) { const p = joinPrice(lw, firstEl(item, layout.priceFraction)); if (p) return p; }
@@ -306,12 +353,14 @@ globalThis.__cfScraper = async function (config, options = {}) {
       asin,
       nombre,
       // Sin marca segura queda vacía para completarla a mano (no se adivina).
-      marca: cleanBrand(firstValue(item, layout.brand, text), layout.brandPatterns) || marcaPagina,
+      // brandDefault: sitio de una sola marca (Marc Jacobs), donde la tarjeta no la repite.
+      marca: cleanBrand(firstValue(item, layout.brand, text), layout.brandPatterns) || marcaPagina || config.brandDefault || '',
       imagen: getImage(firstEl(item, layout.image)),
       precio: getPrice(item, layout),
       link,
     };
     if (id.variante) p.variante = id.variante;
+    if (id.crudo) p.crudo = id.crudo;
     return p;
   }
 
@@ -328,6 +377,9 @@ globalThis.__cfScraper = async function (config, options = {}) {
   // Productos leídos (en orden), SKUs ya vistos y estadística por layout.
   const productos = [];
   const vistos = new Set();
+  // Con modelo base: IDs con color vistos y los que dieron un producto (el resto se agrupó).
+  const colores = new Set();
+  const primeros = new Set();
   let layouts = [];
   const jobId = options.jobId || null;
   const enviar = msg => { try { chrome.runtime.sendMessage({ ...msg, jobId }).catch(() => {}); } catch { /* sin receptor */ } };
@@ -643,6 +695,12 @@ globalThis.__cfScraper = async function (config, options = {}) {
   }
 
   try {
+    // Solo la tienda de EE. UU. del sitio (Marc Jacobs: /us-en/); otras regiones tienen otros precios.
+    if (config.onlyPath) {
+      let propia = true;
+      try { propia = new RegExp(config.onlyPath.pattern, 'i').test(location.pathname); } catch { /* patrón remoto inválido */ }
+      if (!propia) throw new Error(config.onlyPath.message || 'Esta región del sitio no se extrae.');
+    }
     const tipo = getPageType();
     // Los layouts de un tipo de página no corren en las demás páginas.
     const reservados = new Set(list(config.pageTypes).flatMap(t => list(t.layouts)));
@@ -660,9 +718,14 @@ globalThis.__cfScraper = async function (config, options = {}) {
         const items = qsa(root, root !== document && layout.fetchItem ? layout.fetchItem : layout.item);
         for (const item of items) {
           try {
-            const p = parseItem(item, layout);
-            if (!p || vistos.has(p.asin)) continue;
+            const leido = parseItem(item, layout);
+            if (!leido) continue;
+            const { crudo: color, ...p } = leido;
+            // Otro color de un modelo ya leído: el backend lo guardaría como el mismo producto.
+            if (color) colores.add(color);
+            if (vistos.has(p.asin)) continue;
             vistos.add(p.asin);
+            if (color) primeros.add(color);
             productos.push(p);
             layouts[i].extraidos++;
           } catch (e) {
@@ -699,7 +762,8 @@ globalThis.__cfScraper = async function (config, options = {}) {
     if (cargaMas) Object.assign(cargaMas, { porPaginas, paginasPedidas, limite: porPaginas ? 0 : limite });
     if (detenida && cargaMas) cargaMas.detenida = true;
     console.table(productos.map(p => ({ SKU: p.asin, MARCA: p.marca, NOMBRE: p.nombre, PRECIO: p.precio, IMAGEN: p.imagen })));
-    const result = { productos, layouts, marcaPagina, sinSku, excluidos: excluidos.size, cargaMas, tipoPagina: tipo ? { id: tipo.id, label: tipo.label || tipo.id } : null };
+    const agrupados = [...colores].filter(c => !primeros.has(c)).length;
+    const result = { productos, layouts, marcaPagina, sinSku, excluidos: excluidos.size, agrupados, cargaMas, tipoPagina: tipo ? { id: tipo.id, label: tipo.label || tipo.id } : null };
     // Con jobId, el resultado va al service worker (el popup puede estar cerrado).
     if (jobId) enviar({ type: 'scrapeDone', result });
     return result;

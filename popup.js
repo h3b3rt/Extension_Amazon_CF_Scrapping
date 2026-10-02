@@ -228,14 +228,35 @@ async function renderSite(config) {
   $('regionPanel').hidden = !region;
   $('sitesPanel').hidden = !!site || !!region;
   $('scrape').hidden = !site;
+  $('regionOpen').hidden = false;
   if (region) {
     $('regionTitle').textContent = `Esta página es de otra región de ${region.site.name}.`;
     $('regionText').textContent = region.query
       ? `La extensión solo trabaja con la versión de EE. UU. Se buscará allí: "${region.query}".`
-      : 'La extensión solo trabaja con la versión de EE. UU. Se abrirá la misma página allí.';
+      : region.portada
+        ? 'La extensión solo trabaja con la versión de EE. UU. Se abrirá su página principal.'
+        : 'La extensión solo trabaja con la versión de EE. UU. Se abrirá la misma página allí.';
     $('regionOpen').textContent = `Abrir en ${new URL(region.site.homeUrl).hostname}`;
     $('regionOpen').onclick = async () => {
       await chrome.tabs.update(tab.id, { url: region.target });
+      window.close();
+    };
+  }
+  // Búsqueda abierta en un panel sobre otra página (Marc Jacobs): la URL sigue siendo
+  // la de esa página y el panel no se puede paginar. Se ofrece abrirla como página.
+  const S = site?.searchOverlay;
+  const q = S && tab?.id && enRutaPropia(siteConfig(config, site), tab.url) ? await busquedaEnPanel(tab.id, S) : null;
+  if (q != null) {
+    $('scrape').hidden = true;
+    $('regionPanel').hidden = false;
+    $('regionTitle').textContent = 'La búsqueda está abierta en un panel.';
+    $('regionText').textContent = q
+      ? `Para extraer todos los resultados, ábrela como página: "${q}".`
+      : 'Cierra el panel y abre la búsqueda como página (Enter o "View all") para extraer.';
+    $('regionOpen').hidden = !q || !S.url;
+    $('regionOpen').textContent = 'Abrir resultados como página';
+    $('regionOpen').onclick = async () => {
+      await chrome.tabs.update(tab.id, { url: S.url.replace('{q}', encodeURIComponent(q)) });
       window.close();
     };
   }
@@ -260,6 +281,35 @@ function listadoConPaginas(cfg, url) {
   try { return new RegExp(p, 'i').test(new URL(url).pathname); } catch { return true; }
 }
 
+// Término de la búsqueda abierta en el panel (searchOverlay), '' si está abierta sin
+// término legible, o null si no hay panel abierto (o no se pudo leer la pestaña).
+async function busquedaEnPanel(tabId, S) {
+  try {
+    const [r] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel, campos) => {
+        try { if (!document.querySelector(sel)) return null; } catch { return null; }
+        for (const c of campos) {
+          let el = null;
+          try { el = document.querySelector(c); } catch { /* selector remoto inválido */ }
+          const v = String((el?.matches('input') ? el.value : el?.textContent) || '').replace(/\s+/g, ' ').trim();
+          if (v) return v;
+        }
+        return '';
+      },
+      args: [S.selector, Array.isArray(S.query) ? S.query : []],
+    });
+    return typeof r?.result === 'string' ? r.result : null;
+  } catch { return null; }
+}
+
+// ¿La página es de la tienda que se extrae (onlyPath; Marc Jacobs: /us-en/)? Sin
+// redirección: las otras regiones solo muestran el aviso.
+function enRutaPropia(cfg, url) {
+  if (!cfg.onlyPath?.pattern) return true;
+  try { return new RegExp(cfg.onlyPath.pattern, 'i').test(new URL(url).pathname); } catch { return true; }
+}
+
 // Primer paso al pulsar "Extraer": valida la pestaña y consulta el historial.
 async function startExtraction() {
   try {
@@ -270,6 +320,7 @@ async function startExtraction() {
     const site = findSite(config, tab.url || '');
     if (!site) throw new Error(`Abre una página de un sitio disponible: ${sitesOf(config).map(s => s.name).join(', ')}.`);
     const cfg = siteConfig(config, site);
+    if (!enRutaPropia(cfg, tab.url)) throw new Error(cfg.onlyPath.message || 'Esta región del sitio no se extrae.');
     const url = normalizeUrl(tab.url, cfg);
     const enCola = jobForUrl(await getJobs(), url);
     if (enCola) throw new Error(`Esta página ya está ${enCola.progreso ? 'en extracción' : 'en la cola'} («${enCola.nombreGrupo}»).`);
@@ -339,7 +390,10 @@ async function askCategory() {
     // Lo último usado en este sitio; la primera vez, 1 página (solo la actual).
     const { loadPrefs = {} } = await chrome.storage.local.get('loadPrefs');
     const p = loadPrefs[pending.site.id] || {};
-    const modo = p.modo === 'productos' ? 'productos' : 'paginas';
+    // Listados sin páginas (scroll infinito de Marc Jacobs): solo por productos.
+    const soloProductos = soloPorProductos();
+    $('limitPages').closest('.mode-switch').hidden = soloProductos;
+    const modo = soloProductos || p.modo === 'productos' ? 'productos' : 'paginas';
     setLimitMode(modo, modo === 'paginas' ? p.paginas || DEFAULT_PAGES : p.productos || pending.cfg.loadMore.defaultLimit || DEFAULT_LOAD_LIMIT);
   }
   const input = $('category');
@@ -666,6 +720,7 @@ async function readGroupName() {
 // ---- Límite de la extracción: por páginas (por defecto, 1 = solo la actual) o por productos ----
 
 let limitMode = 'paginas';
+const soloPorProductos = () => { const m = pending?.cfg?.loadMore?.limitModes; return Array.isArray(m) && m.length === 1 && m[0] === 'productos'; };
 const maxLimit = () => Number(pending?.cfg?.loadMore?.maxLimit) || MAX_LOAD_LIMIT;
 const maxPages = () => Number(pending?.cfg?.loadMore?.maxPages) || MAX_PAGES;
 const maxFor = modo => (modo === 'paginas' ? maxPages() : maxLimit());

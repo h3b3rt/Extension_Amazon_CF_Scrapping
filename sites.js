@@ -38,6 +38,9 @@ export function regionRedirect(config, url, title = '') {
     if (!R || !/^https:\/\//i.test(site.homeUrl || '')) continue;
     const home = new URL(site.homeUrl);
     const propio = list(site.hosts).some(h => host === h || host.endsWith(`.${h}`));
+    // Mismo dominio con otra región cuyas rutas no se corresponden (Marc Jacobs:
+    // /es-es/los-zapatos/…): se abre la portada de EE. UU. (`homeUrl`).
+    if (propio && test(R.otherPath, u.pathname)) return { site, target: home.href, portada: true };
     if (propio && R.pathPrefix) {
       let path = u.pathname;
       try { path = path.replace(new RegExp(R.pathPrefix, 'i'), ''); } catch { continue; }

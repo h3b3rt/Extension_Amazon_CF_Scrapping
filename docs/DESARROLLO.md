@@ -96,7 +96,7 @@ No hay suite de pruebas automáticas en el repo. Durante el desarrollo se probó
   ```powershell
   chrome --headless=new --screenshot=shot.png --window-size=420,560 file:///ruta/preview.html
   ```
-- **Siempre**, antes de publicar: probar en Chrome real una búsqueda, una tienda de marca, una página de producto (`/dp/…`) un listado y un producto de Michael Kors, y un listado de Sephora con más de 60 productos (paso de página) y un producto, elegir categoría, descargar el Excel, abrirlo en Google Sheets (vista previa de imágenes y desplegable de categorías) y comprobar que el sistema lo acepta.
+- **Siempre**, antes de publicar: probar en Chrome real una búsqueda, una tienda de marca, una página de producto (`/dp/…`) un listado y un producto de Michael Kors, un listado de Sephora con más de 60 productos (paso de página) y un producto, una categoría de Marc Jacobs con más de 18 productos (tramos), su búsqueda como página y un producto, elegir categoría, descargar el Excel, abrirlo en Google Sheets (vista previa de imágenes y desplegable de categorías) y comprobar que el sistema lo acepta.
 
 ## Convenciones
 
