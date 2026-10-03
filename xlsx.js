@@ -17,6 +17,9 @@ const BACKEND_COLUMNS = new Set([
 const REQUIRED = ['ecomerce', 'sku', 'condicion', 'link', 'seguimiento'];
 const SEARCH_HEADER = 'Buscar categoria';
 const CODE_HEADER = 'codigo_categoria';
+// Las columnas de ayuda van después de esta; las de la plantilla que la siguen
+// (marca, nombre, precio…, casi siempre vacías) se corren a la derecha.
+const REF_AFTER = 'seguimiento';
 const REF_FIELDS = new Set(['imagen', 'nombre', 'marca', 'precio', 'link', 'asin', 'variante', 'duplicado', 'grupo']);
 
 // ---------- zip ----------
@@ -202,6 +205,10 @@ function duplicados(products, firstRow) {
   });
 }
 
+// Cambia la columna de una celda (r="J5") o de cada rango de un sqref ("J2:J1000 K2:K9").
+const moverCelda = (xml, mover) => xml.replace(/\br="([A-Z]+)(\d+)"/, (m, c, r) => `r="${colName(mover(colIndex(c)))}${r}"`);
+const moverSqref = (xml, mover) => xml.replace(/\bsqref="([^"]*)"/g, (m, v) => `sqref="${v.replace(/(\$?)([A-Z]{1,3})(\$?\d+)/g, (x, a, c, r) => `${a}${colName(mover(colIndex(c)))}${r}`)}"`);
+
 // Extiende "X2:Y1000" a la última fila usada cuando hay más productos que filas en la plantilla.
 function extendRanges(xml, fromRow, toRow) {
   if (toRow <= fromRow) return xml;
@@ -209,16 +216,19 @@ function extendRanges(xml, fromRow, toRow) {
   return xml.replace(/sqref="([^"]*)"/g, (m, v) => `sqref="${v.replace(re, `$1${toRow}`)}"`);
 }
 
+// Anchos: las columnas de la plantilla después de `firstRef - 1` se corren tantas
+// como columnas de ayuda haya, y las de ayuda toman su ancho propio.
 function setCols(xml, firstRef, refColumns) {
-  const lastRef = firstRef + refColumns.length - 1;
+  const n = refColumns.length;
+  const rango = (col, min, max) => col.replace(/\bmin="\d+"/, `min="${min}"`).replace(/\bmax="\d+"/, `max="${max}"`);
   return xml.replace(/<cols>([\s\S]*?)<\/cols>/, (m, inner) => {
     const kept = [];
     for (const col of inner.match(/<col\b[^>]*\/>/g) || []) {
       const min = +attr(col, 'min');
       const max = +attr(col, 'max');
       if (max < firstRef) kept.push(col);
-      else if (min < firstRef) kept.push(col.replace(/\bmax="\d+"/, `max="${firstRef - 1}"`));
-      if (max > lastRef) kept.push(col.replace(/\bmin="\d+"/, `min="${Math.max(min, lastRef + 1)}"`));
+      else if (min >= firstRef) kept.push(rango(col, min + n, max + n));
+      else kept.push(rango(col, min, firstRef - 1), rango(col, firstRef + n, max + n));
     }
     const own = refColumns.map((c, i) => `<col customWidth="1" min="${firstRef + i}" max="${firstRef + i}" width="${Number(c.width) || 14}"/>`);
     const all = [...kept, ...own].sort((a, b) => +attr(a, 'min') - +attr(b, 'min'));
@@ -281,13 +291,20 @@ export async function buildWorkbook(template, products, { config = {}, categorie
     }
   }
 
-  // Columnas de ayuda después de la última columna de la plantilla.
-  const firstRef = Math.max(...headers.values()) + 1;
+  // Columnas de ayuda después de "seguimiento" (sin ella, después de la última de la
+  // plantilla). Las de la plantilla que quedan a su derecha se corren `n` columnas.
   const refColumns = (config.refColumns || []).filter(c => c?.header && !BACKEND_COLUMNS.has(c.header) && !headers.has(c.header)
     && (REF_FIELDS.has(c.field) || c.imageOf));
+  const anchor = headers.get(REF_AFTER) ?? Math.max(...headers.values());
+  const firstRef = anchor + 1;
+  const mover = col => (col > anchor ? col + refColumns.length : col);
   const refCol = new Map(refColumns.map((c, i) => [c.header, firstRef + i]));
-  const refStyle = attr(headerRow.match(CELL_RE)?.find(c => cellCol(attr(c, 'r')) >= firstRef) || '', 's');
+  const refStyle = attr(headerRow.match(CELL_RE)?.find(c => cellCol(attr(c, 'r')) > anchor) || '', 's');
   const dataStyle = styles.get(headers.get('link')) ?? null;
+  for (const [h, col] of headers) headers.set(h, mover(col));
+  const estilos = [...styles];
+  styles.clear();
+  for (const [col, s] of estilos) styles.set(mover(col), s);
 
   const conSku = products.filter(p => (p.asin || '').trim());
   const omitidos = products.length - conSku.length;
@@ -295,11 +312,8 @@ export async function buildWorkbook(template, products, { config = {}, categorie
   const lastRow = conSku.length + 1;
   const rowHeight = Number(config.rowHeight) || 0;
 
-  // Fila 1: encabezados de la plantilla + columnas de ayuda.
-  const headerCells = (headerRow.match(CELL_RE) || []).filter(c => {
-    const col = cellCol(attr(c, 'r'));
-    return col < firstRef || col >= firstRef + refColumns.length;
-  });
+  // Fila 1: encabezados de la plantilla (corridos) + columnas de ayuda.
+  const headerCells = (headerRow.match(CELL_RE) || []).map(c => moverCelda(c, mover));
   const ownHeaders = refColumns.map((c, i) => ({ col: firstRef + i, xml: cellXml(`${colName(firstRef + i)}1`, refStyle, c.header) }));
   const headerXml = headerRow.replace(/>[\s\S]*<\/row>$|\/>$/, m => {
     const cells = [...headerCells.map(c => ({ col: cellCol(attr(c, 'r')), xml: c })), ...ownHeaders].sort((a, b) => a.col - b.col);
@@ -326,6 +340,9 @@ export async function buildWorkbook(template, products, { config = {}, categorie
       [headers.get('link'), p.link || ''],
       [headers.get('seguimiento'), config.seguimiento || 'Scraping'],
     ]);
+    // Opciones del grupo elegidas al extraer ("Sí" / "No"; ver groups.js).
+    if (headers.has('variacion') && p.variacion) values.set(headers.get('variacion'), p.variacion);
+    if (headers.has('guia_talla') && p.guiaTalla) values.set(headers.get('guia_talla'), p.guiaTalla);
     // Categoría elegida en el popup: ruta en "Buscar categoria" y código ya calculado.
     // Con "No llenar categoría" quedan vacías para usar el buscador de la plantilla.
     const codigo = p.codCategoria || '';
@@ -342,7 +359,8 @@ export async function buildWorkbook(template, products, { config = {}, categorie
         const src = refCol.get(c.imageOf);
         if (src && p.imagen) values.set(col, { formula: (config.imageFormula || 'IMAGE({celda})').replace('{celda}', `${colName(src)}${r}`) });
       } else if (c.field === 'duplicado') {
-        values.set(col, dup[i]);
+        // Amazon: "Familia sin verificar" si no se pudo leer su familia (puede repetir otra fila).
+        values.set(col, [dup[i], p.familiaAviso].filter(Boolean).join(' · '));
       } else if (c.field === 'precio') {
         const n = parseFloat(p.precio);
         values.set(col, Number.isFinite(n) ? n : '');
@@ -364,9 +382,12 @@ export async function buildWorkbook(template, products, { config = {}, categorie
   // pero sin el valor guardado "" de la fórmula: si no, sheet_to_json las lee
   // como filas con codigo_categoria = '' en lugar de filas vacías.
   const rest = rows.filter(r => rowNum(r) > lastRow)
-    .map(r => r.replace(/<c\b([^>]*?) t="str"([^>]*)>(<f\b[\s\S]*?<\/f>)<v><\/v><\/c>/g, '<c$1$2>$3</c>'));
+    .map(r => r.replace(/<c\b([^>]*?) t="str"([^>]*)>(<f\b[\s\S]*?<\/f>)<v><\/v><\/c>/g, '<c$1$2>$3</c>'))
+    .map(r => r.replace(CELL_RE, c => moverCelda(c, mover)));
   xml = xml.replace(/<sheetData>[\s\S]*<\/sheetData>|<sheetData\/>/, `<sheetData>${[headerXml, ...dataRows, ...rest].join('')}</sheetData>`);
   xml = setCols(xml, firstRef, refColumns);
+  // Desplegables y formato condicional de las columnas corridas.
+  xml = moverSqref(xml, mover);
   xml = extendRanges(xml, lastTemplateRow, lastRow);
   files.set(mainPath, xml);
 
@@ -389,6 +410,7 @@ export async function buildWorkbook(template, products, { config = {}, categorie
       conGuion,
       reacondicionados,
       duplicados: dup.filter(Boolean).length,
+      sinFamilia: conSku.filter(p => p.familiaAviso).length,
       sinCategoria: conSku.filter(p => !p.codCategoria).length,
     },
   };

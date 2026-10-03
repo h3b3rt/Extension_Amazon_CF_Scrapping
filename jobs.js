@@ -4,11 +4,12 @@
 // una en la lista, como grupo con su resumen, y en el historial.
 import { saveHistoryEntry } from './history.js';
 import { getPrefs } from './prefs.js';
-import { newGroupId, syncGroups, productsForExport } from './groups.js';
+import { newGroupId, syncGroups, opcionesDe, opcionesTxt } from './groups.js';
 import { productKey } from './sites.js';
 import { getConfig } from './config.js';
 import { getCachedCategories } from './categories.js';
-import { downloadXlsx, exportSummary } from './export.js';
+import { exportList, exportSummary } from './export.js';
+import './familias.js';
 
 export async function getJobs() {
   const { jobs } = await chrome.storage.local.get('jobs');
@@ -20,14 +21,101 @@ export const setJobs = jobs => chrome.storage.local.set({ jobs });
 // ¿La página ya está en curso o en la cola?
 export const jobForUrl = (jobs, url) => [jobs.actual, ...jobs.cola].find(j => j?.url === url) || null;
 
+// "45 s", "2 min 15 s", "1 h 5 min".
+export function duracionTxt(ms) {
+  const s = Math.max(0, Math.round((Number(ms) || 0) / 1000));
+  if (s < 60) return `${s} s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} min${s % 60 ? ` ${s % 60} s` : ''}`;
+  return `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''}`;
+}
+
+// Productos de Amazon cuya familia hay que verificar antes de exportar: los de
+// grupos con variaciones que aún no la tienen (sin variaciones no se agrupan).
+export const sinFamilia = (collected, groups) => Object.keys(collected).filter(k => {
+  const p = collected[k];
+  return globalThis.__cfFamilias.esAmazon(p) && !p.familia && opcionesDe(groups[p.grupo]).variaciones;
+});
+
 // Texto de las páginas extraídas ("de la 3 a la 4").
-function paginasTxt(c, job) {
+function paginasTxt(c, job, conFamilias) {
   const desde = job.paginaInicial || 1;
   if (c.porPaginas) {
     const rango = job.conNumeroDePagina ? ` (${c.paginas > 1 ? `de la ${desde} a la ${desde + c.paginas - 1}` : `página ${desde}`})` : '';
     return `Páginas extraídas: ${c.paginas} de ${c.paginasPedidas}${rango}`;
   }
-  return `Cargados: ${c.cargados} (límite ${c.limite} productos, páginas: ${c.paginas})`;
+  return `Cargados: ${c.cargados}${conFamilias ? ' familias' : ''} (límite ${c.limite}${conFamilias ? '' : ' productos'}, páginas: ${c.paginas})`;
+}
+
+// Resumen de la verificación de familias de Amazon (un producto por familia).
+function familiasTxt(F) {
+  if (!F) return { lineas: [], avisos: [] };
+  const avisos = [];
+  if (F.enPagina) avisos.push(`Omitidos por familia repetida (se conservó el primero de la página): ${F.enPagina}`);
+  for (const [g, n] of Object.entries(F.enLista || {})) avisos.push(`⚠ Omitidos porque su familia ya está en la lista (grupo «${g}»): ${n}`);
+  if (F.sinVerificar) avisos.push(`⚠ Familia sin verificar: ${F.sinVerificar} (se vuelve a intentar al exportar; ver ref_duplicado)`);
+  if (F.captcha) avisos.push('⚠ Amazon pidió una verificación (CAPTCHA): se dejaron de verificar familias. Ábrela en amazon.com y resuélvela antes de exportar.');
+  return { lineas: [`Productos analizados: ${F.analizados} · Familias: ${F.familias}`], avisos };
+}
+
+/**
+ * Familias de los productos de Amazon que ya están en la lista, para que la
+ * extracción omita los de una familia que ya está (salvo el mismo ASIN, que pasa
+ * al grupo nuevo). Sin acumular, o sin familias activas: null.
+ */
+export async function familiasDeLaLista(job) {
+  if (!job.cfg?.familias || !(await getPrefs()).accumulate) return null;
+  const { collected = {}, groups = {} } = await chrome.storage.local.get(['collected', 'groups']);
+  const porAsin = {};
+  const grupos = {};
+  for (const p of Object.values(collected)) {
+    // Solo cuentan los grupos con variaciones: sin ellas, cada ASIN es un producto aparte.
+    if (!globalThis.__cfFamilias.esAmazon(p) || !p.familia || !opcionesDe(groups[p.grupo]).variaciones) continue;
+    // Reemplazar borra los productos de esta página: no cuentan.
+    if (job.replace && p.origen === job.url) continue;
+    porAsin[p.asin] = p.familia;
+    grupos[p.familia] ??= groups[p.grupo]?.nombre || 'Sin grupo';
+  }
+  return { porAsin, grupos };
+}
+
+const esperar = ms => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Antes de exportar: lee la familia de los productos de Amazon de la lista que no
+ * la tienen (extraídos con versiones anteriores o sin verificar) y la guarda en la
+ * lista. Se detiene si `detener()` devuelve true o tras un CAPTCHA.
+ * @returns {{ verificados: number, sinVerificar: number, captcha: boolean, detenida: boolean }}
+ */
+export async function verificarLista(F, avance = () => {}, detener = async () => false) {
+  const Fam = globalThis.__cfFamilias;
+  const { collected = {}, groups = {} } = await chrome.storage.local.get(['collected', 'groups']);
+  const claves = sinFamilia(collected, groups);
+  const conocidas = new Map();
+  const r = { verificados: 0, sinVerificar: 0, captcha: false, detenida: false, total: claves.length };
+  let descargas = 0;
+  for (const [i, k] of claves.entries()) {
+    if (await detener()) { r.detenida = true; break; }
+    await avance(i + 1, claves.length);
+    const asin = collected[k].asin;
+    let f = conocidas.get(asin) || '';
+    if (!f && !r.captcha) {
+      if (descargas++) await esperar(Fam.pausa(F));
+      const d = await Fam.descargar(asin, F);
+      if (d.error === 'captcha') r.captcha = true;
+      if (d.familia) {
+        f = d.familia;
+        for (const h of d.hermanos) conocidas.set(h, f);
+      }
+    }
+    // Se guarda en la lista actual (pudo cambiar mientras tanto).
+    const { collected: actual = {} } = await chrome.storage.local.get('collected');
+    if (!actual[k]) continue;
+    if (f) { actual[k].familia = f; delete actual[k].familiaAviso; r.verificados++; }
+    else { actual[k].familiaAviso = Fam.AVISO; r.sinVerificar++; }
+    await chrome.storage.local.set({ collected: actual });
+  }
+  return r;
 }
 
 /**
@@ -38,8 +126,12 @@ function paginasTxt(c, job) {
 export async function guardarResultado(job, r, motivo = '') {
   const productos = r?.productos || [];
   const layoutsTxt = (r?.layouts || []).map(l => `${l.label}: ${l.extraidos} de ${l.encontrados}`).join('\n');
+  const fam = familiasTxt(r?.familias);
   if (!productos.length) {
-    return { ok: false, productos: 0, mensaje: [motivo || r?.error || 'No se encontraron productos compatibles en esta página.', layoutsTxt].filter(Boolean).join('\n\n') };
+    // P. ej. una página de producto cuya familia ya está en la lista.
+    const porFamilia = fam.avisos.length ? [...fam.lineas, ...fam.avisos].join('\n') : '';
+    const duracion = job.duracionMs != null ? `Duración: ${duracionTxt(job.duracionMs)}` : '';
+    return { ok: false, productos: 0, mensaje: [motivo || r?.error || 'No se encontraron productos compatibles en esta página.', porFamilia, layoutsTxt, duracion].filter(Boolean).join('\n\n') };
   }
   const { collected = {}, groups = {} } = await chrome.storage.local.get(['collected', 'groups']);
   const prefs = await getPrefs();
@@ -87,14 +179,20 @@ export async function guardarResultado(job, r, motivo = '') {
   if (r.excluidos) avisos.push(`Anuncios omitidos (Sponsored): ${r.excluidos}`);
   // Marc Jacobs: el backend guarda un producto por modelo (corta el color tras el "-").
   if (r.agrupados) avisos.push(`Colores agrupados en su modelo (una fila por modelo): ${r.agrupados}`);
+  avisos.push(...fam.avisos);
   const catTxt = cat ? `${cat.ruta}${cat.codigo ? ` (${cat.codigo})` : ''}` : 'sin llenar (elegir en la plantilla)';
+  // Elegidas al extraer y fijas: van primero, para que se vean.
+  const opciones = opcionesDe(job.opciones);
   const resumen = [
+    opcionesTxt(opciones),
+    job.duracionMs != null ? `Duración: ${duracionTxt(job.duracionMs)}` : '',
     `Sitio: ${site.name}`,
     `Categoría: ${catTxt}`,
     r.tipoPagina ? `Tipo de página: ${r.tipoPagina.label}` : '',
     r.marcaPagina ? `Marca de la tienda (solo referencia): ${r.marcaPagina}` : '',
-    r.cargaMas ? paginasTxt(r.cargaMas, job) : '',
+    r.cargaMas ? paginasTxt(r.cargaMas, job, !!r.familias) : '',
     `Productos: ${productos.length}`,
+    ...fam.lineas,
     `Sin imagen: ${productos.filter(p => !p.imagen).length}`,
     `Sin precio: ${productos.filter(p => !p.precio).length}`,
     ...avisos,
@@ -103,6 +201,7 @@ export async function guardarResultado(job, r, motivo = '') {
 
   grupos[grupo] = {
     nombre: job.nombreGrupo, origen: url, fecha: new Date().toISOString(), titulo: job.title, categoria: cat?.ruta || '', resumen,
+    ...opciones,
   };
   syncGroups(lista, grupos);
   await chrome.storage.local.set({ collected: lista, groups: grupos });
@@ -123,7 +222,7 @@ export async function guardarResultado(job, r, motivo = '') {
   } else {
     try {
       const categorias = (await getCachedCategories()).items || [];
-      mensaje += `\n\n${exportSummary(await downloadXlsx(productsForExport(lista, grupos), config, categorias, job.fileName))}`;
+      mensaje += `\n\n${exportSummary(await exportList(lista, grupos, config, categorias, job.fileName))}`;
     } catch (e) {
       mensaje += `\n\n⚠ No se pudo descargar el Excel: ${e.message}`;
     }

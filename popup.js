@@ -1,17 +1,17 @@
 import { getConfig, getConfigMeta, refreshRemoteConfig, compareVersions, extensionVersion } from './config.js';
 import { normalizeUrl, getHistory, removeHistoryEntry, formatDate } from './history.js';
 import { getPrefs } from './prefs.js';
-import { downloadXlsx, exportSummary, exportFileName, DEFAULT_PREFIX } from './export.js';
-import { getJobs, jobForUrl } from './jobs.js';
+import { exportList, exportSummary, exportFileName, DEFAULT_PREFIX } from './export.js';
+import { getJobs, jobForUrl, sinFamilia as pendientesDeFamilia } from './jobs.js';
 import {
-  MAX_GROUP_NAME, cleanGroupName, nameTaken, defaultGroupName, syncGroups, sortedGroups, productsForExport,
+  MAX_GROUP_NAME, cleanGroupName, nameTaken, defaultGroupName, syncGroups, sortedGroups, opcionesDe, siNo,
 } from './groups.js';
 import {
   getCachedCategories, getCategories, refreshCategories, findCategory, searchCategories, categoryLabel, normalizeText,
   sourceLabel,
 } from './categories.js';
 import {
-  appName, sitesOf, findSite, siteConfig, siteTitle, productKey, pageLabel, pageTypeByUrl, regionRedirect,
+  appName, sitesOf, findSite, siteConfig, siteTitle, productKey, pageLabel, pageTypeByUrl, regionRedirect, familiasConfig,
 } from './sites.js';
 
 const $ = id => document.getElementById(id);
@@ -102,6 +102,13 @@ function renderSources(collected, groups) {
     });
     borrar.addEventListener('click', () => confirmDelete(li, g, n));
     li.append(borrar);
+    // Opciones del grupo, fijas desde la extracción: siempre a la vista.
+    const o = opcionesDe(g);
+    const tags = Object.assign(document.createElement('div'), { className: 'tags' });
+    for (const [txt, on] of [['Variaciones', o.variaciones], ['Guía de tallas', o.guiaTalla]]) {
+      tags.append(Object.assign(document.createElement('span'), { className: `tag${on ? ' on' : ''}`, textContent: `${txt}: ${siNo(on)}` }));
+    }
+    li.append(tags);
     if (abiertos.has(g.id)) {
       const det = document.createElement('div');
       det.className = 'group-details';
@@ -384,6 +391,10 @@ async function askCategory() {
   $('groupName').value = defaultGroupName(pending.label, ...groupsToCheck(groups, prefs));
   $('groupHint').textContent = 'Se verá en la columna ref_grupo del Excel.';
   $('groupHint').className = 'hint';
+  // Opciones del grupo: siempre empiezan en No.
+  $('optVariaciones').checked = false;
+  $('optGuiaTalla').checked = false;
+  updateOptionsHint();
   // Máximo de productos: el último usado en este sitio, o 50.
   $('limitGroup').hidden = !pending.usaLimite;
   if (pending.usaLimite) {
@@ -804,13 +815,25 @@ async function rememberCategory(categoria) {
   await chrome.storage.local.set({ recentCategories: next.slice(0, MAX_RECENT_CATEGORIES) });
 }
 
+// Qué cambia con "Extraer variantes" en este sitio (Amazon: familias).
+function updateOptionsHint() {
+  const amazon = pending?.site?.id === 'amazon' && pending?.cfg?.familias;
+  $('optionsHint').textContent = !amazon ? 'Se aplican a todas las filas de este grupo en el Excel.'
+    : $('optVariaciones').checked
+      ? 'Con variantes: una fila por familia de Amazon (el sistema extrae toda la familia). Verifica la familia de cada producto (más lento).'
+      : 'Sin variantes: cada ASIN es un producto aparte; no se verifican familias.';
+}
+
 // Envía la extracción a la cola del service worker: sigue aunque el popup se cierre.
 // `limite`: { modo: 'paginas' | 'productos', valor } o null (página sin límite).
 async function enqueue(cat, nombreGrupo, limite = null) {
-  const { tabId, tabUrl, url, title, replace, site, cfg } = pending;
+  const { tabId, tabUrl, url, title, replace, site } = pending;
   if (cat) await rememberCategory(cat.ruta);
+  const opciones = { variaciones: $('optVariaciones').checked, guiaTalla: $('optGuiaTalla').checked };
+  // Sin variantes, el sistema crea solo cada ASIN: no se agrupan por familia.
+  const cfg = opciones.variaciones ? pending.cfg : { ...pending.cfg, familias: null };
   const job = {
-    tabId, tabUrl, url, title, replace, cfg, cat, nombreGrupo, limite,
+    tabId, tabUrl, url, title, replace, cfg, cat, nombreGrupo, limite, opciones,
     site: { id: site.id, name: site.name },
     fileName: pending.fileName || '',
     paginaInicial: currentPageNumber(),
@@ -835,23 +858,46 @@ async function renderJobs() {
   const a = st.actual;
   $('jobsPanel').hidden = !a && !st.cola.length;
   $('jobCurrent').hidden = !a;
-  if (a) {
+  $('jobConfirm').hidden = !a?.confirmacion;
+  if (a?.tipo === 'exportar') {
     const p = a.progreso || {};
+    $('jobTitle').textContent = '⏳ Exportando el Excel';
+    $('jobProgress').textContent = p.total
+      ? `Verificando la familia de los productos de Amazon: ${p.verificando} de ${p.total} (con pausas para que Amazon no pida verificación). Puedes cerrar este popup.`
+      : 'Preparando el archivo…';
+    $('jobProgress').className = 'hint';
+    $('jobGo').hidden = true;
+    $('jobStop').textContent = 'Detener y exportar lo verificado';
+  } else if (a) {
+    const p = a.progreso || {};
+    $('jobGo').hidden = false;
+    $('jobStop').textContent = 'Detener y guardar lo leído';
     $('jobTitle').textContent = `⏳ Extrayendo «${a.nombreGrupo}» (${a.site.name})`;
+    // Amazon: el límite de productos cuenta familias (un producto por familia).
+    const conFamilias = p.familias != null;
     const avance = p.paginas ? `Página ${p.pagina || 1} de ${p.paginas}`
-      : p.limite ? `${p.cargados ?? 0} de ${p.limite} productos` : 'Leyendo la página…';
-    const cuenta = p.paginas && p.cargados != null ? ` · ${p.cargados} productos` : '';
+      : p.limite ? `${p.cargados ?? 0} de ${p.limite} ${conFamilias ? 'familias' : 'productos'}` : 'Leyendo la página…';
+    const cuenta = conFamilias
+      ? ` · ${p.analizados ?? 0} productos analizados${p.paginas ? `, ${p.familias} familias` : ''}${p.verificando ? ' (verificando familias…)' : ''}`
+      : p.paginas && p.cargados != null ? ` · ${p.cargados} productos` : '';
     $('jobProgress').textContent = p.pausada
       ? `⏸ En pausa: vuelve a la pestaña de ${a.site.name} para continuar (${avance}). Esta página solo se lee con la pestaña a la vista.`
       : `${avance}${cuenta}. No cierres esa pestaña.`;
     $('jobProgress').className = `hint${p.pausada ? ' error' : ''}`;
     $('jobGo').onclick = () => chrome.runtime.sendMessage({ type: 'focusJob', tabId: a.tabId });
+    if (a.confirmacion) {
+      const c = a.confirmacion;
+      $('jobConfirmText').textContent = `⏸ Se analizaron ${c.analizados} productos y hay ${c.familias} familias (varios productos eran de la misma familia).\n¿Seguir con las páginas siguientes hasta tener ${c.limite} familias, o detener y guardar las ${c.familias}?`;
+    }
   }
+  $('jobButtons').hidden = !!a?.confirmacion;
   $('jobQueueTitle').hidden = !st.cola.length;
   $('jobQueueTitle').textContent = `En cola (${st.cola.length}):`;
   $('jobQueue').replaceChildren(...st.cola.map((j, i) => {
     const li = document.createElement('li');
-    li.append(Object.assign(document.createElement('span'), { textContent: `${i + 1}. «${j.nombreGrupo}» · ${j.site.name} · ${limiteTxt(j.limite)}` }));
+    const var_ = j.opciones ? ` · variantes: ${siNo(j.opciones.variaciones)}` : '';
+    const txt = j.tipo === 'exportar' ? `${i + 1}. Exportar el Excel` : `${i + 1}. «${j.nombreGrupo}» · ${j.site.name} · ${limiteTxt(j.limite)}${var_}`;
+    li.append(Object.assign(document.createElement('span'), { textContent: txt }));
     const x = Object.assign(document.createElement('button'), { type: 'button', className: 'mini', textContent: '✕', title: 'Quitar de la cola' });
     x.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'removeJob', id: j.id }));
     li.append(x);
@@ -925,8 +971,19 @@ async function init() {
     await chrome.runtime.sendMessage({ type: 'stopJob' });
     setTimeout(() => { $('jobStop').disabled = false; }, 3000);
   });
+  // Confirmación de familias: seguir hasta el límite o detener y guardar.
+  for (const [id, respuesta] of [['jobContinue', 'seguir'], ['jobHalt', 'detener']]) {
+    $(id).addEventListener('click', async () => {
+      $('jobContinue').disabled = true;
+      $('jobHalt').disabled = true;
+      await chrome.runtime.sendMessage({ type: 'answerJob', respuesta });
+      $('jobContinue').disabled = false;
+      $('jobHalt').disabled = false;
+    });
+  }
   chrome.storage.onChanged.addListener(onStorageChanged);
   $('loadLimit').addEventListener('input', () => setLimitHint());
+  $('optVariaciones').addEventListener('change', updateOptionsHint);
   $('limitPages').addEventListener('click', () => onLimitModeClick('paginas'));
   $('limitProducts').addEventListener('click', () => onLimitModeClick('productos'));
   $('groupName').addEventListener('input', () => {
@@ -972,7 +1029,21 @@ async function init() {
     e.preventDefault();
     const { collected, groups } = await getState();
     try {
-      const r = await downloadXlsx(productsForExport(collected, groups), await getConfig(), catalogCache.items, $('exportName').value);
+      const config = await getConfig();
+      // Productos de Amazon de grupos con variaciones sin familia (sin verificar): el
+      // service worker la verifica antes de descargar (puede tardar minutos).
+      const sinFamilia = familiasConfig(config) ? pendientesDeFamilia(collected, groups).length : 0;
+      if (sinFamilia) {
+        const st = await getJobs();
+        if ([st.actual, ...st.cola].some(j => j?.tipo === 'exportar')) throw new Error('Ya hay una exportación en curso o en la cola.');
+        const r = await chrome.runtime.sendMessage({ type: 'enqueue', job: { tipo: 'exportar', nombreGrupo: 'Exportar Excel', fileName: $('exportName').value } });
+        if (!r || r.error) throw new Error(`No se pudo iniciar la exportación${r?.error ? `: ${r.error}` : '.'}`);
+        hideExportForm();
+        const minutos = Math.max(1, Math.round(sinFamilia * 3.5 / 60));
+        showStatus(`Antes de descargar se verificará la familia de ${sinFamilia} producto${sinFamilia === 1 ? '' : 's'} de Amazon (unos ${minutos} min)${r.posicion ? `, al terminar la extracción en curso` : ''}.\nPuedes cerrar este popup: el Excel se descargará solo.`);
+        return renderJobs();
+      }
+      const r = await exportList(collected, groups, config, catalogCache.items, $('exportName').value);
       hideExportForm();
       showStatus(exportSummary(r), 'success');
     } catch (error) {

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "revision": 19,
-  "updatedAt": "2026-10-02",
+  "revision": 20,
+  "updatedAt": "2026-10-03",
   "remoteConfigUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/config.json",
   "minExtensionVersion": "1.1.0",
-  "latestVersion": "1.10.0",
+  "latestVersion": "1.10.1",
   "downloadUrl": "https://github.com/h3b3rt/Extension_Amazon_CF_Scrapping/releases/latest",
   "notice": "",
   "appName": "COMPRAFACIL Scraper",
@@ -171,6 +171,14 @@
         "maxPages": 10,
         "defaultLimit": 60,
         "maxLimit": 500
+      },
+      "familias": {
+        "parent": "\"parentAsin\"\\s*:\\s*\"([A-Z0-9]{10})\"",
+        "hermanos": "\"dimensionToAsinMap\"\\s*:\\s*(\\{[^{}]*\\})",
+        "producto": "id=\"productTitle\"",
+        "captcha": "/errors/validateCaptcha|api-services-support@amazon\\.com",
+        "delayMs": 1500,
+        "delayMaxMs": 3000
       }
     },
     {

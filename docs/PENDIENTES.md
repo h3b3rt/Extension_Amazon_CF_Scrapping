@@ -1,8 +1,9 @@
 # Pendientes y próximos pasos
 
-Estado al **02/10/2026**.
+Estado al **03/10/2026**.
 
-- **Publicada: v1.10.0** (02/10/2026): Marc Jacobs (solo `/us-en/`; una fila por modelo; categorías y búsquedas con carga en segundo plano; botón a EE. UU. desde otra región).
+- **Publicada: v1.10.1** (03/10/2026, correcciones): Amazon, un producto por familia (sección 6); opciones del grupo *Extraer variantes* y *Guía de tallas* (`variacion`/`guia_talla` = Sí/No, fijas desde la extracción; sin variantes no se verifican familias); columnas vacías del backend al final del Excel; duración de la extracción en el resumen y la notificación.
+- v1.10.0 (02/10/2026): Marc Jacobs (solo `/us-en/`; una fila por modelo; categorías y búsquedas con carga en segundo plano; botón a EE. UU. desde otra región).
 - v1.9.0 (02/10/2026): Sephora; anuncios fuera, páginas siguientes y portada de categoría en Amazon; límite por páginas; extracciones en segundo plano con cola, notificación y "Detener"; resumen desplegable y 🗑 por grupo.
 - **Siguiente: v1.11.0**, con Kate Spade (sección 3). Mientras esté en preparación, sus commits se quedan locales (sin push ni etiqueta); el commit que la publique cambia este estado a *"Publicada: v1.11.0"*.
 
@@ -32,6 +33,7 @@ Varias funciones solo se probaron en simulación (jsdom) y con capturas de Chrom
 - [x] **v1.9.0:** Amazon en Chrome real (02/10/2026): búsqueda con más de una página (descarga de las páginas siguientes, sin captcha), anuncios omitidos, portada de categoría `/b?node=` y tienda de marca con `/-/es/`.
 - [ ] **v1.9.0:** subir al sistema un Excel con filas de Sephora (sin `sku`) y confirmar que se crean con el `skuId` y el `P…` del link.
 - [ ] **v1.6.0:** subir un Excel de prueba al sistema (`POST /product/upload/list`) y confirmar que se crean los productos con su categoría y condición.
+- [x] **v1.10.1:** familias de Amazon, opciones del grupo, orden de columnas y duración en Chrome real (03/10/2026; ver sección 6).
 
 ## 3. Otros ecommerce de la plantilla
 La plantilla acepta Amazon, Sephora, Marc Jacobs, Kate Spade y Michael Kors.
@@ -61,3 +63,18 @@ Diseño acordado:
 - **Identidad:** "Iniciar sesión con Google" en la extensión (`chrome.identity`), verificando el token en el servidor. Se acordó aceptar **cualquier cuenta de Google**.
 - **Efecto secundario:** requiere un **ID de extensión fijo** (clave `key` en `manifest.json`) y un **cliente OAuth** en Google Cloud Console. Al fijar el ID, Chrome la trata como una extensión nueva: cada PC debe **cargarla de nuevo una vez** y pierde la lista en curso y el historial local.
 - **Acceso SSH:** desde la PC original se configuró una llave dedicada. En otra PC habrá que autorizar una llave nueva (pedir a TI o usar la contraseña del VPS una vez).
+
+## 6. Amazon: un producto por familia (v1.10.1)
+Problema (02/10/2026, tienda Sidagar): el Excel llevaba 25 ASIN de solo 10 familias de Amazon. El sistema descarga la familia completa de cada ASIN (83 filas), así que esas familias se crearon repetidas y partidas en 19 grupos. El aviso `ref_duplicado` (mismo nombre o imagen) no lo detectaba, porque los títulos cambian por el color.
+- [x] La familia sale de la página `/dp/` (`parentAsin` y `dimensionToAsinMap`, en el HTML inicial). Comprobado con la página guardada de B0FBM8WSKR: sus 10 variantes son las 10 filas que el sistema agrupó.
+- [x] Se conserva el primero de la página; familia ya en la lista: se omite el nuevo (aviso con el grupo); sin familia (error o CAPTCHA): se conserva con `Familia sin verificar`. Pausa de 1,5 a 3 s entre descargas.
+- [x] Límite por productos = familias, con pregunta *Seguir / Detener y guardar* (popup y notificación, sin límite de tiempo); al llegar a 10 páginas se detiene y avisa.
+- [x] Al exportar se verifican los productos de Amazon sin familia de los grupos con variantes (en segundo plano) y el Excel lleva uno por familia.
+- [x] Pruebas en jsdom con los HTML guardados (tienda, búsqueda, producto), paginación simulada con la pregunta, service worker + popup (pregunta, notificación, exportación, Detener) y Excel leído como el backend; regresión de Sephora, Michael Kors y Marc Jacobs.
+- [x] Tienda Sidagar en Chrome real (03/10/2026): 10 productos de 25, todos de familias distintas (revisado a mano), sin "Familia sin verificar" ni celdas vacías.
+- [x] Chrome real (03/10/2026): búsqueda con límite por productos que provoca la pregunta (respuesta desde el popup y desde la notificación), página de producto de una familia ya extraída y exportación.
+- [ ] Observar en el uso diario cuántas descargas seguidas aguanta Amazon antes de pedir CAPTCHA; si aparece seguido, subir `familias.delayMs`/`delayMaxMs` en `config.json` (no requiere versión nueva).
+- [ ] Subir al sistema el Excel de Sidagar nuevo y confirmar que cada familia se crea una sola vez.
+- [x] **Opciones del grupo, orden de columnas y duración** (03/10/2026): jsdom con service worker + popup (grupo con y sin variantes, etiquetas en la lista, resumen, notificación, duración sin la espera de la pregunta) y Excel leído con SheetJS como el backend (orden, `Sí`/`No`, desplegables, fórmula de `codigo_categoria`, sin celdas `''`).
+- [x] Chrome real (03/10/2026): extracción con y sin *Extraer variantes*, etiquetas y duración, y Excel con el nuevo orden de columnas.
+- [ ] Subir al sistema un Excel de Amazon con `variacion = No` y confirmar que crea solo ese ASIN; y uno con `guia_talla = Sí`.

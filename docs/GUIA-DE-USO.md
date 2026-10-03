@@ -14,6 +14,7 @@
 8. Al terminar, pulsa **Descargar Excel**. Opcionalmente escribe un nombre, por ejemplo `Audifonos Hyperx`, y pulsa **Descargar**.
    - Resultado: `Audifonos_Hyperx_2026-09-30_14-35.xlsx`
    - Sin nombre: `Plantilla_Scraping_2026-09-30_14-35.xlsx`
+   - Si hay productos de Amazon sin familia verificada, antes se verifica su familia en segundo plano (ver *Amazon: un producto por familia*) y el Excel se descarga solo al terminar.
 9. Pulsa **Limpiar** para empezar una lista nueva. También se borran los grupos.
 
 ## Página de un producto
@@ -21,6 +22,8 @@
 En la página de un solo producto de Amazon (`/dp/…` o `/gp/product/…`) se extrae **solo ese producto**: los carruseles de sugerencias, "productos relacionados" y accesorios se ignoran. Se capturan los mismos datos que en una búsqueda: ASIN de la variante que se ve en pantalla, nombre, marca, precio e imagen. Si el producto no tiene precio, se extrae igual sin precio. En esta página no se desplaza la página automáticamente.
 
 ## Extracciones en segundo plano y cola
+
+- **Duración:** el resumen (*"Duración: 1 min 20 s"*) y la notificación dicen cuánto tardó la extracción. Solo cuenta el trabajo: no la espera en la cola, ni el tiempo que la pregunta *¿Seguir?* espera tu respuesta, ni la pausa de Sephora con la pestaña oculta. La exportación con verificación de familias también muestra su duración.
 
 - Al pulsar **Extraer** la extracción empieza y **puedes cerrar el popup o ir a otra página**: sigue sola. Al terminar aparece una **notificación de Chrome** (al pulsarla se abre la pestaña de la extracción) y el icono muestra **✓**. Mientras trabaja, el icono muestra el avance (`2/5` páginas, o el número de productos).
 - **Una a la vez, con cola:** si ya hay una en curso, la nueva queda **en cola** y empieza sola cuando termine la anterior. Así puedes dejar una extracción de varias páginas y mientras tanto ir buscando otras páginas para añadir.
@@ -37,7 +40,7 @@ En los listados con varias páginas (búsquedas y categorías de Amazon, Michael
   - Sephora: cada página es una `currentPage` (unos 60 productos, sin anuncios).
   - Amazon: cada página es una página de resultados (unos 48 sin anuncios).
   - Michael Kors: la página actual son los 24 productos visibles, y cada **Load More** cuenta como una página más (24).
-- **Productos**: hasta ese número de productos (máximo 500), pasando de página lo que haga falta.
+- **Productos**: hasta ese número de productos (máximo 500), pasando de página lo que haga falta. En **Amazon** cuenta **familias** (ver *Amazon: un producto por familia*): si ya se analizaron tantos productos como el número pedido pero hay menos familias, la extracción se pausa y pregunta.
 
 Se recuerdan **por sitio** el modo y el número. Durante la carga verás *"Cargando página 2 de 3… 84 productos"*, y el resumen dice *"Páginas extraídas: 2 de 2 (de la 3 a la 4)"*. Las páginas sin más páginas (producto, tienda de marca y portada de categoría de Amazon) se extraen enteras, sin este campo.
 
@@ -48,6 +51,25 @@ Se recuerdan **por sitio** el modo y el número. Durante la carga verás *"Carga
 - **Anuncios** (*Patrocinado* / *Sponsored*): no se extraen. Si el mismo producto aparece también como resultado normal, sí entra. El resumen dice cuántos anuncios se omitieron.
 - **Portada de categoría** (`/b?node=…`, la que muestra carruseles por tema): se extraen los productos de todos los carruseles visibles. Mezcla temas (por ejemplo tarjetas de regalo o fundas): si quieres solo una parte, entra en su **Ver más** y extrae esa lista.
 - **Tienda de marca** (`/stores/…`, también con `/-/es/` en la URL): la marca de la tienda se toma como marca de los productos.
+
+## Amazon: un producto por familia
+
+Desde la v1.10.1, **solo en los grupos con *Extraer variantes*** (ver *Opciones del grupo*). Una **familia** son todas las variantes (colores, tallas, capacidades…) que Amazon agrupa bajo un mismo producto padre. Con `variacion = Sí`, el sistema descarga la familia completa de cada ASIN del Excel, así que dos ASIN de la misma familia la crearían dos veces. Por eso la extensión deja **un solo producto por familia**: el **primero que aparece en la página**.
+
+Sin *Extraer variantes* (`variacion = No`), el sistema crea solo cada ASIN, sin su familia: entonces se extraen **todos** los ASIN y no se verifican familias (sin descargas extra ni pregunta).
+
+- **Cómo lo sabe:** la familia no se ve en los listados. Para cada producto, la extensión descarga en segundo plano su página `/dp/` y lee el padre y la lista de variantes. Las variantes que ya conoce no se vuelven a descargar. Entre descarga y descarga hay una pausa de 1,5 a 3 segundos para que Amazon no pida verificación, así que **tarda más que antes** (unos 2 a 3 segundos por familia). Funciona con la pestaña oculta.
+- Se respeta el criterio de Amazon: dos productos que se ven iguales pero que Amazon publica con padres distintos son **familias distintas**. Un producto sin variantes es su propia familia.
+- En la **página de un producto** la familia se lee de la misma página, sin descargas.
+- **Familia que ya está en la lista** (de una extracción anterior con variantes): el producto nuevo se omite y el resumen dice en qué grupo está su familia. Si es el **mismo ASIN**, pasa al grupo nuevo, como siempre.
+- **Límite por productos:** cuenta familias. Si se analizaron tantos productos como el número pedido pero hay menos familias, la extracción se **pausa** (icono **⏸**) y pregunta, en el popup y en una notificación de Chrome: *"Se analizaron 60 productos y hay 48 familias. ¿Seguir…?"*.
+  - **Seguir:** continúa con las páginas siguientes hasta tener ese número de familias. Si llega al máximo de 10 páginas o no hay más páginas, se detiene y lo avisa (no vuelve a preguntar).
+  - **Detener y guardar:** guarda las familias que ya tiene.
+  - Espera sin límite de tiempo hasta que respondas.
+- **Límite por páginas:** no pregunta. Entran las familias de esas páginas.
+- **Resumen:** *"Productos analizados: 25 · Familias: 19"* y *"Omitidos por familia repetida (se conservó el primero de la página): 6"*.
+- **Si no se puede leer la familia** (error de red o Amazon pide verificar que no eres un robot), el producto **se conserva** con el aviso *Familia sin verificar* en `ref_duplicado`. Tras una verificación (CAPTCHA) la extensión deja de descargar páginas para no empeorarlo; resuélvela en amazon.com antes de exportar.
+- **Al descargar el Excel**, los productos de Amazon de grupos con variantes que no tienen familia (sin verificar) se verifican antes, con las mismas pausas. Esa exportación corre en segundo plano (*"Exportando el Excel · Verificando 7 de 19"*), puedes cerrar el popup y el Excel se descarga solo. **Detener y exportar lo verificado** la corta y descarga con lo que haya. En el Excel queda un producto por familia: gana el que se agregó primero a la lista, y el resumen lista los omitidos.
 
 ## Michael Kors
 
@@ -90,6 +112,15 @@ Cada vez que pulsas **Extraer** se crea un **grupo** con los productos de esa ex
 - **No se permiten dos grupos con el mismo nombre** (sin distinguir mayúsculas ni tildes). Si el título ya existe, se propone con un número: *hyperx headset (2)*.
 - El nombre del grupo **no** cambia el nombre del archivo Excel.
 
+## Opciones del grupo: variantes y guía de tallas
+
+Desde la v1.10.1, el formulario de **Extraer** tiene dos casillas, **desmarcadas al empezar**:
+
+- **Extraer variantes** → `variacion = Sí` en todas las filas del grupo (el bot extrae todas las variantes y agrupa la familia). Desmarcada → `No` (solo ese producto). En Amazon también decide si se deja un producto por familia (ver *Amazon: un producto por familia*).
+- **Guía de tallas** → `guia_talla = Sí`; desmarcada → `No`.
+
+Se eligen **al extraer y no se cambian después**: la extracción depende de ellas (con variantes, Amazon verifica familias). Si te equivocaste, elimina el grupo (🗑) y extrae de nuevo. Se ven siempre en la lista, debajo del nombre del grupo (*Variaciones: Sí*, *Guía de tallas: No*), y en la primera línea de su resumen. Si un producto se vuelve a extraer en otro grupo, toma las opciones del grupo nuevo. Los grupos extraídos con versiones anteriores quedan con `No` en ambas.
+
 ## Elegir la categoría
 
 Hay dos formas. La extensión recuerda la última que usaste.
@@ -124,10 +155,13 @@ Es la **plantilla de scraping del sistema** (`Plantilla_Scraping_General.xlsx`) 
 | `Buscar categoria` | Ruta de la categoría elegida en el popup (vacía con *No llenar categoría*) |
 | `codigo_categoria` | Código de esa categoría. Es una fórmula: si cambias `Buscar categoria`, se actualiza sola |
 | `seguimiento` | `Scraping` |
+| `variacion` / `guia_talla` | `Sí` o `No`, según las opciones del grupo (ver *Opciones del grupo*) |
 
-**Lo que llena la persona:** `variacion` (Sí = el bot extrae todas las variantes y agrupa la familia) y `guia_talla` (Sí / No). Quedan vacías. El resto de columnas de la plantilla (`marca`, `nombre`, `precio`, `peso`…) se dejan **vacías**: si se llenan, el sistema las toma como valores fijos.
+**Orden de las columnas** (desde la v1.10.1): `ecomerce`, `sku`, `variacion`, `guia_talla`, `condicion`, `link`, `Buscar categoria`, `codigo_categoria`, `seguimiento`, las columnas de ayuda `ref_*` y al final, a la derecha, las que llena el bot (`marca`, `nombre`, `categoria_general`, `color`, `talla`, `tipo_sku`, `cantidad_imagen`, `peso`, `precio`). El sistema lee las columnas por nombre, así que el orden no le afecta.
 
-**Columnas de ayuda** (después de `precio`; el sistema las ignora):
+**Columnas que quedan vacías:** `marca`, `nombre`, `categoria_general`, `color`, `talla`, `tipo_sku`, `cantidad_imagen`, `peso` y `precio`. Las llena el bot: si se llenan a mano, el sistema las toma como valores fijos.
+
+**Columnas de ayuda** (después de `seguimiento`; el sistema las ignora):
 
 | Columna | Para qué |
 |---|---|
@@ -136,7 +170,7 @@ Es la **plantilla de scraping del sistema** (`Plantilla_Scraping_General.xlsx`) 
 | `ref_imagen` | Vista previa con `=IMAGE()`. Funciona en **Google Sheets** (en LibreOffice o Excel antiguo muestra `#NAME?`) |
 | `ref_nombre` / `ref_marca` / `ref_precio` | Nombre, marca y precio que muestra el sitio, solo como referencia |
 | `ref_sku_id` | Sephora: el `skuId` del link (en las demás tiendas queda vacía) |
-| `ref_duplicado` | `Posible variante: fila N` cuando otra fila tiene el mismo nombre o la misma imagen. Suele ser otro color o talla del mismo producto: deja una sola fila y marca `variacion = Sí` |
+| `ref_duplicado` | `Posible variante: fila N` cuando otra fila tiene el mismo nombre o la misma imagen. Suele ser otro color o talla del mismo producto: deja una sola fila y marca `variacion = Sí`. Amazon: `Familia sin verificar` si no se pudo leer su familia (puede ser de la misma familia que otra fila; revísala antes de subir) |
 
 **Para que la carga no pierda filas:**
 - Sube el archivo como **.xlsx** (en Google Sheets: *Archivo → Descargar → Microsoft Excel*). **Nunca como CSV**: en CSV las celdas vacías llegan como texto vacío y el sistema descarta esas filas sin avisar.
@@ -151,7 +185,8 @@ Debajo del botón principal verás cuántos productos hay en la lista y los grup
 
 - **Doble clic en el nombre** para renombrar el grupo. **Enter** o salir del campo guarda; **Esc** cancela. Un nombre vacío o repetido no se acepta.
 - **↗** abre la página de donde salieron los productos.
-- **▸** despliega el **resumen de esa extracción**: sitio, categoría, páginas, productos, sin imagen, sin precio, anuncios omitidos, avisos y fecha. Los grupos extraídos con versiones anteriores no tienen resumen.
+- Debajo del nombre, las **opciones del grupo** (*Variaciones: Sí/No*, *Guía de tallas: Sí/No*), en verde si están activas.
+- **▸** despliega el **resumen de esa extracción**: opciones del grupo, duración, sitio, categoría, páginas, productos, sin imagen, sin precio, anuncios omitidos, avisos y fecha. Los grupos extraídos con versiones anteriores no tienen resumen.
 - **🗑** elimina ese grupo y sus productos, después de confirmar. También quita su página del historial, para poder extraerla de nuevo sin aviso. Los demás grupos no cambian. **Limpiar** sigue borrando toda la lista.
 - Al pasar el ratón por el nombre se ve la categoría y el título de la página.
 - Los productos que ya estaban en la lista antes de la v1.7.0 reciben un grupo por página, con el título guardado en el historial.

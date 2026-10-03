@@ -377,6 +377,8 @@ globalThis.__cfScraper = async function (config, options = {}) {
   // Productos leídos (en orden), SKUs ya vistos y estadística por layout.
   const productos = [];
   const vistos = new Set();
+  // Productos leídos en total (con familias, también los que aún no se verificaron).
+  let leidos = 0;
   // Con modelo base: IDs con color vistos y los que dieron un producto (el resto se agrupó).
   const colores = new Set();
   const primeros = new Set();
@@ -386,6 +388,7 @@ globalThis.__cfScraper = async function (config, options = {}) {
 
   // "Detener y guardar lo leído": el service worker pone esta marca en la pestaña.
   globalThis.__cfDetener = false;
+  globalThis.__cfResponder = null;
   const detenido = () => globalThis.__cfDetener === true;
   let detenida = false;
   const parar = n => { detenida = true; return `Detenida: se guardó lo leído (${n}).`; };
@@ -400,8 +403,84 @@ globalThis.__cfScraper = async function (config, options = {}) {
     ultimoParcial = Date.now();
   }
 
+  // ---- Familias de Amazon (config.familias; ver familias.js) ----
+  // Lo leído pasa primero por `pendientes`: cada producto se verifica (familia en su
+  // página /dp/) y solo el primero de cada familia entra en `productos`. Con límite de
+  // productos, el límite cuenta familias; `analizados` son los productos verificados.
+  const FAM = config.familias && globalThis.__cfFamilias ? globalThis.__cfFamilias : null;
+  const pendientes = [];
+  const lista = options.familiasLista || {};
+  // ASIN → familia: los de la lista (de extracciones anteriores) y los hermanos ya conocidos.
+  const familiaDe = new Map(Object.entries(lista.porAsin || {}));
+  const enListaPropios = new Set(Object.keys(lista.porAsin || {}));
+  const fam = { analizados: 0, enPagina: 0, enLista: {}, captcha: false, descargas: 0 };
+  // Familia → ASIN que la representa en esta extracción.
+  const tomadas = new Map();
+  // Página de producto: la familia se lee de la misma página, sin descargar.
+  let docPropio = false;
+
+  async function familiaPorDescarga(asin) {
+    if (docPropio) return FAM.leer(document.documentElement.outerHTML, asin, config.familias);
+    if (fam.descargas++) await sleep(FAM.pausa(config.familias));
+    return FAM.descargar(asin, config.familias, location.origin);
+  }
+
+  // Verifica los productos pendientes en orden hasta tener `limite` familias. Sin
+  // descargas tras un CAPTCHA o al detener: entonces solo se usan las familias ya
+  // conocidas y el resto queda "sin verificar" (se vuelve a intentar al exportar).
+  async function verificar(limite = Infinity, pagina = paginaActual) {
+    if (!FAM) return;
+    while (pendientes.length && productos.length < limite) {
+      const p = pendientes.shift();
+      fam.analizados++;
+      let f = familiaDe.get(p.asin) || '';
+      if (!f && !fam.captcha && !detenido()) {
+        report(leidos, limite, pagina, { verificando: true });
+        const r = await familiaPorDescarga(p.asin);
+        if (r.error === 'captcha') fam.captcha = true;
+        if (r.familia) {
+          f = r.familia;
+          for (const h of r.hermanos) if (!familiaDe.has(h)) familiaDe.set(h, f);
+        }
+      }
+      if (!f) {
+        p.familiaAviso = FAM.AVISO;
+        productos.push(p);
+        continue;
+      }
+      familiaDe.set(p.asin, f);
+      // Otro producto de una familia ya tomada en esta extracción: gana el primero de la página.
+      if (tomadas.has(f)) { fam.enPagina++; continue; }
+      // Familia que ya está en la lista por otro ASIN: se queda la de la lista.
+      const grupo = lista.grupos?.[f];
+      if (grupo && !enListaPropios.has(p.asin)) { fam.enLista[grupo] = (fam.enLista[grupo] || 0) + 1; continue; }
+      tomadas.set(f, p.asin);
+      p.familia = f;
+      productos.push(p);
+    }
+    report(leidos, limite, pagina);
+  }
+
+  // Pausa la extracción y pregunta si seguir hasta tener `limite` familias. El service
+  // worker responde con __cfResponder ("seguir" o "detener"; también al pulsar Detener).
+  function confirmar(limite) {
+    return new Promise(resolve => {
+      globalThis.__cfResponder = r => { globalThis.__cfResponder = null; resolve(r); };
+      if (detenido()) { globalThis.__cfResponder('detener'); return; }
+      enviarParcial(true);
+      enviar({ type: 'scrapeConfirm', analizados: fam.analizados, familias: productos.length, limite });
+    });
+  }
+
   // Avance de la carga, para el popup y el icono.
+  let paginaActual = 1;
   function report(cargados, limite, pagina = 1, extra = {}) {
+    paginaActual = pagina;
+    // Con familias, lo que cuenta son las familias tomadas, no los productos leídos.
+    if (FAM) {
+      extra = { analizados: fam.analizados, familias: productos.length, ...extra };
+      cargados = productos.length;
+    }
     enviar(porPaginas
       ? { type: 'scrapeProgress', cargados, pagina, paginas: paginasPedidas, ...extra }
       : { type: 'scrapeProgress', cargados: Math.min(cargados, limite), limite, pagina, ...extra });
@@ -543,9 +622,18 @@ globalThis.__cfScraper = async function (config, options = {}) {
     let aviso = '';
     let ultimaUrl = '';
     let nuevos = n;
+    // Con familias (Amazon), el límite de productos cuenta familias, no productos leídos.
+    const cuenta = () => (FAM ? productos.length : n);
+    const familiasTxt = () => `${cuenta()} familias de ${limite}`;
+    let confirmado = false;
     report(n, limite);
-    while (seguir(n, limite, paginas, L)) {
-      if (detenido()) { aviso = parar(n); break; }
+    await verificar(limite);
+    for (;;) {
+      if (!seguir(cuenta(), limite, paginas, L)) {
+        if (FAM && !porPaginas && cuenta() < limite && paginas >= tope(L)) aviso = `Se llegó al máximo de ${tope(L)} páginas: ${familiasTxt()}.`;
+        break;
+      }
+      if (detenido()) { aviso = parar(cuenta()); break; }
       let href = siguienteDe(doc, L);
       // El botón de la página abierta puede no existir aún (se crea al bajar): se busca en la copia del servidor.
       if (!href && paginas === 1 && L.nextAttr) {
@@ -557,7 +645,20 @@ globalThis.__cfScraper = async function (config, options = {}) {
         const sz = Number(u.searchParams.get(L.sizeParam || 'sz')) || 0;
         if (sz && nuevos >= sz) { u.searchParams.set(L.startParam, String((Number(u.searchParams.get(L.startParam)) || 0) + sz)); href = u.href; }
       }
-      if (!href) break;
+      if (!href) {
+        if (FAM && !porPaginas && cuenta() < limite && fam.analizados >= limite) aviso = `No hay más páginas: ${familiasTxt()}.`;
+        break;
+      }
+      // Ya se analizaron tantos productos como el límite, pero faltan familias y hay
+      // página siguiente: se pregunta una sola vez.
+      if (FAM && !porPaginas && !confirmado && fam.analizados >= limite) {
+        const r = await confirmar(limite);
+        if (r !== 'seguir') {
+          aviso = detenido() ? parar(cuenta()) : `Se detuvo tras analizar ${fam.analizados} productos: ${familiasTxt()}.`;
+          break;
+        }
+        confirmado = true;
+      }
       await sleep(Number(L.delayMs) || 1500);
       try {
         doc = await descargar(href);
@@ -573,11 +674,12 @@ globalThis.__cfScraper = async function (config, options = {}) {
       report(n, limite, paginas);
       // Sin productos nuevos: fin de la lista o una verificación ("captcha") del sitio.
       if (n === antes) {
-        aviso = `La página ${paginas} no trajo productos nuevos: se extrajo lo cargado (${n}).`;
+        aviso = `La página ${paginas} no trajo productos nuevos: se extrajo lo cargado (${cuenta()}).`;
         break;
       }
+      await verificar(limite, paginas);
     }
-    return { cargados: Math.min(n, limite), limite, paginas, aviso };
+    return { cargados: Math.min(cuenta(), limite), limite, paginas, aviso };
   }
 
   // ---- Datos de la página en JSON (Sephora: script#linkStore con los 60 productos) ----
@@ -726,7 +828,9 @@ globalThis.__cfScraper = async function (config, options = {}) {
             if (vistos.has(p.asin)) continue;
             vistos.add(p.asin);
             if (color) primeros.add(color);
-            productos.push(p);
+            // Con familias se verifica después (verificar), en el mismo orden.
+            (FAM ? pendientes : productos).push(p);
+            leidos++;
             layouts[i].extraidos++;
           } catch (e) {
             console.warn(`[CF Scraper] Error en layout ${layout.id}`, e);
@@ -735,8 +839,9 @@ globalThis.__cfScraper = async function (config, options = {}) {
         // Leyendo al bajar, "encontrados" son los distintos vistos (los dibujados cambian).
         layouts[i].encontrados = leerAlBajar ? layouts[i].extraidos + fallos.size : items.length;
       });
-      return productos.length;
+      return leidos;
     };
+    docPropio = !!tipo;
     const L = config.loadMore;
     let cargaMas = null;
     if (!tipo && L?.item && limite > 0 && L.mode === 'scroll') {
@@ -756,6 +861,9 @@ globalThis.__cfScraper = async function (config, options = {}) {
       marcaPagina = getPageBrand();
       leer();
     }
+    // Listados sin límite (tiendas, portadas de categoría) y la página de producto.
+    // Tras detener o en los otros modos de carga, lo que quede: solo hasta el límite.
+    await verificar(!porPaginas && limite > 0 ? limite : Infinity);
     // Con límite de productos, solo los primeros `limite` (en el orden de la página).
     // Con límite de páginas entran todos los productos de esas páginas.
     if (cargaMas && !porPaginas && productos.length > limite) productos.length = limite;
@@ -763,7 +871,11 @@ globalThis.__cfScraper = async function (config, options = {}) {
     if (detenida && cargaMas) cargaMas.detenida = true;
     console.table(productos.map(p => ({ SKU: p.asin, MARCA: p.marca, NOMBRE: p.nombre, PRECIO: p.precio, IMAGEN: p.imagen })));
     const agrupados = [...colores].filter(c => !primeros.has(c)).length;
-    const result = { productos, layouts, marcaPagina, sinSku, excluidos: excluidos.size, agrupados, cargaMas, tipoPagina: tipo ? { id: tipo.id, label: tipo.label || tipo.id } : null };
+    const familias = FAM ? {
+      analizados: fam.analizados, familias: productos.length, enPagina: fam.enPagina, enLista: fam.enLista,
+      sinVerificar: productos.filter(p => p.familiaAviso).length, captcha: fam.captcha,
+    } : null;
+    const result = { productos, layouts, marcaPagina, sinSku, excluidos: excluidos.size, agrupados, cargaMas, familias, tipoPagina: tipo ? { id: tipo.id, label: tipo.label || tipo.id } : null };
     // Con jobId, el resultado va al service worker (el popup puede estar cerrado).
     if (jobId) enviar({ type: 'scrapeDone', result });
     return result;

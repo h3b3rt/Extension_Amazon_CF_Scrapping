@@ -33,6 +33,7 @@ popup.js ──"enqueue"──▶ background.js (service worker: cola de extracc
    ├─ groups.js      (grupos de la lista: nombres, migración, orden del Excel)
    ├─ sites.js       (sitios: cuál es la pestaña, su configuración y su título)
    ├─ export.js      (descarga del Excel, también desde el service worker)
+   ├─ familias.js    (familias de Amazon; también se inyecta en la pestaña)
    └─ prefs.js
 background.js: además refresca la configuración al iniciar y cada 3 h (chrome.alarms)
                y pone el título del icono según el sitio de la pestaña
@@ -40,6 +41,7 @@ background.js: además refresca la configuración al iniciar y cada 3 h (chrome.
 
 - **Sin código remoto:** todo lo que viene de GitHub son datos (JSON). El HTML nunca se construye con `innerHTML` a partir de datos remotos; se usa `textContent`.
 - **Extracciones (v1.9.0):** las ejecuta el **service worker**, no el popup, para que sigan al cerrarlo. El popup envía `{ type: 'enqueue', job }` (pestaña, URL, sitio y su configuración, categoría, grupo, límite) y lee el estado de `storage.local.jobs` (`{ actual, cola, ultimo }`), que se actualiza con `storage.onChanged`. Una a la vez; el resto espera en la cola. El scraper recibe `options.jobId` y avisa con mensajes: `scrapeProgress` (avance y `pausada`), `scrapePartial` (productos nuevos, que el service worker acumula en `storage.session.parcial`) y `scrapeDone` (resultado). Si la pestaña se cierra, la página se recarga (alarma `jobs-watchdog` que comprueba `globalThis.__cfCorriendo`) o se pulsa "Detener" (`globalThis.__cfDetener = true` en la pestaña), se guarda lo leído. Al terminar: notificación (`chrome.notifications`) y texto en el icono (`2/5`, `⏸`, `✓`).
+- **Familias de Amazon (v1.10.1):** `familias.js` es un script clásico (sin `import`/`export`) que deja sus funciones en `globalThis.__cfFamilias`: se inyecta en la pestaña antes de `scraper.js` y los módulos lo cargan con `import './familias.js'`. Con `config.familias` (sitio Amazon), el scraper pasa lo leído por una cola `pendientes` y `verificar()` descarga la `/dp/` de cada ASIN (pausa al azar, sin descargar los hermanos ya conocidos) para quedarse con el primero de cada familia; en modo productos el límite cuenta familias y, al analizar tantos productos como el límite, pregunta con `scrapeConfirm` (el service worker guarda `actual.confirmacion`, muestra una notificación con botones y responde con `globalThis.__cfResponder("seguir" | "detener")`). El service worker pasa `options.familiasLista` (familias ya en la lista) para omitir los de una familia ya extraída. Al exportar, si hay productos de Amazon sin `familia`, el popup encola un trabajo `{ tipo: 'exportar' }` que verifica (`verificarLista` en `jobs.js`) y descarga con `exportList` (un producto por familia).
 - **`scraper.js`** define `globalThis.__cfScraper(config, options)`. El service worker lo llama con `chrome.scripting.executeScript`, pasando la configuración del sitio (`siteConfig` de `sites.js`), `options.limit` o `options.pages` y `options.jobId`. El SKU se guarda en el campo `asin` por compatibilidad. Todo lo específico de cada tipo de página está en `config.layouts`, no en el código. `config.pageTypes` reserva layouts para un tipo de página (p. ej. `detalle` para la página de producto): en esa página solo corren esos, y en las demás no corren.
 - **Módulos ES:** `popup.js`, `options.js` y `background.js` (`"type": "module"`) importan `config.js`, `categories.js`, `history.js` y `prefs.js`. El popup importa además `xlsx.js`, que genera el Excel desde `plantilla.xlsx` sin librerías (zip con `DecompressionStream`/`CompressionStream`).
 
@@ -47,10 +49,10 @@ background.js: además refresca la configuración al iniciar y cada 3 h (chrome.
 
 | Dónde | Clave | Contenido |
 |---|---|---|
-| `storage.local` | `collected` | Lista en curso: `{ clave: producto }`; clave = ASIN (Amazon) o `sitio:SKU` (otros). Cada producto guarda su `grupo` (id) y su `ecomerce` |
+| `storage.local` | `collected` | Lista en curso: `{ clave: producto }`; clave = ASIN (Amazon) o `sitio:SKU` (otros). Cada producto guarda su `grupo` (id) y su `ecomerce`. Amazon (v1.10.1): `familia` (ASIN padre, o el propio si no tiene variantes) o `familiaAviso` (`Familia sin verificar`) |
 | `storage.local` | `loadPrefs` | Límite de la extracción por sitio (v1.9.0): `{ sephora: { modo: "paginas", paginas: 2, productos: 80 } }`. Sin datos = 1 página. La clave `loadLimits` (v1.8.0, número de productos) ya no se lee |
 | `storage.local` | `groups` | Grupos de la lista: `{ id: { nombre, origen, fecha, titulo, categoria, resumen } }` (`resumen`: líneas del resumen de su extracción, desde la v1.9.0) |
-| `storage.local` | `jobs` | Extracciones (v1.9.0): `{ actual, cola: [...], ultimo }`. `actual.progreso` = `{ pagina, paginas, cargados, limite, pausada }`; `ultimo` = resultado de la última (`mensaje`, `visto`) |
+| `storage.local` | `jobs` | Extracciones (v1.9.0): `{ actual, cola: [...], ultimo }`. `actual.progreso` = `{ pagina, paginas, cargados, limite, pausada, analizados, familias, verificando }` (exportación: `{ verificando, total }`); `actual.confirmacion` = `{ analizados, familias, limite }` mientras espera respuesta; `ultimo` = resultado de la última (`mensaje`, `visto`) |
 | `storage.session` | `parcial`, `avisos` | Productos ya leídos de la extracción en curso (se guardan si se corta) y notificaciones → pestaña |
 | `storage.local` | `remoteConfig`, `configMeta`, `settings` | Configuración remota en caché y su estado |
 | `storage.local` | `cfCategories` | Categorías en caché `{ items, fetchedAt, source, error }` |

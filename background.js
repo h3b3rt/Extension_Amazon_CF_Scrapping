@@ -1,7 +1,9 @@
 import { getConfig, refreshRemoteConfig } from './config.js';
-import { appName, findSite, siteTitle } from './sites.js';
+import { appName, findSite, siteTitle, familiasConfig } from './sites.js';
 import { getPrefs } from './prefs.js';
-import { getJobs, setJobs, guardarResultado } from './jobs.js';
+import { getJobs, setJobs, guardarResultado, familiasDeLaLista, verificarLista, duracionTxt } from './jobs.js';
+import { exportList, exportSummary } from './export.js';
+import { getCachedCategories } from './categories.js';
 
 const SYNC_ALARM = 'config-sync';
 const SYNC_MINUTES = 180;
@@ -91,8 +93,18 @@ const HANDLERS = {
   async stopJob() {
     const st = await getJobs();
     if (!st.actual) return { ok: false };
+    // Exportación: deja de verificar familias y descarga con lo verificado.
+    if (st.actual.tipo === 'exportar') {
+      await conLock(async () => {
+        const s = await getJobs();
+        if (s.actual?.id === st.actual.id) { s.actual.detener = true; await setJobs(s); }
+      });
+      return { ok: true };
+    }
     try {
-      await ejecutarScript(st.actual.tabId, () => { globalThis.__cfDetener = true; });
+      // También responde "Detener" si la extracción espera la confirmación de familias.
+      await ejecutarScript(st.actual.tabId, () => { globalThis.__cfDetener = true; globalThis.__cfResponder?.('detener'); });
+      await quitarConfirmacion(st.actual.id);
     } catch {
       // La pestaña ya no existe: se guarda lo leído.
       await conLock(async () => terminar(await getJobs(), null, 'Detenida: se guardó lo leído hasta ese momento.', st.actual.id));
@@ -110,6 +122,10 @@ const HANDLERS = {
     await enfocar(tabId);
     return { ok: true };
   },
+  // Respuesta a "¿seguir hasta tener N familias?": "seguir" o "detener".
+  async answerJob({ respuesta }) {
+    return { ok: await responder(respuesta) };
+  },
 
   // Desde el scraper (en la pestaña).
   async scrapeProgress(msg) {
@@ -117,9 +133,13 @@ const HANDLERS = {
       const st = await getJobs();
       if (!st.actual || st.actual.id !== msg.jobId) return;
       const antes = st.actual.progreso || {};
-      const progreso = { pagina: msg.pagina, paginas: msg.paginas, cargados: msg.cargados, limite: msg.limite, pausada: !!msg.pausada };
+      const progreso = {
+        pagina: msg.pagina, paginas: msg.paginas, cargados: msg.cargados, limite: msg.limite, pausada: !!msg.pausada,
+        analizados: msg.analizados, familias: msg.familias, verificando: !!msg.verificando,
+      };
       st.actual.progreso = progreso;
       st.actual.ultimoAviso = Date.now();
+      marcarEspera(st.actual);
       // No escribir en cada paso: solo si cambia algo visible o cada 1,5 s.
       if (antes.pausada !== progreso.pausada || antes.pagina !== progreso.pagina || Date.now() - (antes.escrito || 0) > 1500) {
         progreso.escrito = Date.now();
@@ -138,7 +158,83 @@ const HANDLERS = {
     await conLock(async () => terminar(await getJobs(), msg.result, '', msg.jobId));
     iniciarSiguiente();
   },
+  // Con límite de productos se analizaron tantos como el límite, pero hay menos
+  // familias: la extracción espera (sin límite de tiempo) a que el usuario elija.
+  async scrapeConfirm(msg) {
+    let job = null;
+    await conLock(async () => {
+      const st = await getJobs();
+      if (!st.actual || st.actual.id !== msg.jobId) return;
+      st.actual.confirmacion = { analizados: msg.analizados, familias: msg.familias, limite: msg.limite };
+      marcarEspera(st.actual);
+      await setJobs(st);
+      await pintarIcono(st);
+      job = st.actual;
+    });
+    if (!job) return;
+    try {
+      await chrome.notifications.create(`confirm-${job.id}`, {
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+        title: 'Hay familias repetidas',
+        message: `${job.nombreGrupo}: se analizaron ${msg.analizados} productos y hay ${msg.familias} familias. ¿Seguir hasta tener ${msg.limite} familias?`,
+        buttons: [{ title: 'Seguir' }, { title: 'Detener y guardar' }],
+        requireInteraction: true,
+      });
+    } catch (e) {
+      console.warn('[CF Scraper] Sin notificación', e);
+    }
+  },
 };
+
+// ---------- Duración ----------
+// Solo cuenta el trabajo de la extracción: no la espera en la cola, ni la pregunta
+// "¿seguir?" sin responder, ni la pausa con la pestaña de Sephora oculta.
+
+// Abre o cierra el tramo de espera según el estado de `a` (st.actual). Sin guardar.
+function marcarEspera(a) {
+  const esperando = !!(a.confirmacion || a.progreso?.pausada);
+  if (esperando && !a.esperaDesde) a.esperaDesde = Date.now();
+  if (!esperando && a.esperaDesde) {
+    a.esperaMs = (a.esperaMs || 0) + Date.now() - a.esperaDesde;
+    delete a.esperaDesde;
+  }
+}
+
+function duracionMs(a) {
+  const espera = (a.esperaMs || 0) + (a.esperaDesde ? Date.now() - a.esperaDesde : 0);
+  return Math.max(0, Date.now() - Date.parse(a.inicio) - espera);
+}
+
+// Envía la respuesta a la pestaña de la extracción que espera confirmación.
+async function responder(respuesta) {
+  const st = await getJobs();
+  if (!st.actual?.confirmacion) return false;
+  try {
+    await ejecutarScript(st.actual.tabId, r => { globalThis.__cfResponder?.(r); }, [respuesta === 'seguir' ? 'seguir' : 'detener']);
+  } catch { return false; /* pestaña cerrada: onRemoved guarda lo leído */ }
+  await quitarConfirmacion(st.actual.id);
+  return true;
+}
+
+async function quitarConfirmacion(jobId) {
+  await conLock(async () => {
+    const st = await getJobs();
+    if (st.actual?.id !== jobId || !st.actual.confirmacion) return;
+    delete st.actual.confirmacion;
+    marcarEspera(st.actual);
+    await setJobs(st);
+    await pintarIcono(st);
+  });
+  chrome.notifications?.clear(`confirm-${jobId}`);
+}
+
+chrome.notifications?.onButtonClicked?.addListener(async (id, boton) => {
+  if (!id.startsWith('confirm-')) return;
+  const st = await getJobs();
+  if (st.actual?.id === id.slice('confirm-'.length)) await responder(boton === 0 ? 'seguir' : 'detener');
+  chrome.notifications.clear(id);
+});
 
 // Empieza la siguiente de la cola si no hay ninguna en curso.
 function iniciarSiguiente() {
@@ -156,15 +252,18 @@ function iniciarSiguiente() {
 }
 
 async function ejecutar(job) {
+  if (job.tipo === 'exportar') return ejecutarExportacion(job);
   try {
     const tabId = await asegurarPestana(job);
     const prefs = await getPrefs();
-    await chrome.scripting.executeScript({ target: { tabId }, files: ['scraper.js'] });
+    // familias.js antes que scraper.js: verificación de familias de Amazon.
+    await chrome.scripting.executeScript({ target: { tabId }, files: ['familias.js', 'scraper.js'] });
     const opts = {
       autoScroll: prefs.autoScroll,
       limit: job.limite && job.limite.modo !== 'paginas' ? job.limite.valor : 0,
       pages: job.limite?.modo === 'paginas' ? job.limite.valor : 0,
       jobId: job.id,
+      familiasLista: await familiasDeLaLista(job),
     };
     await conLock(async () => {
       const st = await getJobs();
@@ -209,6 +308,10 @@ async function asegurarPestana(job) {
 async function terminar(st, result, motivo = '', jobId = st.actual?.id) {
   const job = st.actual;
   if (!job || job.id !== jobId) return;
+  if (job.tipo === 'exportar') {
+    return terminarExportacion(st, { ok: false, mensaje: `${motivo || 'La exportación se interrumpió.'}\nLas familias verificadas quedaron guardadas: vuelve a pulsar "Descargar Excel".` });
+  }
+  chrome.notifications?.clear(`confirm-${job.id}`);
   const { parcial } = await chrome.storage.session.get('parcial');
   const leidos = parcial?.id === job.id ? parcial.productos : [];
   let r = result;
@@ -220,6 +323,7 @@ async function terminar(st, result, motivo = '', jobId = st.actual?.id) {
     motivo = motivo || `Error: ${r.error}. Se guardó lo leído.`;
   }
   let salida;
+  job.duracionMs = duracionMs(job);
   try {
     salida = await guardarResultado(job, r, motivo);
   } catch (e) {
@@ -231,19 +335,88 @@ async function terminar(st, result, motivo = '', jobId = st.actual?.id) {
   await chrome.storage.session.remove('parcial');
   if (!st.cola.length) chrome.alarms.clear(WATCHDOG_ALARM);
   await pintarIcono(st);
-  avisar(job, salida, r?.cargaMas);
+  avisar(job, salida, r?.cargaMas, job.duracionMs);
+}
+
+// ---------- Exportación con verificación de familias ----------
+// "Descargar Excel" con productos de Amazon sin familia (de versiones anteriores o
+// sin verificar): antes de descargar se lee su familia (página /dp/, con pausas) y
+// el Excel lleva un producto por familia. Puede tardar minutos: corre aquí, en la
+// cola, para que no se pierda al cerrar el popup.
+
+let exportando = null;
+
+async function ejecutarExportacion(job) {
+  if (exportando === job.id) return;
+  exportando = job.id;
+  let salida;
+  try {
+    const config = await getConfig();
+    const F = familiasConfig(config);
+    const estaActual = async () => (await getJobs()).actual?.id === job.id;
+    const v = F
+      ? await verificarLista(F, async (i, total) => {
+        await conLock(async () => {
+          const st = await getJobs();
+          if (st.actual?.id !== job.id) return;
+          st.actual.progreso = { verificando: i, total };
+          await setJobs(st);
+          await pintarIcono(st);
+        });
+      }, async () => !(await estaActual()) || !!(await getJobs()).actual?.detener)
+      : null;
+    if (!(await estaActual())) return;
+    const { collected = {}, groups = {} } = await chrome.storage.local.get(['collected', 'groups']);
+    const categorias = (await getCachedCategories()).items || [];
+    const r = await exportList(collected, groups, config, categorias, job.fileName);
+    const lineas = [];
+    if (v?.total) lineas.push(`Familias verificadas antes de exportar: ${v.verificados} de ${v.total}`);
+    if (v?.detenida) lineas.push('⚠ Detenida: el resto se exportó sin verificar.');
+    if (v?.captcha) lineas.push('⚠ Amazon pidió una verificación (CAPTCHA): se dejaron de verificar familias. Ábrela en amazon.com, resuélvela y vuelve a exportar.');
+    salida = { ok: true, mensaje: [`✓ ${exportSummary(r)}`, ...lineas].join('\n') };
+  } catch (e) {
+    salida = { ok: false, mensaje: `No se pudo generar el Excel: ${e.message}` };
+  } finally {
+    exportando = null;
+  }
+  await conLock(async () => {
+    const st = await getJobs();
+    if (st.actual?.id === job.id) await terminarExportacion(st, salida);
+  });
+  iniciarSiguiente();
+}
+
+// Se llama dentro de conLock.
+async function terminarExportacion(st, salida) {
+  const job = st.actual;
+  const tiempo = duracionTxt(duracionMs(job));
+  salida = { ...salida, mensaje: `${salida.mensaje}\nDuración: ${tiempo}` };
+  st.actual = null;
+  st.ultimo = { id: job.id, ok: salida.ok, mensaje: salida.mensaje, nombre: job.nombreGrupo, sitio: 'Excel', fecha: new Date().toISOString(), visto: false };
+  await setJobs(st);
+  if (!st.cola.length) chrome.alarms.clear(WATCHDOG_ALARM);
+  await pintarIcono(st);
+  try {
+    await chrome.notifications.create(`job-${job.id}`, {
+      type: 'basic',
+      iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+      title: salida.ok ? 'Excel descargado' : 'No se pudo exportar',
+      message: [...salida.mensaje.replace(/^✓ /, '').split('\n').slice(0, 2), tiempo].join(' · '),
+    });
+  } catch { /* sin notificación */ }
 }
 
 // Notificación de Chrome al terminar; al pulsarla se abre la pestaña de la extracción.
-async function avisar(job, salida, carga) {
+async function avisar(job, salida, carga, ms) {
   const paginas = carga?.paginas ? ` · ${carga.paginas} página${carga.paginas === 1 ? '' : 's'}` : '';
+  const tiempo = ms != null ? ` · ${duracionTxt(ms)}` : '';
   const id = `job-${job.id}`;
   try {
     await chrome.notifications.create(id, {
       type: 'basic',
       iconUrl: chrome.runtime.getURL('icons/icon128.png'),
       title: salida.ok ? 'Extracción completada' : 'Extracción sin productos',
-      message: salida.ok ? `${job.nombreGrupo} · ${job.site.name}${paginas} · ${salida.productos} productos` : `${job.nombreGrupo} · ${job.site.name}: ${salida.mensaje.split('\n')[0]}`,
+      message: salida.ok ? `${job.nombreGrupo} · ${job.site.name}${paginas} · ${salida.productos} productos${tiempo}` : `${job.nombreGrupo} · ${job.site.name}: ${salida.mensaje.split('\n')[0]}${tiempo}`,
     });
     const { avisos = {} } = await chrome.storage.session.get('avisos');
     await chrome.storage.session.set({ avisos: { ...avisos, [id]: job.tabId } });
@@ -271,7 +444,8 @@ async function pintarIcono(st) {
   let color = '#ff9900';
   if (st.actual) {
     const p = st.actual.progreso || {};
-    if (p.pausada) { text = '⏸'; color = '#b91c1c'; }
+    if (p.pausada || st.actual.confirmacion) { text = '⏸'; color = '#b91c1c'; }
+    else if (p.total) text = String(p.verificando || 0);
     else if (p.paginas) text = `${p.pagina || 1}/${p.paginas}`;
     else text = p.cargados != null ? String(p.cargados) : '…';
   } else if (st.ultimo && !st.ultimo.visto) {
@@ -297,6 +471,9 @@ chrome.tabs.onRemoved.addListener(tabId => {
 async function vigilar() {
   const st = await getJobs();
   if (!st.actual) { chrome.alarms.clear(WATCHDOG_ALARM); return; }
+  // Exportación cortada porque Chrome detuvo el service worker: sigue donde quedó
+  // (las familias ya verificadas están guardadas en la lista).
+  if (st.actual.tipo === 'exportar') { if (exportando !== st.actual.id) ejecutarExportacion(st.actual); return; }
   if (!st.actual.ejecutando) return;
   let vivo = false;
   try {

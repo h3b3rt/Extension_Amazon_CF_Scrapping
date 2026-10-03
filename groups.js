@@ -71,12 +71,22 @@ export const sortedGroups = groups => Object.entries(groups)
   .map(([id, g]) => ({ id, ...g }))
   .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
 
+// Opciones elegidas al extraer, fijas para todo el grupo: extraer variantes
+// (columna variacion) y guía de tallas (guia_talla). Los grupos de versiones
+// anteriores no las tienen: "No".
+export const opcionesDe = g => ({ variaciones: g?.variaciones === true, guiaTalla: g?.guiaTalla === true });
+export const siNo = b => (b ? 'Sí' : 'No');
+export const opcionesTxt = o => `Variaciones: ${siNo(o.variaciones)} · Guía de tallas: ${siNo(o.guiaTalla)}`;
+
 // Filas del Excel: agrupadas en orden de extracción, con el nombre del grupo
-// (nunca vacío: una celda '' rompe la carga del backend).
+// (nunca vacío: una celda '' rompe la carga del backend) y sus opciones.
 export function productsForExport(collected, groups) {
   const orden = new Map(sortedGroups(groups).map((g, i) => [g.id, i]));
   return Object.values(collected)
     .map((p, i) => ({ p, i, o: orden.get(p.grupo) ?? orden.size }))
     .sort((a, b) => a.o - b.o || a.i - b.i)
-    .map(({ p }) => ({ ...p, grupo: groups[p.grupo]?.nombre || FALLBACK_NAME }));
+    .map(({ p }) => {
+      const o = opcionesDe(groups[p.grupo]);
+      return { ...p, grupo: groups[p.grupo]?.nombre || FALLBACK_NAME, variacion: siNo(o.variaciones), guiaTalla: siNo(o.guiaTalla), conVariaciones: o.variaciones };
+    });
 }

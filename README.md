@@ -11,7 +11,7 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com
 ## Qué hace
 
 - Genera el Excel listo para subir al sistema: `ecomerce`, `sku` (ASIN), `link`, `condicion` (Nuevo / Reacondicionado), categoría y `seguimiento`. Nombre, marca, precio e imagen van solo como referencia (`ref_*`), con vista previa de la imagen en Google Sheets.
-- **Amazon:** resultados de búsqueda y tiendas de marca (`ProductUIRender`, `ProductGridItem`, `ProductShowcase` y `EditorialTile`). En la página de un producto (`/dp/…`) extrae solo ese producto, sin las sugerencias. En búsquedas sigue con las páginas siguientes hasta el máximo indicado, sin anuncios (*Patrocinado*); también lee las portadas de categoría (`/b?node=…`).
+- **Amazon:** resultados de búsqueda y tiendas de marca (`ProductUIRender`, `ProductGridItem`, `ProductShowcase` y `EditorialTile`). En la página de un producto (`/dp/…`) extrae solo ese producto, sin las sugerencias. En búsquedas sigue con las páginas siguientes hasta el máximo indicado, sin anuncios (*Patrocinado*); también lee las portadas de categoría (`/b?node=…`). Deja **un producto por familia** (variantes de color o talla del mismo padre), porque el sistema descarga la familia completa de cada ASIN.
 - **Michael Kors:** búsquedas y categorías, pulsando **Load More** hasta el máximo de productos que indiques (con el avance en el popup), y páginas de producto. El SKU sale del link `/<ID>.html`, igual que en el sistema.
 - **Sephora:** búsquedas, categorías y marcas, leyendo los productos mientras baja la página y pasando con **Show More Products** hasta el máximo indicado, y páginas de producto. El sistema saca el SKU (`skuId`) y el ID `P…` del link, así que la columna `sku` queda vacía. Desde otra región (por ejemplo `sephora.fr`) ofrece abrir la versión de EE. UU.
 - **Marc Jacobs** (solo `/us-en/`): categorías y búsquedas, descargando en segundo plano los productos que carga el scroll hasta el máximo indicado, y páginas de producto. El sistema solo lee la columna `sku` y la corta en el primer `-`, así que la extensión escribe el modelo base (`H004L01PF21`) y deja una fila por modelo. Con la búsqueda abierta en el panel, ofrece abrirla como página.
@@ -52,6 +52,7 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com
 ├── prefs.js                 Preferencias de extracción
 ├── jobs.js                  Cola de extracciones y guardado de su resultado
 ├── export.js                Descarga del Excel (popup y service worker)
+├── familias.js              Familias de Amazon (un producto por familia)
 ├── background.js            Service worker: cola de extracciones, aviso al terminar, sincronización
 ├── config.default.json      Configuración incluida en la extensión
 ├── config.json              Configuración remota (la leen todas las extensiones)

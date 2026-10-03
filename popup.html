@@ -37,6 +37,9 @@ button.ghost{background:#e5e7eb;color:#111;padding:10px;width:auto;flex:0 0 auto
 .jobs{margin-top:12px;border:1px solid #fcd34d;background:#fff7e6}
 .job-title{margin:0 0 4px;font-size:13px;font-weight:700}
 .jobs .hint{margin:0 0 8px;word-break:normal;white-space:pre-line}
+.job-confirm{margin:0 0 10px;padding:10px;background:#fff;border:1px solid #fca5a5;border-radius:7px}
+.job-confirm p{margin:0 0 8px;font-size:12px;line-height:1.45;white-space:pre-line}
+.job-confirm button{padding:9px;font-size:13px}
 .queue-title{margin:10px 0 4px;font-size:12px;font-weight:700}
 .queue{list-style:none;margin:0;padding:0}
 .queue li{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;padding:4px 0;border-top:1px solid #f3e3b5}
@@ -49,6 +52,13 @@ button.mini.danger{background:#b91c1c;color:#fff}
 .sources .confirm-text{color:#b91c1c}
 .region-text{margin:0 0 10px;font-size:12px;line-height:1.45;color:#374151;word-break:break-word}
 .sources .meta{color:#6b7280}
+.group-options{margin:4px 0 2px}
+.group-options .check{margin:0 0 6px}
+.group-options .meta{color:#6b7280}
+.group-options .hint{margin-top:0;word-break:normal}
+.sources .tags{margin:3px 0 0 18px;display:flex;gap:4px;flex-wrap:wrap}
+.sources .tag{font-size:10px;font-weight:700;padding:1px 6px;border-radius:9px;background:#f3f4f6;color:#6b7280}
+.sources .tag.on{background:#dcfce7;color:#15803d}
 .sources .group-name{color:#b45309;font-weight:700;cursor:text;user-select:none}
 .sources .open-page{font-weight:400}
 .sources .rename{padding:5px 8px;font-size:12px}
@@ -114,7 +124,14 @@ footer a{color:#6b7280}
   <div id="jobCurrent">
     <p class="job-title" id="jobTitle"></p>
     <div class="hint" id="jobProgress"></div>
-    <div class="row">
+    <div id="jobConfirm" class="job-confirm" hidden>
+      <p id="jobConfirmText"></p>
+      <div class="row">
+        <button id="jobContinue" type="button">Seguir</button>
+        <button id="jobHalt" class="secondary" type="button">Detener y guardar</button>
+      </div>
+    </div>
+    <div class="row" id="jobButtons">
       <button id="jobGo" class="ghost" type="button">Ir a la pestaña</button>
       <button id="jobStop" class="secondary" type="button">Detener y guardar lo leído</button>
     </div>
@@ -157,6 +174,12 @@ footer a{color:#6b7280}
   <label class="field-label" for="groupName">Nombre del grupo</label>
   <input id="groupName" class="text-input" autocomplete="off" maxlength="60" placeholder="Ej: Audífonos HyperX">
   <div class="hint" id="groupHint"></div>
+  <div class="group-options">
+    <span class="field-label">Opciones del grupo (no se cambian después)</span>
+    <label class="check"><input type="checkbox" id="optVariaciones"> Extraer variantes <span class="meta">(variacion = Sí)</span></label>
+    <label class="check"><input type="checkbox" id="optGuiaTalla"> Guía de tallas <span class="meta">(guia_talla = Sí)</span></label>
+    <div class="hint" id="optionsHint"></div>
+  </div>
   <div id="limitGroup" hidden>
     <label class="field-label" for="loadLimit">Límite de la extracción</label>
     <div class="mode-switch" role="tablist" aria-label="Límite por páginas o por productos">

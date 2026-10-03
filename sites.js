@@ -66,7 +66,13 @@ export function siteConfig(config, site) {
   return { ...config, ...own, site: { id, name } };
 }
 
-export const siteTitle = site => site.title || `${site.name} Product Scraper`;
+// Verificación de familias de Amazon (config.familias del sitio), o null si no está activa.
+export function familiasConfig(config) {
+  const amazon = sitesOf(config).find(s => s.id === 'amazon');
+  return (amazon && siteConfig(config, amazon).familias) || null;
+}
+
+export const siteTitle =site => site.title || `${site.name} Product Scraper`;
 
 // Clave del producto en la lista: el SKU solo para Amazon (como en versiones
 // anteriores) y "sitio:SKU" para los demás, para que dos sitios no choquen.
