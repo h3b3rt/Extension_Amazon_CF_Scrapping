@@ -3,7 +3,7 @@
 ## Flujo normal
 
 1. Abre en un sitio disponible una **búsqueda**, una **categoría**, una **tienda de marca** o la **página de un producto**. Sitios disponibles: **Amazon.com**, **Michael Kors** (`www.michaelkors.com`), **Sephora** (`www.sephora.com`), **Marc Jacobs** (`www.marcjacobs.com/us-en/`) y **Kate Spade** (`www.katespade.com`).
-2. Pulsa el icono de la extensión → **Extraer productos**. El título del popup indica el sitio (*Amazon Product Scraper*, *Michael Kors Product Scraper*, *Sephora Product Scraper*, *Marc Jacobs Product Scraper*, *Kate Spade Product Scraper*). En otra página, el popup se llama *COMPRAFACIL Scraper* y muestra los sitios disponibles con su enlace.
+2. Pulsa el icono de la extensión → **Extraer productos**. El título del popup indica el sitio (*Amazon Product Scraper*, *Michael Kors Product Scraper*, *Sephora Product Scraper*, *Marc Jacobs Product Scraper*, *Kate Spade Product Scraper*). Desde la v1.12.0, el icono de la barra también cambia: muestra el logo del sitio dentro de un marco naranja. En otra página, el icono es la bolsa naranja, el popup se llama *COMPRAFACIL Scraper* y muestra los sitios disponibles con su logo y su enlace.
 3. Si esa página **ya se extrajo antes**, aparece un aviso con la fecha, la categoría y los productos. Elige:
    - **Reemplazar datos anteriores**: quita de la lista los productos y el grupo de la extracción anterior y la hace de nuevo desde cero.
    - **Cancelar**.
@@ -11,11 +11,12 @@
 5. Revisa el **nombre del grupo** (ver abajo) y pulsa **Extraer**.
 6. La extensión carga los productos y los añade a la lista: en Amazon lee la página y las siguientes; en Michael Kors, Marc Jacobs y Kate Spade descarga los productos que traerían **Load More** o el scroll, y en Sephora baja la página y pasa de página, hasta el límite indicado (ver *Límite de la extracción*). **No cierres el popup mientras trabaja.**
 7. Repite con otras páginas, también de otro sitio: un mismo Excel puede tener productos de Amazon, Michael Kors, Sephora, Marc Jacobs y Kate Spade, cada fila con su `ecomerce`. La lista acumula productos sin repetir SKU: si un SKU ya estaba en otro grupo, se queda con los datos y el grupo de la última extracción.
-8. Al terminar, pulsa **Descargar Excel**. Opcionalmente escribe un nombre, por ejemplo `Audifonos Hyperx`, y pulsa **Descargar**.
+8. Opcional: pulsa **Vista previa** para revisar las filas del Excel antes de descargarlo (ver *Vista previa del Excel*).
+9. Al terminar, pulsa **Descargar Excel**. Opcionalmente escribe un nombre, por ejemplo `Audifonos Hyperx`, y pulsa **Descargar**.
    - Resultado: `Audifonos_Hyperx_2026-09-30_14-35.xlsx`
    - Sin nombre: `Plantilla_Scraping_2026-09-30_14-35.xlsx`
    - Si hay productos de Amazon o Kate Spade sin familia verificada, antes se verifica su familia en segundo plano (ver *Amazon: un producto por familia* y *Kate Spade*) y el Excel se descarga solo al terminar.
-9. Pulsa **Limpiar** para empezar una lista nueva. También se borran los grupos.
+10. Pulsa **Limpiar** para empezar una lista nueva. También se borran los grupos.
 
 ## Página de un producto
 
@@ -196,6 +197,29 @@ Es la **plantilla de scraping del sistema** (`Plantilla_Scraping_General.xlsx`) 
 - El sistema solo **crea** productos: si un SKU ya existe, la fila se ignora (no se actualiza).
 - `Plantilla` debe seguir siendo la **primera** pestaña.
 
+## Vista previa del Excel
+
+Desde la v1.12.0. **Vista previa** (junto a *Descargar Excel*) abre una pestaña con las filas que tendrá el Excel, calculadas igual que el archivo: mismo orden, mismo número de fila, un producto por familia y sin los productos sin SKU. Desde ahí también se pueden **quitar productos** de la lista (ver abajo).
+
+- **Resumen:** filas del Excel, productos de la lista, familias en el Excel, variantes que creará el sistema (si se conocen todas) y omitidos al extraer por ser de la misma familia, y los avisos (omitidos por familia repetida, sin SKU, familia por verificar o sin verificar, sin categoría, posibles variantes, reacondicionados, SKU con guion).
+- **Filas del Excel:** número de producto (N° 1, 2…) y, debajo, su fila en el Excel (la fila 1 es el encabezado, así que el primer producto es la fila 2; los avisos *Posible variante: fila N* usan esa fila), imagen, nombre, marca y precio, avisos, sitio, `sku` (en Sephora, *Vacía (va en el link)* con su `skuId`), **Familia** (Amazon con variantes y Kate Spade: cuántas variantes o estilos crea el sistema desde ese producto y cuántos de su familia se omitieron al extraer; *sin cifras* en lo extraído antes de la v1.12.0), link, grupo, categoría y código, *Variantes* / *Guía* y condición. Las filas con avisos se ven en amarillo.
+- **Filtros:** buscar por nombre, marca, SKU o link; por grupo; por sitio; y *Solo con avisos*.
+- **No irán al Excel:** los productos que la exportación deja fuera y el motivo (familia repetida, con el SKU que se conserva, o sin SKU). Si no hay ninguno, lo dice.
+- **Familia por verificar:** productos de Amazon (grupos con variantes) o Kate Spade cuya familia todavía no se conoce. Se verifica al descargar, así que el Excel puede tener menos filas que la vista previa.
+- **Descargar:** la misma descarga que el popup, con nombre de archivo opcional.
+- La vista se actualiza sola si cambia la lista, por ejemplo al terminar una extracción.
+- En el popup, el resumen de un grupo (**▸**) tiene el enlace *Ver sus productos en la vista previa*, que la abre filtrada por ese grupo.
+
+**Quitar productos:**
+- **🗑** en una fila quita ese producto de la lista (también en *No irán al Excel*), después de confirmar.
+- **Casillas:** marca varias filas y pulsa **Quitar seleccionados (N)**. La casilla del encabezado marca todas las filas **visibles**: por ejemplo, con *Solo con avisos* activo, marca solo las que tienen avisos. Siempre se pide confirmación antes de quitar.
+- **Familias:** en Amazon (grupos con variantes) y Kate Spade, cada fila representa a su familia: el sistema crea todas las variantes a partir de ese producto. La confirmación lo avisa, con el tamaño de la familia y cuántos de ella se omitieron al extraer (solo en extracciones hechas con la v1.12.0 o posterior). Esos omitidos no están en la lista, así que al quitar al representante **no se crea ninguna variante de esa familia**.
+- Si otro producto de la misma familia **sí está en la lista** (en *No irán al Excel*), se pregunta: **Quitar solo este** (entra ese otro en su lugar) o **Quitar la familia completa**.
+- **Deshacer:** tras quitar, el aviso verde ofrece *Deshacer*, que devuelve los productos a su grupo y a su lugar. Vale para el último cambio.
+- Mientras se **exporta** (verificando familias) no se puede quitar nada.
+- El grupo conserva su resumen y suma la línea *Quitados a mano en la vista previa: N*. Un grupo que queda vacío se conserva (se elimina con 🗑 en el popup).
+- Los productos quitados **no se recuerdan**: si vuelves a extraer la página con *Reemplazar datos anteriores*, vuelven.
+
 ## Panel de la lista
 
 Debajo del botón principal verás cuántos productos hay en la lista y los grupos, por ejemplo *"hyperx headset · 24 productos ↗"*.
@@ -203,7 +227,7 @@ Debajo del botón principal verás cuántos productos hay en la lista y los grup
 - **Doble clic en el nombre** para renombrar el grupo. **Enter** o salir del campo guarda; **Esc** cancela. Un nombre vacío o repetido no se acepta.
 - **↗** abre la página de donde salieron los productos.
 - Debajo del nombre, las **opciones del grupo** (*Variaciones: Sí/No*, *Guía de tallas: Sí/No*), en verde si están activas.
-- **▸** despliega el **resumen de esa extracción**: opciones del grupo, duración, sitio, categoría, páginas, productos, sin imagen, sin precio, anuncios omitidos, avisos y fecha. Los grupos extraídos con versiones anteriores no tienen resumen.
+- **▸** despliega el **resumen de esa extracción**: opciones del grupo, duración, sitio, categoría, páginas, productos, sin imagen, sin precio, anuncios omitidos, avisos y fecha. Los grupos extraídos con versiones anteriores no tienen resumen. Debajo, *Ver sus productos en la vista previa*.
 - **🗑** elimina ese grupo y sus productos, después de confirmar. También quita su página del historial, para poder extraerla de nuevo sin aviso. Los demás grupos no cambian. **Limpiar** sigue borrando toda la lista.
 - Al pasar el ratón por el nombre se ve la categoría y el título de la página.
 - Los productos que ya estaban en la lista antes de la v1.7.0 reciben un grupo por página, con el título guardado en el historial.

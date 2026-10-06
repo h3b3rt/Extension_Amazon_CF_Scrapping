@@ -110,6 +110,7 @@ Desde la v1.8.0 la extensión trabaja con varios ecommerce. Cada sitio de `sites
 |---|---|
 | `id` / `name` | Identificador interno y nombre visible (`michaelkors` / `Michael Kors`). |
 | `title` | Título del popup y del icono en ese sitio (`Michael Kors Product Scraper`). |
+| `icono` | Desde la v1.12.0. Nombre del icono del sitio (`michaelkors`): la extensión usa `icons/sitios/<icono>-16.png` y `-32.png` **del paquete**, en la barra (por pestaña) y en el popup. Chrome no acepta imágenes remotas: un icono nuevo requiere versión nueva. Solo letras minúsculas, números y `-`. Sin esta clave se usa el `id` del sitio; si el paquete no trae ese archivo, se usa el icono general. Las versiones anteriores la ignoran. |
 | `hosts` | Dominios del sitio; también vale cualquier subdominio (`michaelkors.com` cubre `www.michaelkors.com`). Kate Spade usa `www.katespade.com` para dejar fuera el outlet (`surprise.katespade.com`). |
 | `homeUrl` | Enlace que muestra el popup en la lista de sitios disponibles. |
 | `ecomerce` | Valor de la columna `ecomerce`, **exactamente** como en el desplegable de la plantilla. |

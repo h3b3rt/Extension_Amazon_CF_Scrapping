@@ -31,13 +31,18 @@ popup.js ──"enqueue"──▶ background.js (service worker: cola de extracc
    ├─ categories.js  ◀── categories.json (GitHub) / copia incluida
    ├─ history.js     ──▶ chrome.storage.sync (historial personal)
    ├─ groups.js      (grupos de la lista: nombres, migración, orden del Excel)
-   ├─ sites.js       (sitios: cuál es la pestaña, su configuración y su título)
+   ├─ sites.js       (sitios: cuál es la pestaña, su configuración, su título y su icono)
    ├─ export.js      (descarga del Excel, también desde el service worker)
+   ├─ descarga.js    ("Descargar Excel" del popup y de la vista previa: directo o encolado)
    ├─ familias.js    (familias de Amazon y Kate Spade; también se inyecta en la pestaña)
    └─ prefs.js
 background.js: además refresca la configuración al iniciar y cada 3 h (chrome.alarms)
-               y pone el título del icono según el sitio de la pestaña
+               y pone el título y la imagen del icono según el sitio de la pestaña
+preview.html / preview.js: vista previa del Excel en una pestaña (lee storage.local)
 ```
+
+- **Iconos por sitio (v1.12.0):** `config.sites[].icono` (sin la clave, el `id` del sitio) elige `icons/sitios/<icono>-16.png` y `-32.png`, incluidos en el paquete (Chrome no acepta imágenes remotas). `background.js` los fija por pestaña con `chrome.action.setIcon` junto al título; fuera de un sitio, o si el archivo no existe, vuelve a `DEFAULT_ICON`. Los PNG se generan con `node tools/iconos-sitios.mjs <carpeta>` (favicon de cada sitio dentro del marco naranja; usa Chrome, Edge o Brave sin interfaz). La carpeta tiene un archivo por `id` (`amazon.png`, `michaelkors.jpg`…); el favicon se puede bajar de `https://www.google.com/s2/favicons?domain=<dominio>&sz=128`.
+- **Vista previa (v1.12.0):** `filasExcel(products, config.xlsx)` en `xlsx.js` calcula los valores de cada fila por nombre de columna (`celdas`, lo que lee el backend; `ref`, las columnas `ref_*`) y el resumen. `buildWorkbook` y `preview.js` la usan los dos, así la vista previa no puede diferir del archivo. `preview.js` aplica antes `productsForExport` y `unoPorFamilia`, como `exportList`, y marca *Familia por verificar* con `sinFamilia` de `jobs.js`. Para **quitar productos** envía `{type:'quitarProductos', claves}` (y `restaurarProductos` para Deshacer) al service worker, que cambia la lista dentro de `conLock` (`cambiarLista` en `background.js`), así no pisa lo que guarda una extracción; solo acepta mensajes de páginas de la extensión (`sender.url`) y se niega mientras hay un trabajo `exportar` en curso (`verificarLista` escribe la lista fuera del lock). `quitarDeLista`/`restaurarEnLista` (`groups.js`) guardan la posición (`despues`) para devolver cada producto a su lugar, porque el orden decide qué producto representa a una familia; el grupo cuenta `quitados` y `syncGroups` no borra un grupo vacío con `quitados`. `productsForExport` añade `clave` (no es columna del Excel). Se redibuja con `storage.onChanged` (`collected`, `groups`, y `jobs` solo cuando empieza o termina una extracción). `?grupo=<id>` abre la vista filtrada por ese grupo.
 
 - **Sin código remoto:** todo lo que viene de GitHub son datos (JSON). El HTML nunca se construye con `innerHTML` a partir de datos remotos; se usa `textContent`.
 - **Extracciones (v1.9.0):** las ejecuta el **service worker**, no el popup, para que sigan al cerrarlo. El popup envía `{ type: 'enqueue', job }` (pestaña, URL, sitio y su configuración, categoría, grupo, límite) y lee el estado de `storage.local.jobs` (`{ actual, cola, ultimo }`), que se actualiza con `storage.onChanged`. Una a la vez; el resto espera en la cola. El scraper recibe `options.jobId` y avisa con mensajes: `scrapeProgress` (avance y `pausada`), `scrapePartial` (productos nuevos, que el service worker acumula en `storage.session.parcial`) y `scrapeDone` (resultado). Si la pestaña se cierra, la página se recarga (alarma `jobs-watchdog` que comprueba `globalThis.__cfCorriendo`) o se pulsa "Detener" (`globalThis.__cfDetener = true` en la pestaña), se guarda lo leído. Al terminar: notificación (`chrome.notifications`) y texto en el icono (`2/5`, `⏸`, `✓`).
@@ -95,6 +100,7 @@ No hay suite de pruebas automáticas en el repo. Durante el desarrollo se probó
 - **Excel:** generar el archivo con `buildWorkbook` en Node y leerlo con `XLSX.utils.sheet_to_json` **sin opciones**, como el backend. Comprobar que `sku`, `codigo_categoria` y `seguimiento` llegan bien y que ninguna celda llega como `''`.
 - **Scraper:** cargar `scraper.js` en **jsdom** con HTML de ejemplo de Amazon y llamar a `__amazonScraper(config)`.
 - **Popup:** ejecutar `popup.html` + módulos en jsdom con un `chrome` falso (`storage.local`/`sync`, `tabs`, `scripting`, `downloads`) y simular clics.
+- **Vista previa:** lo mismo con `preview.html`, y comparar sus filas con el Excel que descarga (mismo número de filas y mismos `sku`).
 - **Visual:** abrir el popup con datos de prueba en Chrome sin interfaz:
   ```powershell
   chrome --headless=new --screenshot=shot.png --window-size=420,560 file:///ruta/preview.html

@@ -1,17 +1,18 @@
 import { getConfig, getConfigMeta, refreshRemoteConfig, compareVersions, extensionVersion } from './config.js';
 import { normalizeUrl, getHistory, removeHistoryEntry, formatDate } from './history.js';
 import { getPrefs } from './prefs.js';
-import { exportList, exportSummary, exportFileName, DEFAULT_PREFIX } from './export.js';
-import { getJobs, jobForUrl, sinFamilia as pendientesDeFamilia } from './jobs.js';
+import { exportSummary, exportFileName, DEFAULT_PREFIX } from './export.js';
+import { descargarLista, encoladaTxt } from './descarga.js';
+import { getJobs, jobForUrl } from './jobs.js';
 import {
-  MAX_GROUP_NAME, cleanGroupName, nameTaken, defaultGroupName, syncGroups, sortedGroups, opcionesDe, siNo,
+  MAX_GROUP_NAME, cleanGroupName, nameTaken, defaultGroupName, syncGroups, sortedGroups, opcionesDe, siNo, quitadosTxt,
 } from './groups.js';
 import {
   getCachedCategories, getCategories, refreshCategories, findCategory, searchCategories, categoryLabel, normalizeText,
   sourceLabel,
 } from './categories.js';
 import {
-  appName, sitesOf, findSite, siteConfig, siteTitle, productKey, pageLabel, pageTypeByUrl, regionRedirect, familiasConfig,
+  appName, sitesOf, findSite, siteConfig, siteTitle, siteIcon, DEFAULT_ICON, productKey, pageLabel, pageTypeByUrl, regionRedirect,
 } from './sites.js';
 
 const $ = id => document.getElementById(id);
@@ -52,6 +53,7 @@ async function renderCollection() {
   $('count').textContent = n;
   $('collection').hidden = !(prefs.accumulate || n);
   $('download').disabled = !n;
+  $('preview').disabled = !n;
   $('clear').disabled = !n;
   renderSources(collected, groups);
 }
@@ -113,13 +115,24 @@ function renderSources(collected, groups) {
       const det = document.createElement('div');
       det.className = 'group-details';
       const fecha = g.fecha ? `Extraído: ${formatDate(g.fecha)}` : '';
-      det.textContent = [...(g.resumen || ['Sin resumen (extraído con una versión anterior).']), fecha].filter(Boolean).join('\n');
+      det.textContent = [...(g.resumen || ['Sin resumen (extraído con una versión anterior).']), quitadosTxt(g), fecha].filter(Boolean).join('\n');
+      if (n) {
+        const ver = Object.assign(document.createElement('button'), { type: 'button', className: 'link-btn see-group', textContent: 'Ver sus productos en la vista previa' });
+        ver.addEventListener('click', () => openPreview(g.id));
+        det.append('\n', ver);
+      }
       li.append(det);
     }
     return li;
   });
   $('sources').replaceChildren(...items);
   $('sources').hidden = !items.length;
+}
+
+// Vista previa del Excel en una pestaña (preview.html), opcionalmente de un solo grupo.
+function openPreview(grupo = '') {
+  const url = chrome.runtime.getURL(`preview.html${grupo ? `?grupo=${encodeURIComponent(grupo)}` : ''}`);
+  chrome.tabs.create({ url });
 }
 
 // Eliminar un grupo: pide confirmación en el mismo lugar. Quita sus productos y su
@@ -224,6 +237,13 @@ function bindFileNamePreview(inputId, previewId) {
   return update;
 }
 
+// Logo del sitio (o el icono general si no tiene o el paquete no lo trae).
+function setIcon(img, site, size) {
+  const general = DEFAULT_ICON[size];
+  img.onerror = () => { img.onerror = null; img.src = general; };
+  img.src = siteIcon(site)?.[size] || general;
+}
+
 // Título del popup según el sitio de la pestaña; fuera de los sitios disponibles,
 // el nombre general y la lista de sitios con su enlace.
 async function renderSite(config) {
@@ -232,6 +252,7 @@ async function renderSite(config) {
   const region = regionRedirect(config, tab?.url || '', tab?.title || '');
   const site = region ? null : findSite(config, tab?.url || '');
   $('appTitle').textContent = site ? siteTitle(site) : region ? siteTitle(region.site) : appName(config);
+  setIcon($('appIcon'), site || region?.site, 32);
   $('regionPanel').hidden = !region;
   $('sitesPanel').hidden = !!site || !!region;
   $('scrape').hidden = !site;
@@ -269,11 +290,14 @@ async function renderSite(config) {
   }
   const items = sitesOf(config).map(s => {
     const li = document.createElement('li');
+    const img = Object.assign(document.createElement('img'), { className: 'site-icon', alt: '' });
+    setIcon(img, s, 32);
     if (/^https:\/\//i.test(s.homeUrl || '')) {
-      const a = Object.assign(document.createElement('a'), { href: s.homeUrl, target: '_blank', textContent: s.name });
+      const a = Object.assign(document.createElement('a'), { href: s.homeUrl, target: '_blank' });
+      a.append(img, s.name);
       li.append(a);
     } else {
-      li.textContent = s.name;
+      li.append(img, s.name);
     }
     return li;
   });
@@ -1035,22 +1059,12 @@ async function init() {
     e.preventDefault();
     const { collected, groups } = await getState();
     try {
-      const config = await getConfig();
-      // Productos sin familia (Amazon de grupos con variaciones, Kate Spade siempre): el
-      // service worker la verifica antes de descargar (puede tardar minutos).
-      const sinFamilia = familiasConfig(config) ? pendientesDeFamilia(collected, groups, config).length : 0;
-      if (sinFamilia) {
-        const st = await getJobs();
-        if ([st.actual, ...st.cola].some(j => j?.tipo === 'exportar')) throw new Error('Ya hay una exportación en curso o en la cola.');
-        const r = await chrome.runtime.sendMessage({ type: 'enqueue', job: { tipo: 'exportar', nombreGrupo: 'Exportar Excel', fileName: $('exportName').value } });
-        if (!r || r.error) throw new Error(`No se pudo iniciar la exportación${r?.error ? `: ${r.error}` : '.'}`);
-        hideExportForm();
-        const minutos = Math.max(1, Math.round(sinFamilia * 3.5 / 60));
-        showStatus(`Antes de descargar se verificará la familia de ${sinFamilia} producto${sinFamilia === 1 ? '' : 's'} (unos ${minutos} min)${r.posicion ? `, al terminar la extracción en curso` : ''}.\nPuedes cerrar este popup: el Excel se descargará solo.`);
+      const r = await descargarLista(collected, groups, catalogCache.items, $('exportName').value);
+      hideExportForm();
+      if (r.encolada) {
+        showStatus(encoladaTxt(r.encolada));
         return renderJobs();
       }
-      const r = await exportList(collected, groups, config, catalogCache.items, $('exportName').value);
-      hideExportForm();
       showStatus(exportSummary(r), 'success');
     } catch (error) {
       console.error(error);
@@ -1058,6 +1072,7 @@ async function init() {
     }
   });
   $('cancelExport').addEventListener('click', hideExportForm);
+  $('preview').addEventListener('click', () => openPreview());
   $('exportName').addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); hideExportForm(); } });
   $('clear').addEventListener('click', async () => {
     await chrome.storage.local.set({ collected: {}, groups: {} });

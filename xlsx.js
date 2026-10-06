@@ -246,6 +246,69 @@ function fillMapeo(xml, categories) {
 }
 
 /**
+ * Valores de cada fila del Excel, por nombre de columna. Los usan el Excel y la
+ * vista previa (preview.js), así lo que se ve antes de descargar es lo que se descarga.
+ * Los productos sin SKU no tienen fila (el backend los descartaría).
+ * @param {object[]} products productos ya preparados (productsForExport + uno por familia)
+ * @param {object} config config.xlsx
+ * @returns {{ filas: { fila: number, producto: object, celdas: object, ref: object }[], sinSku: object[], resumen: object }}
+ *   celdas: columnas que lee el backend ('' = la celda no se escribe); ref: campos de las columnas ref_*.
+ */
+export function filasExcel(products, config = {}) {
+  const conSku = products.filter(p => (p.asin || '').trim());
+  const sinSku = products.filter(p => !(p.asin || '').trim());
+  const dup = duplicados(conSku, 2);
+  // Ecommerce cuyo SKU el backend saca del link (Sephora: skuId e ID "P…"): la
+  // celda sku no se escribe, porque llena reemplazaría el ID "P…" del link.
+  const skuSoloLink = new Set(Array.isArray(config.skuOnlyInLink) ? config.skuOnlyInLink : ['Sephora']);
+  const resumen = {
+    filas: conSku.length,
+    omitidos: sinSku.length,
+    conGuion: 0,
+    reacondicionados: 0,
+    duplicados: dup.filter(Boolean).length,
+    sinFamilia: conSku.filter(p => p.familiaAviso).length,
+    sinCategoria: conSku.filter(p => !p.codCategoria).length,
+  };
+  const filas = conSku.map((p, i) => {
+    // Cada producto trae el ecommerce de su sitio; los de versiones anteriores, el general.
+    const ecomerce = p.ecomerce || config.ecomerce || 'Amazon';
+    const sku = skuSoloLink.has(ecomerce) ? '' : p.asin.trim();
+    if (sku.includes('-')) resumen.conGuion++;
+    const condicion = condicionDe(p.nombre, config);
+    if (condicion !== (config.condicion?.default || 'Nuevo')) resumen.reacondicionados++;
+    // Categoría elegida en el popup: ruta en "Buscar categoria" y código ya calculado.
+    // Con "No llenar categoría" quedan vacías para usar el buscador de la plantilla.
+    const codigo = p.codCategoria || '';
+    const ruta = codigo ? rutaMapeo({ primaria: p.categoria, secundaria: p.categoriaSecundaria, terciaria: p.categoriaTerciaria }) : '';
+    const precio = parseFloat(p.precio);
+    return {
+      fila: i + 2,
+      producto: p,
+      celdas: {
+        ecomerce,
+        sku,
+        // Opciones del grupo elegidas al extraer ("Sí" / "No"; ver groups.js).
+        variacion: p.variacion || '',
+        guia_talla: p.guiaTalla || '',
+        condicion,
+        link: p.link || '',
+        [SEARCH_HEADER]: ruta,
+        [CODE_HEADER]: codigo,
+        seguimiento: config.seguimiento || 'Scraping',
+      },
+      ref: {
+        ...Object.fromEntries([...REF_FIELDS].map(f => [f, p[f] || ''])),
+        // Amazon: "Familia sin verificar" si no se pudo leer su familia (puede repetir otra fila).
+        duplicado: [dup[i], p.familiaAviso].filter(Boolean).join(' · '),
+        precio: Number.isFinite(precio) ? precio : '',
+      },
+    };
+  });
+  return { filas, sinSku, resumen };
+}
+
+/**
  * Crea el xlsx de carga.
  * @param {ArrayBuffer} template plantilla.xlsx
  * @param {object[]} products productos de la lista (asin = SKU, ecomerce, nombre, marca, imagen, precio, link, codCategoria...)
@@ -306,10 +369,8 @@ export async function buildWorkbook(template, products, { config = {}, categorie
   styles.clear();
   for (const [col, s] of estilos) styles.set(mover(col), s);
 
-  const conSku = products.filter(p => (p.asin || '').trim());
-  const omitidos = products.length - conSku.length;
-  const dup = duplicados(conSku, 2);
-  const lastRow = conSku.length + 1;
+  const { filas, resumen } = filasExcel(products, config);
+  const lastRow = filas.length + 1;
   const rowHeight = Number(config.rowHeight) || 0;
 
   // Fila 1: encabezados de la plantilla (corridos) + columnas de ayuda.
@@ -320,36 +381,15 @@ export async function buildWorkbook(template, products, { config = {}, categorie
     return `>${cells.map(c => c.xml).join('')}</row>`;
   });
 
-  // Ecommerce cuyo SKU el backend saca del link (Sephora: skuId e ID "P…"): la
-  // celda sku no se escribe, porque llena reemplazaría el ID "P…" del link.
-  const skuSoloLink = new Set(Array.isArray(config.skuOnlyInLink) ? config.skuOnlyInLink : ['Sephora']);
-  let reacondicionados = 0;
-  let conGuion = 0;
-  const dataRows = conSku.map((p, i) => {
-    const r = i + 2;
-    const ecomerce = p.ecomerce || config.ecomerce || 'Amazon';
-    const sku = skuSoloLink.has(ecomerce) ? '' : p.asin.trim();
-    if (sku.includes('-')) conGuion++;
-    const condicion = condicionDe(p.nombre, config);
-    if (condicion !== (config.condicion?.default || 'Nuevo')) reacondicionados++;
-    const values = new Map([
-      // Cada producto trae el ecommerce de su sitio; los de versiones anteriores, el general.
-      [headers.get('ecomerce'), ecomerce],
-      [headers.get('sku'), sku],
-      [headers.get('condicion'), condicion],
-      [headers.get('link'), p.link || ''],
-      [headers.get('seguimiento'), config.seguimiento || 'Scraping'],
-    ]);
-    // Opciones del grupo elegidas al extraer ("Sí" / "No"; ver groups.js).
-    if (headers.has('variacion') && p.variacion) values.set(headers.get('variacion'), p.variacion);
-    if (headers.has('guia_talla') && p.guiaTalla) values.set(headers.get('guia_talla'), p.guiaTalla);
-    // Categoría elegida en el popup: ruta en "Buscar categoria" y código ya calculado.
-    // Con "No llenar categoría" quedan vacías para usar el buscador de la plantilla.
-    const codigo = p.codCategoria || '';
-    const ruta = codigo ? rutaMapeo({ primaria: p.categoria, secundaria: p.categoriaSecundaria, terciaria: p.categoriaTerciaria }) : '';
-    if (headers.has(SEARCH_HEADER) && ruta) values.set(headers.get(SEARCH_HEADER), ruta);
+  const dataRows = filas.map(f => {
+    const r = f.fila;
+    const values = new Map();
+    for (const h of ['ecomerce', 'sku', 'condicion', 'link', 'seguimiento', 'variacion', 'guia_talla', SEARCH_HEADER]) {
+      if (headers.has(h) && f.celdas[h]) values.set(headers.get(h), f.celdas[h]);
+    }
     if (headers.has(CODE_HEADER)) {
       const col = headers.get(CODE_HEADER);
+      const codigo = f.celdas[CODE_HEADER];
       const formula = codeFormula?.text.replace(new RegExp(`\\b([A-Z]+)${lastTemplateRow}\\b`, 'g'), `$1${r}`);
       values.set(col, formula ? { formula, array: codeFormula.array, cached: codigo } : codigo);
     }
@@ -357,15 +397,9 @@ export async function buildWorkbook(template, products, { config = {}, categorie
       const col = refCol.get(c.header);
       if (c.imageOf) {
         const src = refCol.get(c.imageOf);
-        if (src && p.imagen) values.set(col, { formula: (config.imageFormula || 'IMAGE({celda})').replace('{celda}', `${colName(src)}${r}`) });
-      } else if (c.field === 'duplicado') {
-        // Amazon: "Familia sin verificar" si no se pudo leer su familia (puede repetir otra fila).
-        values.set(col, [dup[i], p.familiaAviso].filter(Boolean).join(' · '));
-      } else if (c.field === 'precio') {
-        const n = parseFloat(p.precio);
-        values.set(col, Number.isFinite(n) ? n : '');
+        if (src && f.producto.imagen) values.set(col, { formula: (config.imageFormula || 'IMAGE({celda})').replace('{celda}', `${colName(src)}${r}`) });
       } else {
-        values.set(col, p[c.field] || '');
+        values.set(col, f.ref[c.field] ?? '');
       }
     }
     const cols = [...new Set([...styles.keys(), ...values.keys()])].filter(Boolean).sort((a, b) => a - b);
@@ -404,14 +438,6 @@ export async function buildWorkbook(template, products, { config = {}, categorie
   const out = entries.map(e => (files.has(e.name) ? { name: e.name, data: enc.encode(files.get(e.name)) } : e));
   return {
     bytes: await writeZip(out),
-    summary: {
-      filas: conSku.length,
-      omitidos,
-      conGuion,
-      reacondicionados,
-      duplicados: dup.filter(Boolean).length,
-      sinFamilia: conSku.filter(p => p.familiaAviso).length,
-      sinCategoria: conSku.filter(p => !p.codCategoria).length,
-    },
+    summary: resumen,
   };
 }

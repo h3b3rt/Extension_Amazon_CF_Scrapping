@@ -16,7 +16,8 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com
 - **Sephora:** búsquedas, categorías y marcas, leyendo los productos mientras baja la página y pasando con **Show More Products** hasta el máximo indicado, y páginas de producto. El sistema saca el SKU (`skuId`) y el ID `P…` del link, así que la columna `sku` queda vacía. Desde otra región (por ejemplo `sephora.fr`) ofrece abrir la versión de EE. UU.
 - **Marc Jacobs** (solo `/us-en/`): categorías y búsquedas, descargando en segundo plano los productos que carga el scroll hasta el máximo indicado, y páginas de producto. El sistema solo lee la columna `sku` y la corta en el primer `-`, así que la extensión escribe el modelo base (`H004L01PF21`) y deja una fila por modelo. Con la búsqueda abierta en el panel, ofrece abrirla como página.
 - **Kate Spade** (solo `www.katespade.com`, sin el outlet): categorías, filtros y búsquedas, descargando en segundo plano las páginas que carga el scroll (`?page=N`) hasta el máximo indicado, y páginas de producto. Escribe el estilo sin color (`KD120`) y deja **un producto por familia**, siempre: una familia reúne varios estilos y el sistema crearía cada uno aparte. La familia sale de la página de cada producto. Desde otra región ofrece abrir la versión de EE. UU.
-- El popup y el icono toman el nombre del sitio (*Michael Kors Product Scraper*). En otras páginas muestran *COMPRAFACIL Scraper* y la lista de sitios disponibles. Un mismo Excel puede mezclar sitios.
+- El popup y el icono toman el nombre y el logo del sitio (*Michael Kors Product Scraper*). En otras páginas muestran *COMPRAFACIL Scraper*, la bolsa naranja y la lista de sitios disponibles. Un mismo Excel puede mezclar sitios.
+- **Vista previa** del Excel en una pestaña antes de descargarlo: las mismas filas del archivo, con imagen, avisos, filtros y los productos que quedarán fuera; ahí se pueden quitar productos (con Deshacer).
 - Las extracciones siguen **en segundo plano** aunque cierres el popup, se ponen **en cola** si ya hay una en curso y avisan con una notificación al terminar. Se pueden detener guardando lo leído.
 - Cada extracción forma un **grupo** con nombre (renombrable con doble clic), con su resumen desplegable y 🗑 para eliminarlo, que sale en la columna `ref_grupo` del Excel unificado.
 - Desplaza la página sola para cargar todos los productos y acumula varias páginas en un solo Excel, sin repetir productos.
@@ -41,7 +42,8 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com
 ```
 ├── manifest.json            Definición de la extensión (versión, permisos)
 ├── popup.html / popup.js    Ventana principal (extraer, categoría, lista, Excel)
-├── xlsx.js                  Genera el Excel desde plantilla.xlsx
+├── preview.html / preview.js  Vista previa del Excel (en una pestaña)
+├── xlsx.js                  Genera el Excel desde plantilla.xlsx (y las filas de la vista previa)
 ├── plantilla.xlsx           Plantilla de scraping del sistema
 ├── options.html / options.js  Página de Opciones (estado, categorías, historial)
 ├── scraper.js               Se inyecta en la pestaña del sitio y extrae los productos
@@ -53,13 +55,14 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com
 ├── prefs.js                 Preferencias de extracción
 ├── jobs.js                  Cola de extracciones y guardado de su resultado
 ├── export.js                Descarga del Excel (popup y service worker)
+├── descarga.js              Botón "Descargar Excel" del popup y de la vista previa
 ├── familias.js              Familias de Amazon y Kate Spade (un producto por familia)
 ├── background.js            Service worker: cola de extracciones, aviso al terminar, sincronización
 ├── config.default.json      Configuración incluida en la extensión
 ├── config.json              Configuración remota (la leen todas las extensiones)
 ├── categories.json          Lista de categorías (la mantiene un workflow)
-├── icons/                   Iconos de la extensión
-├── tools/                   Scripts de PowerShell para empaquetar y actualizar
+├── icons/                   Iconos de la extensión (icons/sitios: uno por sitio)
+├── tools/                   Scripts para empaquetar, actualizar y generar los iconos por sitio
 ├── docs/                    Documentación
 └── .github/workflows/
     ├── release.yml          Publica el .zip al crear una etiqueta vX.Y.Z

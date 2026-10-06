@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vista previa · COMPRAFACIL Scraper</title>
+<link rel="icon" href="icons/icon32.png">
+<style>
+[hidden]{display:none !important}
+body{margin:0;padding:22px 20px 40px;font-family:Arial,sans-serif;background:#f7f8fa;color:#111827}
+header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+header img{width:28px;height:28px}
+h1{font-size:20px;margin:0}
+h2{font-size:15px;margin:0 0 10px}
+.subtitle{font-size:13px;color:#6b7280;margin-bottom:16px}
+section{background:#fff;border-radius:9px;padding:16px;margin-bottom:14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;padding:5px 10px;border-radius:14px;background:#f3f4f6;color:#374151}
+.chip b{color:#111827}
+.chip.ok{background:#dcfce7;color:#15803d}
+.chip.warn{background:#fff7e6;color:#b45309;border:1px solid #fcd34d}
+.chip.bad{background:#fee2e2;color:#b91c1c}
+.note{font-size:12px;color:#374151;line-height:1.5;margin:10px 0 0}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px}
+.text-input{box-sizing:border-box;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;background:#fff}
+.text-input:focus{outline:2px solid #ff9900;border-color:#ff9900}
+#search{flex:1 1 220px;min-width:180px}
+.check{display:flex;gap:6px;align-items:center;font-size:13px;cursor:pointer}
+.shown{font-size:12px;color:#6b7280;margin-left:auto}
+.table-wrap{overflow-x:auto;border:1px solid #e5e7eb;border-radius:7px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{position:sticky;top:0;background:#f9fafb;text-align:left;color:#6b7280;font-weight:700;padding:7px 8px;border-bottom:1px solid #e5e7eb;white-space:nowrap}
+th small{display:block;font-weight:400;font-family:Consolas,monospace;font-size:10px;color:#9ca3af}
+td{padding:6px 8px;border-bottom:1px solid #f0f1f3;vertical-align:top;line-height:1.4}
+tr.has-warn td{background:#fffbeb}
+td.num{color:#374151;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.num .excel-row{color:#9ca3af;font-weight:400;font-size:10px}
+td.img{width:56px}
+td.img img{width:52px;height:52px;object-fit:contain;background:#fff;border:1px solid #f0f1f3;border-radius:5px}
+td.name{min-width:200px;max-width:300px}
+td.name .marca{color:#6b7280}
+.price{font-weight:700;color:#111827}
+.mono{font-family:Consolas,monospace;font-size:11px;word-break:break-all}
+td.sku{min-width:110px;white-space:nowrap}
+td.sku .mono{word-break:normal}
+.muted{color:#9ca3af}
+td.link{max-width:190px}
+td.link a{color:#b45309;text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.link a:hover{text-decoration:underline}
+.site{display:flex;gap:5px;align-items:center;white-space:nowrap}
+.site img{width:16px;height:16px}
+td.cat{min-width:160px}
+td.fam{white-space:nowrap}
+td.fam .muted{font-size:11px;white-space:normal;max-width:150px}
+.tag{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:9px;background:#f3f4f6;color:#6b7280;white-space:nowrap}
+.tag.on{background:#dcfce7;color:#15803d}
+ul.warns{list-style:none;margin:0;padding:0;min-width:170px}
+ul.warns li{color:#b45309}
+ul.warns li.bad{color:#b91c1c}
+.empty{padding:18px;text-align:center;color:#6b7280;font-size:13px}
+.download{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+.download .field{flex:1 1 260px}
+.download label{display:block;font-size:12px;font-weight:700;margin-bottom:6px}
+.download .text-input{width:100%}
+.hint{font-size:11px;color:#6b7280;margin-top:5px;word-break:break-all}
+button{border:0;border-radius:7px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;background:#232f3e;color:#fff;margin-top:21px}
+button:hover{opacity:.9}
+button:disabled{opacity:.5;cursor:not-allowed}
+#status{margin-top:12px;padding:10px 12px;border-radius:7px;background:#f9fafb;font-size:12px;line-height:1.55;white-space:pre-line}
+#status.success{color:#15803d}
+#status.error{color:#b91c1c}
+.sel{width:30px;text-align:center;white-space:nowrap}
+.sel input{margin:0 0 6px;cursor:pointer}
+button.trash{display:block;margin:0 auto;padding:2px 4px;background:none;color:#6b7280;font-size:14px;font-weight:400;border-radius:4px}
+button.trash:hover{background:#fee2e2;opacity:1}
+button.trash:disabled{visibility:hidden}
+tr.selected td{background:#fff1f2 !important}
+button.danger{background:#b91c1c;color:#fff;margin:0;padding:8px 12px}
+button.ghost{background:#e5e7eb;color:#111;margin:0;padding:8px 12px}
+.undo{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:12px;padding:8px 11px;margin-bottom:10px;border-radius:7px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
+.undo.error{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+.undo button{margin:0;padding:4px 10px;font-size:12px}
+.lock{font-size:12px;color:#b45309;margin:0 0 10px}
+.overlay{position:fixed;inset:0;background:rgba(17,24,39,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal{background:#fff;border-radius:10px;padding:18px;max-width:480px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.modal p{margin:0 0 14px;font-size:13px;line-height:1.55;white-space:pre-line}
+.modal .actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.modal button{margin:0}
+#live{font-size:12px;color:#b45309;background:#fff7e6;border:1px solid #fcd34d;border-radius:7px;padding:8px 11px;margin-bottom:14px}
+</style>
+</head>
+<body>
+<header><img src="icons/icon32.png" alt=""><h1>Vista previa del Excel</h1></header>
+<div class="subtitle" id="subtitle"></div>
+<div id="live" hidden></div>
+
+<section>
+  <h2>Resumen</h2>
+  <div class="chips" id="chips"></div>
+  <p class="note" id="pendingNote" hidden></p>
+</section>
+
+<section>
+  <h2>Filas del Excel</h2>
+  <div class="filters">
+    <input id="search" class="text-input" type="search" placeholder="Buscar por nombre, marca, SKU o link" autocomplete="off">
+    <select id="groupFilter" class="text-input" aria-label="Grupo"></select>
+    <select id="siteFilter" class="text-input" aria-label="Sitio"></select>
+    <label class="check"><input type="checkbox" id="warnFilter"> Solo con avisos</label>
+    <span class="shown" id="shown"></span>
+    <button type="button" id="removeSelected" class="danger" hidden></button>
+  </div>
+  <p class="lock" id="lockNote" hidden>Hay una exportación en curso: para quitar productos espera a que termine.</p>
+  <div class="undo" id="undoBar" hidden><span id="undoText"></span><button type="button" id="undoBtn" class="ghost">Deshacer</button></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="sel"><input type="checkbox" id="selectAll" title="Seleccionar las filas visibles" aria-label="Seleccionar las filas visibles"></th>
+          <th title="Número de producto; debajo, su fila en el Excel (la fila 1 es el encabezado)">N°<small>fila Excel</small></th>
+          <th>Imagen<small>ref_imagen</small></th>
+          <th>Producto<small>ref_nombre · ref_marca · ref_precio</small></th>
+          <th>Avisos<small>ref_duplicado</small></th>
+          <th>Sitio<small>ecomerce</small></th>
+          <th>SKU<small>sku</small></th>
+          <th title="Variantes que el sistema crea a partir de este producto y cuántas de su familia se omitieron al extraer">Familia<small>solo referencia</small></th>
+          <th>Link<small>link</small></th>
+          <th>Grupo<small>ref_grupo</small></th>
+          <th>Categoría<small>codigo_categoria</small></th>
+          <th>Opciones<small>variacion · guia_talla</small></th>
+          <th>Condición<small>condicion</small></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="emptyRows" hidden></div>
+  </div>
+</section>
+
+<section id="outSection">
+  <h2>No irán al Excel</h2>
+  <p class="note" id="outEmpty">Todos los productos de la lista van al Excel: ninguno repite familia ni le falta el SKU.</p>
+  <div class="table-wrap" id="outTable" hidden>
+    <table>
+      <thead>
+        <tr><th class="sel"></th><th>Motivo</th><th>Producto</th><th>Sitio</th><th>SKU</th><th>Grupo</th></tr>
+      </thead>
+      <tbody id="outRows"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Descargar</h2>
+  <form class="download" id="downloadForm">
+    <div class="field">
+      <label for="exportName">Nombre del archivo Excel</label>
+      <input id="exportName" class="text-input" autocomplete="off" placeholder="Ej: Audifonos_Hyperx">
+      <div class="hint" id="exportNamePreview"></div>
+    </div>
+    <button type="submit" id="download">Descargar Excel</button>
+  </form>
+  <div id="status" hidden></div>
+</section>
+
+<div class="overlay" id="confirmBox" hidden role="dialog" aria-modal="true" aria-labelledby="confirmText">
+  <div class="modal">
+    <p id="confirmText"></p>
+    <div class="actions">
+      <button type="button" id="confirmCancel" class="ghost">Cancelar</button>
+      <button type="button" id="confirmFamily" class="ghost"></button>
+      <button type="button" id="confirmOnly" class="danger"></button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="preview.js"></script>
+</body>
+</html>

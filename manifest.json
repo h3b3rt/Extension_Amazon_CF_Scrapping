@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "COMPRAFACIL Scraper",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "description": "Extrae productos de Amazon, Michael Kors, Sephora, Marc Jacobs y Kate Spade y los exporta a la plantilla de scraping de COMPRAFACIL (xlsx).",
   "permissions": ["activeTab", "scripting", "storage", "alarms", "downloads", "notifications"],
   "host_permissions": ["https://*.amazon.com/*", "https://*.michaelkors.com/*", "https://*.sephora.com/*", "https://*.marcjacobs.com/*", "https://www.katespade.com/*","https://raw.githubusercontent.com/*"],

@@ -8,6 +8,9 @@
 [hidden]{display:none !important}
 body{width:420px;margin:0;padding:18px;box-sizing:border-box;font-family:Arial,sans-serif;background:#f7f8fa;color:#111827}
 h1{font-size:18px;margin:0 0 4px}
+.app-title{display:flex;align-items:center;gap:8px}
+.site-icon{width:22px;height:22px;flex:0 0 auto}
+.sites-list .site-icon{width:16px;height:16px;vertical-align:-3px;margin-right:5px}
 .subtitle{font-size:12px;color:#6b7280;margin-bottom:14px}
 button{width:100%;border:0;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;background:#ff9900;color:#111}
 button:hover{opacity:.9}
@@ -50,6 +53,7 @@ button.mini.danger{background:#b91c1c;color:#fff}
 .sources .group-delete:hover{opacity:1}
 .sources .group-details{margin:4px 0 2px 18px;padding:6px 8px;background:#f9fafb;border-radius:6px;color:#374151;white-space:pre-line;font-size:11px;line-height:1.5}
 .sources .confirm-text{color:#b91c1c}
+.sources .see-group{padding:2px 0 0;font-size:11px}
 .region-text{margin:0 0 10px;font-size:12px;line-height:1.45;color:#374151;word-break:break-word}
 .sources .meta{color:#6b7280}
 .group-options{margin:4px 0 2px}
@@ -102,7 +106,7 @@ footer a{color:#6b7280}
 </style>
 </head>
 <body>
-<h1 id="appTitle">COMPRAFACIL Scraper</h1>
+<h1 class="app-title"><img id="appIcon" class="site-icon" src="icons/icon32.png" alt=""><span id="appTitle">COMPRAFACIL Scraper</span></h1>
 <div class="subtitle">Exportador a la plantilla de scraping · v<span id="version"></span></div>
 
 <div id="update" class="banner" hidden></div>
@@ -207,6 +211,7 @@ footer a{color:#6b7280}
   <ul id="sources" class="sources" hidden></ul>
   <div class="row">
     <button id="download" class="secondary">Descargar Excel</button>
+    <button id="preview" class="ghost" title="Ver las filas del Excel antes de descargarlo">Vista previa</button>
     <button id="clear" class="ghost">Limpiar</button>
   </div>
   <form id="exportForm" hidden>

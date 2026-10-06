@@ -13,7 +13,8 @@ if (Test-Path $zip) { Remove-Item $zip -Confirm:$false }
 
 # config.json es la configuración remota (se sirve desde GitHub), no va en el paquete.
 $files = @(Get-ChildItem $root -File | Where-Object { $_.Extension -in '.json', '.js', '.html', '.xlsx' -and $_.Name -ne 'config.json' })
-$files += Get-ChildItem (Join-Path $root 'icons') -File -Filter '*.png'
+# Iconos generales e iconos por sitio (icons\sitios).
+$files += Get-ChildItem (Join-Path $root 'icons') -File -Filter '*.png' -Recurse
 
 # Se arma el zip a mano porque Compress-Archive (PowerShell 5.1) guarda rutas con "\",
 # y Chrome Web Store espera "/".

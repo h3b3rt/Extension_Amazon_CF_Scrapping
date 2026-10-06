@@ -467,6 +467,8 @@ globalThis.__cfScraper = async function (config, options = {}) {
           for (const h of r.hermanos) if (!familiaDe.has(h)) familiaDe.set(h, f);
           // Kate Spade: los estilos de la familia, para reconocerla en extracciones siguientes.
           if (config.familias.guardarHermanos) p.hermanos = r.hermanos;
+          // Tamaño de la familia (solo informativo: lo muestra la vista previa).
+          p.familiaTam = r.hermanos.length;
         }
       }
       if (!f) {
@@ -475,8 +477,14 @@ globalThis.__cfScraper = async function (config, options = {}) {
         continue;
       }
       familiaDe.set(p.asin, f);
-      // Otro producto de una familia ya tomada en esta extracción: gana el primero de la página.
-      if (tomadas.has(f)) { fam.enPagina++; continue; }
+      // Otro producto de una familia ya tomada en esta extracción: gana el primero de la
+      // página, que cuenta cuántos de su familia se omitieron (lo muestra la vista previa).
+      if (tomadas.has(f)) {
+        fam.enPagina++;
+        const rep = productos.find(x => x.asin === tomadas.get(f));
+        if (rep) rep.familiaOmitidos = (rep.familiaOmitidos || 0) + 1;
+        continue;
+      }
       // Familia que ya está en la lista por otro ASIN: se queda la de la lista.
       const grupo = lista.grupos?.[f];
       if (grupo && !enListaPropios.has(p.asin)) { fam.enLista[grupo] = (fam.enLista[grupo] || 0) + 1; continue; }

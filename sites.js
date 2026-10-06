@@ -62,7 +62,7 @@ export function regionRedirect(config, url, title = '') {
 
 // Configuración efectiva para un sitio: la general con lo propio del sitio encima.
 export function siteConfig(config, site) {
-  const { id, name, title, hosts, homeUrl, regions, ...own } = site;
+  const { id, name, title, icono, hosts, homeUrl, regions, ...own } = site;
   return { ...config, ...own, site: { id, name } };
 }
 
@@ -77,6 +77,18 @@ export function familiasConfig(config) {
 }
 
 export const siteTitle =site => site.title || `${site.name} Product Scraper`;
+
+// Icono del sitio: uno de los PNG del paquete, icons/sitios/<nombre>-16.png y -32.png.
+// El nombre es config.sites[].icono o, sin esa clave, el id del sitio (así funciona
+// aunque la configuración remota aún no traiga `icono`). Chrome no acepta imágenes
+// remotas: si el paquete no trae ese PNG, quien lo usa vuelve al icono general.
+export const DEFAULT_ICON = { 16: 'icons/icon16.png', 32: 'icons/icon32.png' };
+export function siteIcon(site) {
+  const id = site?.icono ?? site?.id;
+  return typeof id === 'string' && /^[a-z0-9-]{1,40}$/.test(id)
+    ? { 16: `icons/sitios/${id}-16.png`, 32: `icons/sitios/${id}-32.png` }
+    : null;
+}
 
 // Clave del producto en la lista: el SKU solo para Amazon (como en versiones
 // anteriores) y "sitio:SKU" para los demás, para que dos sitios no choquen.

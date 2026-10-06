@@ -1,8 +1,9 @@
 import { getConfig, refreshRemoteConfig } from './config.js';
-import { appName, findSite, siteTitle, familiasConfig } from './sites.js';
+import { appName, findSite, siteTitle, siteIcon, DEFAULT_ICON, familiasConfig } from './sites.js';
 import { getPrefs } from './prefs.js';
 import { getJobs, setJobs, guardarResultado, familiasDeLaLista, verificarLista, duracionTxt } from './jobs.js';
 import { exportList, exportSummary } from './export.js';
+import { quitarDeLista, restaurarEnLista } from './groups.js';
 import { getCachedCategories } from './categories.js';
 
 const SYNC_ALARM = 'config-sync';
@@ -28,12 +29,19 @@ chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === WATCHDOG_ALARM) vigilar();
 });
 
-// Nombre del icono según el sitio de la pestaña ("Michael Kors Product Scraper").
-// Chrome solo da la URL de los sitios con permiso; en el resto queda el nombre general.
+// Nombre e imagen del icono según el sitio de la pestaña ("Michael Kors Product
+// Scraper" y su logo). Chrome solo da la URL de los sitios con permiso; en el resto
+// quedan el nombre y el icono generales. Se fijan por pestaña, así que una pestaña
+// que sale del sitio vuelve al icono general.
 async function updateTitle(tabId, url) {
   const config = await getConfig();
   const site = url ? findSite(config, url) : null;
   await chrome.action.setTitle({ tabId, title: site ? siteTitle(site) : appName(config) });
+  const icono = siteIcon(site);
+  // Un nombre de icono que este paquete no trae (sitio nuevo en la configuración
+  // remota): queda el general.
+  await chrome.action.setIcon({ tabId, path: icono || DEFAULT_ICON })
+    .catch(() => (icono ? chrome.action.setIcon({ tabId, path: DEFAULT_ICON }) : null));
 }
 
 chrome.tabs.onActivated.addListener(({ tabId }) => {
@@ -65,6 +73,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   Promise.resolve(h(msg, sender)).then(sendResponse, e => sendResponse({ error: e.message }));
   return true;
 });
+
+// Mensajes que solo pueden venir de una página de la extensión (no del scraper,
+// que corre dentro de la página del sitio).
+const dePaginaPropia = sender => (sender?.url || '').startsWith(chrome.runtime.getURL(''));
+
+// Cambia la lista (collected y groups) dentro de conLock. `fn` la modifica y
+// devuelve la respuesta. No se cambia mientras se exporta.
+async function cambiarLista(fn) {
+  let res = { error: 'No se pudo cambiar la lista.' };
+  await conLock(async () => {
+    const st = await getJobs();
+    if (st.actual?.tipo === 'exportar') {
+      res = { error: 'Hay una exportación en curso: espera a que termine para quitar productos.' };
+      return;
+    }
+    const { collected = {}, groups = {} } = await chrome.storage.local.get(['collected', 'groups']);
+    res = fn(collected, groups);
+    await chrome.storage.local.set({ collected, groups });
+    res.ok = true;
+  });
+  return res;
+}
 
 const HANDLERS = {
   // Desde el popup.
@@ -125,6 +155,18 @@ const HANDLERS = {
   // Respuesta a "¿seguir hasta tener N familias?": "seguir" o "detener".
   async answerJob({ respuesta }) {
     return { ok: await responder(respuesta) };
+  },
+
+  // Desde la vista previa: quitar productos de la lista y deshacerlo. Van bajo el
+  // mismo lock que guarda las extracciones, para no pisar sus escrituras. Mientras
+  // se exporta no se permite: la verificación de familias escribe la lista.
+  async quitarProductos({ claves }, sender) {
+    if (!dePaginaPropia(sender)) return { error: 'Origen no permitido.' };
+    return cambiarLista((collected, groups) => ({ quitados: quitarDeLista(collected, groups, Array.isArray(claves) ? claves : []) }));
+  },
+  async restaurarProductos({ quitados }, sender) {
+    if (!dePaginaPropia(sender)) return { error: 'Origen no permitido.' };
+    return cambiarLista((collected, groups) => ({ restaurados: restaurarEnLista(collected, groups, Array.isArray(quitados) ? quitados : []) }));
   },
 
   // Desde el scraper (en la pestaña).
