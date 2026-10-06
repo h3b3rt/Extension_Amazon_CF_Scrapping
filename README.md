@@ -1,6 +1,6 @@
 # COMPRAFACIL Scraper
 
-Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com**, **Michael Kors** y **Sephora** y los exporta a la **plantilla de scraping de COMPRAFACIL** (.xlsx), con la categoría del sistema y columnas de ayuda (imagen, nombre, marca, precio).
+Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com**, **Michael Kors**, **Sephora**, **Marc Jacobs** y **Kate Spade** y los exporta a la **plantilla de scraping de COMPRAFACIL** (.xlsx), con la categoría del sistema y columnas de ayuda (imagen, nombre, marca, precio).
 
 ## Descargar
 
@@ -15,6 +15,7 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com
 - **Michael Kors:** búsquedas y categorías, pulsando **Load More** hasta el máximo de productos que indiques (con el avance en el popup), y páginas de producto. El SKU sale del link `/<ID>.html`, igual que en el sistema.
 - **Sephora:** búsquedas, categorías y marcas, leyendo los productos mientras baja la página y pasando con **Show More Products** hasta el máximo indicado, y páginas de producto. El sistema saca el SKU (`skuId`) y el ID `P…` del link, así que la columna `sku` queda vacía. Desde otra región (por ejemplo `sephora.fr`) ofrece abrir la versión de EE. UU.
 - **Marc Jacobs** (solo `/us-en/`): categorías y búsquedas, descargando en segundo plano los productos que carga el scroll hasta el máximo indicado, y páginas de producto. El sistema solo lee la columna `sku` y la corta en el primer `-`, así que la extensión escribe el modelo base (`H004L01PF21`) y deja una fila por modelo. Con la búsqueda abierta en el panel, ofrece abrirla como página.
+- **Kate Spade** (solo `www.katespade.com`, sin el outlet): categorías, filtros y búsquedas, descargando en segundo plano las páginas que carga el scroll (`?page=N`) hasta el máximo indicado, y páginas de producto. Escribe el estilo sin color (`KD120`) y deja **un producto por familia**, siempre: una familia reúne varios estilos y el sistema crearía cada uno aparte. La familia sale de la página de cada producto. Desde otra región ofrece abrir la versión de EE. UU.
 - El popup y el icono toman el nombre del sitio (*Michael Kors Product Scraper*). En otras páginas muestran *COMPRAFACIL Scraper* y la lista de sitios disponibles. Un mismo Excel puede mezclar sitios.
 - Las extracciones siguen **en segundo plano** aunque cierres el popup, se ponen **en cola** si ya hay una en curso y avisan con una notificación al terminar. Se pueden detener guardando lo leído.
 - Cada extracción forma un **grupo** con nombre (renombrable con doble clic), con su resumen desplegable y 🗑 para eliminarlo, que sale en la columna `ref_grupo` del Excel unificado.
@@ -52,7 +53,7 @@ Extensión para Google Chrome (Manifest V3) que extrae productos de **Amazon.com
 ├── prefs.js                 Preferencias de extracción
 ├── jobs.js                  Cola de extracciones y guardado de su resultado
 ├── export.js                Descarga del Excel (popup y service worker)
-├── familias.js              Familias de Amazon (un producto por familia)
+├── familias.js              Familias de Amazon y Kate Spade (un producto por familia)
 ├── background.js            Service worker: cola de extracciones, aviso al terminar, sincronización
 ├── config.default.json      Configuración incluida en la extensión
 ├── config.json              Configuración remota (la leen todas las extensiones)

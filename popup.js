@@ -815,9 +815,14 @@ async function rememberCategory(categoria) {
   await chrome.storage.local.set({ recentCategories: next.slice(0, MAX_RECENT_CATEGORIES) });
 }
 
-// Qué cambia con "Extraer variantes" en este sitio (Amazon: familias).
+// Qué cambia con "Extraer variantes" en este sitio (Amazon: familias; Kate Spade:
+// familias siempre, con o sin variantes).
 function updateOptionsHint() {
   const amazon = pending?.site?.id === 'amazon' && pending?.cfg?.familias;
+  if (pending?.cfg?.familias?.siempre) {
+    $('optionsHint').textContent = `Una fila por familia de ${pending.site.name} (con o sin variantes): verifica la familia de cada producto (más lento).`;
+    return;
+  }
   $('optionsHint').textContent = !amazon ? 'Se aplican a todas las filas de este grupo en el Excel.'
     : $('optVariaciones').checked
       ? 'Con variantes: una fila por familia de Amazon (el sistema extrae toda la familia). Verifica la familia de cada producto (más lento).'
@@ -830,8 +835,9 @@ async function enqueue(cat, nombreGrupo, limite = null) {
   const { tabId, tabUrl, url, title, replace, site } = pending;
   if (cat) await rememberCategory(cat.ruta);
   const opciones = { variaciones: $('optVariaciones').checked, guiaTalla: $('optGuiaTalla').checked };
-  // Sin variantes, el sistema crea solo cada ASIN: no se agrupan por familia.
-  const cfg = opciones.variaciones ? pending.cfg : { ...pending.cfg, familias: null };
+  // Sin variantes, el sistema crea solo cada ASIN: no se agrupan por familia
+  // (salvo los sitios con familias.siempre, como Kate Spade).
+  const cfg = opciones.variaciones || pending.cfg.familias?.siempre ? pending.cfg : { ...pending.cfg, familias: null };
   const job = {
     tabId, tabUrl, url, title, replace, cfg, cat, nombreGrupo, limite, opciones,
     site: { id: site.id, name: site.name },
@@ -863,7 +869,7 @@ async function renderJobs() {
     const p = a.progreso || {};
     $('jobTitle').textContent = '⏳ Exportando el Excel';
     $('jobProgress').textContent = p.total
-      ? `Verificando la familia de los productos de Amazon: ${p.verificando} de ${p.total} (con pausas para que Amazon no pida verificación). Puedes cerrar este popup.`
+      ? `Verificando la familia de los productos: ${p.verificando} de ${p.total} (con pausas para que el sitio no pida verificación). Puedes cerrar este popup.`
       : 'Preparando el archivo…';
     $('jobProgress').className = 'hint';
     $('jobGo').hidden = true;
@@ -873,7 +879,7 @@ async function renderJobs() {
     $('jobGo').hidden = false;
     $('jobStop').textContent = 'Detener y guardar lo leído';
     $('jobTitle').textContent = `⏳ Extrayendo «${a.nombreGrupo}» (${a.site.name})`;
-    // Amazon: el límite de productos cuenta familias (un producto por familia).
+    // Amazon y Kate Spade: el límite de productos cuenta familias (un producto por familia).
     const conFamilias = p.familias != null;
     const avance = p.paginas ? `Página ${p.pagina || 1} de ${p.paginas}`
       : p.limite ? `${p.cargados ?? 0} de ${p.limite} ${conFamilias ? 'familias' : 'productos'}` : 'Leyendo la página…';
@@ -1030,9 +1036,9 @@ async function init() {
     const { collected, groups } = await getState();
     try {
       const config = await getConfig();
-      // Productos de Amazon de grupos con variaciones sin familia (sin verificar): el
+      // Productos sin familia (Amazon de grupos con variaciones, Kate Spade siempre): el
       // service worker la verifica antes de descargar (puede tardar minutos).
-      const sinFamilia = familiasConfig(config) ? pendientesDeFamilia(collected, groups).length : 0;
+      const sinFamilia = familiasConfig(config) ? pendientesDeFamilia(collected, groups, config).length : 0;
       if (sinFamilia) {
         const st = await getJobs();
         if ([st.actual, ...st.cola].some(j => j?.tipo === 'exportar')) throw new Error('Ya hay una exportación en curso o en la cola.');
@@ -1040,7 +1046,7 @@ async function init() {
         if (!r || r.error) throw new Error(`No se pudo iniciar la exportación${r?.error ? `: ${r.error}` : '.'}`);
         hideExportForm();
         const minutos = Math.max(1, Math.round(sinFamilia * 3.5 / 60));
-        showStatus(`Antes de descargar se verificará la familia de ${sinFamilia} producto${sinFamilia === 1 ? '' : 's'} de Amazon (unos ${minutos} min)${r.posicion ? `, al terminar la extracción en curso` : ''}.\nPuedes cerrar este popup: el Excel se descargará solo.`);
+        showStatus(`Antes de descargar se verificará la familia de ${sinFamilia} producto${sinFamilia === 1 ? '' : 's'} (unos ${minutos} min)${r.posicion ? `, al terminar la extracción en curso` : ''}.\nPuedes cerrar este popup: el Excel se descargará solo.`);
         return renderJobs();
       }
       const r = await exportList(collected, groups, config, catalogCache.items, $('exportName').value);

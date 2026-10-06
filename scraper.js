@@ -34,12 +34,13 @@ globalThis.__cfScraper = async function (config, options = {}) {
   const sinParametros = url => { try { const u = new URL(url); return `${u.origin}${u.pathname}`; } catch { return ''; } };
 
   // Modelo base del SKU, igual que el backend (Marc Jacobs: normalizeSku): corta en
-  // el primer `cutAt`, mayúsculas y quita lo que cumpla `strip`.
+  // el primer `cutAt` (uno o varios: Kate Spade "-", "%20" y espacio), mayúsculas y
+  // quita lo que cumpla `strip`.
   // "h001m01sp21-001" → "H001M01SP21": los colores de un modelo son un solo producto.
   function base(v) {
     const B = config.skuBase || {};
     v = String(v || '').trim();
-    if (B.cutAt) v = v.split(B.cutAt)[0];
+    for (const c of list(B.cutAt)) v = v.split(c)[0];
     v = v.toUpperCase();
     try { if (B.strip) v = v.replace(new RegExp(B.strip, 'g'), ''); } catch { return ''; }
     return valid(v);
@@ -101,8 +102,12 @@ globalThis.__cfScraper = async function (config, options = {}) {
   // { asin, url }: el SKU y, si salió de un enlace, ese enlace (para el link del Excel).
   // Fuentes "…Base" (Marc Jacobs): el modelo base del ID (ver base()); las versiones
   // anteriores no las conocen, así que en ellas el sitio no extrae nada.
+  // "linkEstilo"/"urlEstilo" (Kate Spade, v1.11.0): lo mismo que linkBase/urlBase, con
+  // otro nombre para que las versiones anteriores (sin familias de Kate Spade) no extraigan.
+  const FUENTE = { linkEstilo: 'linkBase', urlEstilo: 'urlBase' };
   function findAsin(item, layout) {
-    for (const source of list(layout.asinFrom || ['attr', 'child', 'csaItemId', 'link'])) {
+    for (const fuente of list(layout.asinFrom || ['attr', 'child', 'csaItemId', 'link'])) {
+      const source = FUENTE[fuente] || fuente;
       let asin = '';
       let url = '';
       crudo = '';
@@ -271,6 +276,18 @@ globalThis.__cfScraper = async function (config, options = {}) {
     return best;
   }
 
+  // Imagen armada desde el link del producto, para las tarjetas que aún no la
+  // dibujaron (Kate Spade crea el <img> al verse la tarjeta, y nunca en las páginas
+  // descargadas): image.fromLink = { pattern, template } con {1}, {2}… del patrón.
+  // "/KD120-960.html" → ".../KateSpade/KD120_960".
+  function imagenDeLink(url) {
+    const I = config.image?.fromLink;
+    if (!I?.pattern || !I.template || !url) return '';
+    let m = null;
+    try { m = new URL(url, location.href).pathname.match(new RegExp(I.pattern, 'i')); } catch { return ''; }
+    return m ? ajustarImagen(I.template.replace(/\{(\d)\}/g, (_, i) => m[i] || '')) : '';
+  }
+
   // Marca de la página en las tiendas de marca (/stores/...): está en el
   // breadcrumb, en og:title o en el JSON "brandName" de la página, no en cada
   // tarjeta. Fuera de esas páginas devuelve '' para no inventar una marca.
@@ -355,7 +372,7 @@ globalThis.__cfScraper = async function (config, options = {}) {
       // Sin marca segura queda vacía para completarla a mano (no se adivina).
       // brandDefault: sitio de una sola marca (Marc Jacobs), donde la tarjeta no la repite.
       marca: cleanBrand(firstValue(item, layout.brand, text), layout.brandPatterns) || marcaPagina || config.brandDefault || '',
-      imagen: getImage(firstEl(item, layout.image)),
+      imagen: getImage(firstEl(item, layout.image)) || imagenDeLink(id.url),
       precio: getPrice(item, layout),
       link,
     };
@@ -403,27 +420,34 @@ globalThis.__cfScraper = async function (config, options = {}) {
     ultimoParcial = Date.now();
   }
 
-  // ---- Familias de Amazon (config.familias; ver familias.js) ----
+  // ---- Familias (config.familias de Amazon y Kate Spade; ver familias.js) ----
   // Lo leído pasa primero por `pendientes`: cada producto se verifica (familia en su
-  // página /dp/) y solo el primero de cada familia entra en `productos`. Con límite de
+  // página) y solo el primero de cada familia entra en `productos`. Con límite de
   // productos, el límite cuenta familias; `analizados` son los productos verificados.
   const FAM = config.familias && globalThis.__cfFamilias ? globalThis.__cfFamilias : null;
   const pendientes = [];
   const lista = options.familiasLista || {};
   // ASIN → familia: los de la lista (de extracciones anteriores) y los hermanos ya conocidos.
-  const familiaDe = new Map(Object.entries(lista.porAsin || {}));
+  // `lista.hermanos` (Kate Spade): los otros estilos de esas familias.
+  const familiaDe = new Map([...Object.entries(lista.hermanos || {}), ...Object.entries(lista.porAsin || {})]);
   const enListaPropios = new Set(Object.keys(lista.porAsin || {}));
   const fam = { analizados: 0, enPagina: 0, enLista: {}, captcha: false, descargas: 0 };
   // Familia → ASIN que la representa en esta extracción.
   const tomadas = new Map();
-  // Página de producto: la familia se lee de la misma página, sin descargar.
+  // Página de producto: la familia se lee de la misma página, sin descargar. Con
+  // `familias.descargarPropia` (Kate Spade) se lee de una copia nueva de la página:
+  // tras navegar dentro del sitio, el JSON-LD de la pestaña puede ser del producto anterior.
   let docPropio = false;
 
-  async function familiaPorDescarga(asin) {
-    if (docPropio) return FAM.leer(document.documentElement.outerHTML, asin, config.familias);
+  async function familiaPorDescarga(p) {
+    if (docPropio && !config.familias.descargarPropia) return FAM.leer(document.documentElement.outerHTML, p.asin, config.familias);
     if (fam.descargas++) await sleep(FAM.pausa(config.familias));
-    return FAM.descargar(asin, config.familias, location.origin);
+    return FAM.descargar(p.asin, config.familias, location.origin, docPropio ? location.href : p.link);
   }
+
+  // Familia de un producto ya conocida: la suya o la de un hermano (Kate Spade: cada
+  // página nombra la familia con su propio estilo, así que se usa la primera conocida).
+  const familiaConocida = (asin, hermanos = []) => [asin, ...hermanos].map(h => familiaDe.get(h)).find(Boolean) || '';
 
   // Verifica los productos pendientes en orden hasta tener `limite` familias. Sin
   // descargas tras un CAPTCHA o al detener: entonces solo se usan las familias ya
@@ -433,14 +457,16 @@ globalThis.__cfScraper = async function (config, options = {}) {
     while (pendientes.length && productos.length < limite) {
       const p = pendientes.shift();
       fam.analizados++;
-      let f = familiaDe.get(p.asin) || '';
+      let f = familiaConocida(p.asin);
       if (!f && !fam.captcha && !detenido()) {
         report(leidos, limite, pagina, { verificando: true });
-        const r = await familiaPorDescarga(p.asin);
+        const r = await familiaPorDescarga(p);
         if (r.error === 'captcha') fam.captcha = true;
         if (r.familia) {
-          f = r.familia;
+          f = familiaConocida(p.asin, r.hermanos) || r.familia;
           for (const h of r.hermanos) if (!familiaDe.has(h)) familiaDe.set(h, f);
+          // Kate Spade: los estilos de la familia, para reconocerla en extracciones siguientes.
+          if (config.familias.guardarHermanos) p.hermanos = r.hermanos;
         }
       }
       if (!f) {
@@ -615,6 +641,11 @@ globalThis.__cfScraper = async function (config, options = {}) {
   // Listados que se pueden leer sin la pestaña visible: la página siguiente se
   // descarga en segundo plano (misma sesión) y se lee igual, sin navegar. Amazon
   // ("Siguiente" → &page=2) y Michael Kors (data-url de "Load More", 24 por tramo).
+  // Kate Spade (L.pageFetch = { param, startParam }): scroll infinito que cambia la URL
+  // (?page=3) y deja en la pestaña las páginas 1 a 3. La siguiente se arma desde la
+  // URL de la pestaña (nunca desde rel=next de la pestaña: tras navegar dentro del
+  // sitio puede ser de la página anterior): ?page=4&startFrom=4 trae solo esa página;
+  // si no trae nada nuevo, ?page=4 trae la lista completa hasta ella (se deduplica).
   async function loadByFetch(L, limite, leer) {
     let n = leer(document);
     let doc = document;
@@ -622,6 +653,18 @@ globalThis.__cfScraper = async function (config, options = {}) {
     let aviso = '';
     let ultimaUrl = '';
     let nuevos = n;
+    const PF = L.pageFetch?.param ? L.pageFetch : null;
+    let numero = 1;
+    try { numero = Math.max(1, parseInt(new URL(location.href).searchParams.get(PF?.param), 10) || 1); } catch { /* URL sin número */ }
+    let completa = !PF?.startParam;
+    const urlPagina = (num, sola) => {
+      const u = new URL(location.href);
+      u.hash = '';
+      u.searchParams.set(PF.param, String(num));
+      if (sola) u.searchParams.set(PF.startParam, String(num));
+      else u.searchParams.delete(PF.startParam);
+      return u.href;
+    };
     // Con familias (Amazon), el límite de productos cuenta familias, no productos leídos.
     const cuenta = () => (FAM ? productos.length : n);
     const familiasTxt = () => `${cuenta()} familias de ${limite}`;
@@ -634,9 +677,10 @@ globalThis.__cfScraper = async function (config, options = {}) {
         break;
       }
       if (detenido()) { aviso = parar(cuenta()); break; }
-      let href = siguienteDe(doc, L);
+      // Con pageFetch: en las páginas descargadas, sin rel=next ya no hay más.
+      let href = !PF ? siguienteDe(doc, L) : paginas > 1 && !firstEl(doc, L.next) ? '' : urlPagina(numero + 1, !completa);
       // El botón de la página abierta puede no existir aún (se crea al bajar): se busca en la copia del servidor.
-      if (!href && paginas === 1 && L.nextAttr) {
+      if (!href && !PF && paginas === 1 && L.nextAttr) {
         try { href = siguienteDe(await descargar(location.href), L); } catch { /* sin copia: seguir sin botón */ }
       }
       // Sin enlace pero con un tramo completo: el siguiente tramo por su parámetro (start += sz).
@@ -669,6 +713,24 @@ globalThis.__cfScraper = async function (config, options = {}) {
       }
       const antes = n;
       n = leer(doc);
+      // La página sola no trajo nada nuevo: la lista completa hasta esa página.
+      if (PF && n === antes && !completa) {
+        completa = true;
+        await sleep(Number(L.delayMs) || 1500);
+        try {
+          doc = await descargar(urlPagina(numero + 1, false));
+          n = leer(doc);
+        } catch (e) {
+          aviso = `No se pudo cargar la página ${paginas + 1} (${e.message}): se extrajo lo cargado (${n}).`;
+          break;
+        }
+        // Nada nuevo y sin rel=next: la lista terminaba en la página abierta (sin aviso).
+        if (n === antes && !firstEl(doc, L.next)) {
+          if (FAM && !porPaginas && cuenta() < limite && fam.analizados >= limite) aviso = `No hay más páginas: ${familiasTxt()}.`;
+          break;
+        }
+      }
+      numero++;
       nuevos = n - antes;
       paginas++;
       report(n, limite, paginas);

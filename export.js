@@ -1,6 +1,6 @@
 // Descarga del Excel: la usan el popup ("Descargar Excel") y el service worker
 // (extracciones sin acumular, que descargan su propio archivo al terminar, y la
-// exportación que antes verifica las familias de Amazon).
+// exportación que antes verifica las familias de Amazon y Kate Spade).
 import { buildWorkbook } from './xlsx.js';
 import { productsForExport } from './groups.js';
 import './familias.js';
@@ -45,10 +45,10 @@ export async function downloadXlsx(products, config, categories, name = '') {
   return { filename, ...summary };
 }
 
-// La lista en el Excel: un producto de Amazon por familia (gana el que se agregó
-// primero a la lista: los grupos van en orden de extracción).
+// La lista en el Excel: un producto por familia en Amazon y Kate Spade (gana el que
+// se agregó primero a la lista: los grupos van en orden de extracción).
 export async function exportList(collected, groups, config, categories, name = '') {
-  const { productos, omitidos } = globalThis.__cfFamilias.unoPorFamilia(productsForExport(collected, groups));
+  const { productos, omitidos } = globalThis.__cfFamilias.unoPorFamilia(productsForExport(collected, groups), config);
   return { ...(await downloadXlsx(productos, config, categories, name)), familiaRepetida: omitidos };
 }
 

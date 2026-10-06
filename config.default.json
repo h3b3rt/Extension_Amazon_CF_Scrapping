@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "revision": 20,
+  "revision": 21,
   "updatedAt": "2026-10-03",
   "remoteConfigUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/config.json",
   "minExtensionVersion": "1.1.0",
-  "latestVersion": "1.10.1",
+  "latestVersion": "1.11.0",
   "downloadUrl": "https://github.com/h3b3rt/Extension_Amazon_CF_Scrapping/releases/latest",
   "notice": "",
   "appName": "COMPRAFACIL Scraper",
@@ -459,6 +459,94 @@
           "image": [".pdp-image-container picture img", ".pdp-image-container img"],
           "priceContent": [".price > span[content]:not(.price-strike)"],
           "priceText": [".price"]
+        }
+      ]
+    },
+    {
+      "id": "katespade",
+      "name": "Kate Spade",
+      "title": "Kate Spade Product Scraper",
+      "hosts": ["www.katespade.com"],
+      "homeUrl": "https://www.katespade.com/",
+      "ecomerce": "Kate Spade",
+      "regions": {
+        "hostPattern": "(^|\\.)katespade\\.(?!com$)[a-z]{2,3}(\\.[a-z]{2})?$",
+        "queryParams": ["q"],
+        "titleStrip": ["\\s*\\|.*$"],
+        "searchUrl": "https://www.katespade.com/search?q={q}"
+      },
+      "groupName": { "param": "q", "strip": ["\\s*\\|\\s*(Search\\s*\\|\\s*)?kate spade( new york)?\\s*$"] },
+      "skuPattern": "^[A-Z0-9]{4,15}$",
+      "skuFromLink": "/([^/]+)\\.html$",
+      "skuBase": { "cutAt": ["-", "%20", " "], "strip": "[^A-Z0-9]" },
+      "brandDefault": "Kate Spade",
+      "productUrl": "",
+      "pageBrand": null,
+      "price": {},
+      "image": {
+        "fullSize": false,
+        "hosts": ["katespade\\.scene7\\.com/is/image/"],
+        "fromLink": { "pattern": "/([A-Za-z0-9]+)-([A-Za-z0-9]+)\\.html$", "template": "https://katespade.scene7.com/is/image/KateSpade/{1}_{2}?$desktopProductTile$" }
+      },
+      "history": {
+        "keepParams": ["q", "srule", "pmin", "pmax", "merchandiseClass"],
+        "keepParamsPattern": "Val$",
+        "productPattern": "^/products/.+\\.html$"
+      },
+      "loadMore": {
+        "item": "#product-search-results .product-tile",
+        "name": "scroll infinito",
+        "mode": "fetch",
+        "limitModes": ["productos"],
+        "urlPattern": "^/(shop|search)(/|$)",
+        "next": ["link[rel=\"next\"]"],
+        "pageFetch": { "param": "page", "startParam": "startFrom" },
+        "maxPages": 50,
+        "delayMs": 800,
+        "defaultLimit": 50,
+        "maxLimit": 500
+      },
+      "familias": {
+        "tipo": "jsonld",
+        "siempre": true,
+        "descargarPropia": true,
+        "guardarHermanos": true,
+        "captcha": "<title>\\s*Access Denied|errors\\.edgesuite\\.net",
+        "delayMs": 1500,
+        "delayMaxMs": 3000
+      },
+      "pageTypes": [
+        {
+          "id": "producto",
+          "label": "Página de producto",
+          "urlPattern": "^/products/.+\\.html$",
+          "selectors": ["h1[data-qa=\"pdp_txt_pdt_title\"]"],
+          "layouts": ["ks-detalle"],
+          "autoScroll": false
+        }
+      ],
+      "layouts": [
+        {
+          "id": "ks-grilla",
+          "label": "Listado",
+          "item": "#product-search-results .product-tile",
+          "asinFrom": ["linkEstilo"],
+          "link": [".product-name a[href]", ".product-thumbnail a[href]"],
+          "title": [".product-name p[title]", ".product-name"],
+          "brand": [],
+          "image": [".product-thumbnail img"],
+          "priceText": ["[data-qa=\"cm_txt_pdt_price_lower_rl\"]", ".salesPrice", "[data-qa=\"cm_txt_pdt_price\"]", ".pricing-wrapper"]
+        },
+        {
+          "id": "ks-detalle",
+          "label": "Página de producto",
+          "item": "[data-qa=\"pdpv5_1_grid\"]",
+          "asinFrom": ["urlEstilo"],
+          "link": [],
+          "title": ["h1[data-qa=\"pdp_txt_pdt_title\"]"],
+          "brand": [],
+          "image": ["img[data-qa=\"pdp_btn_pdt_img\"]"],
+          "priceText": ["[data-qa=\"cm_txt_pdt_price_lower_rl\"]", "[data-qa=\"cm_txt_pdt_price\"]"]
         }
       ]
     }

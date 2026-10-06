@@ -352,10 +352,9 @@ async function ejecutarExportacion(job) {
   let salida;
   try {
     const config = await getConfig();
-    const F = familiasConfig(config);
     const estaActual = async () => (await getJobs()).actual?.id === job.id;
-    const v = F
-      ? await verificarLista(F, async (i, total) => {
+    const v = familiasConfig(config)
+      ? await verificarLista(config, async (i, total) => {
         await conLock(async () => {
           const st = await getJobs();
           if (st.actual?.id !== job.id) return;
@@ -372,7 +371,11 @@ async function ejecutarExportacion(job) {
     const lineas = [];
     if (v?.total) lineas.push(`Familias verificadas antes de exportar: ${v.verificados} de ${v.total}`);
     if (v?.detenida) lineas.push('⚠ Detenida: el resto se exportó sin verificar.');
-    if (v?.captcha) lineas.push('⚠ Amazon pidió una verificación (CAPTCHA): se dejaron de verificar familias. Ábrela en amazon.com, resuélvela y vuelve a exportar.');
+    for (const sitio of v?.captchaSitios || []) {
+      lineas.push(sitio === 'Amazon'
+        ? '⚠ Amazon pidió una verificación (CAPTCHA): se dejaron de verificar familias. Ábrela en amazon.com, resuélvela y vuelve a exportar.'
+        : `⚠ ${sitio} bloqueó las descargas: se dejaron de verificar familias. Espera unos minutos y vuelve a exportar.`);
+    }
     salida = { ok: true, mensaje: [`✓ ${exportSummary(r)}`, ...lineas].join('\n') };
   } catch (e) {
     salida = { ok: false, mensaje: `No se pudo generar el Excel: ${e.message}` };

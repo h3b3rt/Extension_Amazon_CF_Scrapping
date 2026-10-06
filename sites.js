@@ -66,10 +66,14 @@ export function siteConfig(config, site) {
   return { ...config, ...own, site: { id, name } };
 }
 
-// Verificación de familias de Amazon (config.familias del sitio), o null si no está activa.
+// ¿Algún sitio verifica familias (config.sites[].familias: Amazon, Kate Spade)?
+// Devuelve la configuración de familias del primero, o null si ninguno.
 export function familiasConfig(config) {
-  const amazon = sitesOf(config).find(s => s.id === 'amazon');
-  return (amazon && siteConfig(config, amazon).familias) || null;
+  for (const s of sitesOf(config)) {
+    const F = siteConfig(config, s).familias;
+    if (F && (s.familias || s.id === 'amazon')) return F;
+  }
+  return null;
 }
 
 export const siteTitle =site => site.title || `${site.name} Product Scraper`;

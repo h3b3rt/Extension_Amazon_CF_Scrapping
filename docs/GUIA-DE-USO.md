@@ -2,19 +2,19 @@
 
 ## Flujo normal
 
-1. Abre en un sitio disponible una **búsqueda**, una **categoría**, una **tienda de marca** o la **página de un producto**. Sitios disponibles: **Amazon.com**, **Michael Kors** (`www.michaelkors.com`), **Sephora** (`www.sephora.com`) y **Marc Jacobs** (`www.marcjacobs.com/us-en/`).
-2. Pulsa el icono de la extensión → **Extraer productos**. El título del popup indica el sitio (*Amazon Product Scraper*, *Michael Kors Product Scraper*, *Sephora Product Scraper*, *Marc Jacobs Product Scraper*). En otra página, el popup se llama *COMPRAFACIL Scraper* y muestra los sitios disponibles con su enlace.
+1. Abre en un sitio disponible una **búsqueda**, una **categoría**, una **tienda de marca** o la **página de un producto**. Sitios disponibles: **Amazon.com**, **Michael Kors** (`www.michaelkors.com`), **Sephora** (`www.sephora.com`), **Marc Jacobs** (`www.marcjacobs.com/us-en/`) y **Kate Spade** (`www.katespade.com`).
+2. Pulsa el icono de la extensión → **Extraer productos**. El título del popup indica el sitio (*Amazon Product Scraper*, *Michael Kors Product Scraper*, *Sephora Product Scraper*, *Marc Jacobs Product Scraper*, *Kate Spade Product Scraper*). En otra página, el popup se llama *COMPRAFACIL Scraper* y muestra los sitios disponibles con su enlace.
 3. Si esa página **ya se extrajo antes**, aparece un aviso con la fecha, la categoría y los productos. Elige:
    - **Reemplazar datos anteriores**: quita de la lista los productos y el grupo de la extracción anterior y la hace de nuevo desde cero.
    - **Cancelar**.
 4. Elige la **categoría** de los productos (ver abajo).
 5. Revisa el **nombre del grupo** (ver abajo) y pulsa **Extraer**.
-6. La extensión carga los productos y los añade a la lista: en Amazon lee la página y las siguientes; en Michael Kors y Marc Jacobs descarga los productos que traerían **Load More** o el scroll, y en Sephora baja la página y pasa de página, hasta el límite indicado (ver *Límite de la extracción*). **No cierres el popup mientras trabaja.**
-7. Repite con otras páginas, también de otro sitio: un mismo Excel puede tener productos de Amazon, Michael Kors, Sephora y Marc Jacobs, cada fila con su `ecomerce`. La lista acumula productos sin repetir SKU: si un SKU ya estaba en otro grupo, se queda con los datos y el grupo de la última extracción.
+6. La extensión carga los productos y los añade a la lista: en Amazon lee la página y las siguientes; en Michael Kors, Marc Jacobs y Kate Spade descarga los productos que traerían **Load More** o el scroll, y en Sephora baja la página y pasa de página, hasta el límite indicado (ver *Límite de la extracción*). **No cierres el popup mientras trabaja.**
+7. Repite con otras páginas, también de otro sitio: un mismo Excel puede tener productos de Amazon, Michael Kors, Sephora, Marc Jacobs y Kate Spade, cada fila con su `ecomerce`. La lista acumula productos sin repetir SKU: si un SKU ya estaba en otro grupo, se queda con los datos y el grupo de la última extracción.
 8. Al terminar, pulsa **Descargar Excel**. Opcionalmente escribe un nombre, por ejemplo `Audifonos Hyperx`, y pulsa **Descargar**.
    - Resultado: `Audifonos_Hyperx_2026-09-30_14-35.xlsx`
    - Sin nombre: `Plantilla_Scraping_2026-09-30_14-35.xlsx`
-   - Si hay productos de Amazon sin familia verificada, antes se verifica su familia en segundo plano (ver *Amazon: un producto por familia*) y el Excel se descarga solo al terminar.
+   - Si hay productos de Amazon o Kate Spade sin familia verificada, antes se verifica su familia en segundo plano (ver *Amazon: un producto por familia* y *Kate Spade*) y el Excel se descarga solo al terminar.
 9. Pulsa **Limpiar** para empezar una lista nueva. También se borran los grupos.
 
 ## Página de un producto
@@ -34,13 +34,13 @@ En la página de un solo producto de Amazon (`/dp/…` o `/gp/product/…`) se e
 
 ## Límite de la extracción
 
-En los listados con varias páginas (búsquedas y categorías de Amazon, Michael Kors, Sephora y Marc Jacobs) el formulario muestra **Límite de la extracción**, con dos modos (en Marc Jacobs, solo **Productos**: no tiene páginas). Se usa uno a la vez:
+En los listados con varias páginas (búsquedas y categorías de Amazon, Michael Kors, Sephora, Marc Jacobs y Kate Spade) el formulario muestra **Límite de la extracción**, con dos modos (en Marc Jacobs y Kate Spade, solo **Productos**: cargan más al bajar). Se usa uno a la vez:
 
 - **Páginas** (modo inicial, con **1**): **1 = solo la página actual**. Con más, sigue con las siguientes. Se cuenta desde la página abierta: en `currentPage=3` con 2 páginas se extraen la 3 y la 4, y el popup lo indica (*"Páginas a extraer: 3 a 4"*). Máximo **10** páginas por extracción. Entran todos los productos de esas páginas.
   - Sephora: cada página es una `currentPage` (unos 60 productos, sin anuncios).
   - Amazon: cada página es una página de resultados (unos 48 sin anuncios).
   - Michael Kors: la página actual son los 24 productos visibles, y cada **Load More** cuenta como una página más (24).
-- **Productos**: hasta ese número de productos (máximo 500), pasando de página lo que haga falta. En **Amazon** cuenta **familias** (ver *Amazon: un producto por familia*): si ya se analizaron tantos productos como el número pedido pero hay menos familias, la extracción se pausa y pregunta.
+- **Productos**: hasta ese número de productos (máximo 500), pasando de página lo que haga falta. En **Amazon** (con variantes) y **Kate Spade** cuenta **familias** (ver *Amazon: un producto por familia*): si ya se analizaron tantos productos como el número pedido pero hay menos familias, la extracción se pausa y pregunta.
 
 Se recuerdan **por sitio** el modo y el número. Durante la carga verás *"Cargando página 2 de 3… 84 productos"*, y el resumen dice *"Páginas extraídas: 2 de 2 (de la 3 a la 4)"*. Las páginas sin más páginas (producto, tienda de marca y portada de categoría de Amazon) se extraen enteras, sin este campo.
 
@@ -104,6 +104,23 @@ Sin *Extraer variantes* (`variacion = No`), el sistema crea solo cada ASIN, sin 
 - Las recomendaciones (*You may also like*) no se extraen. No hay anuncios.
 - El nombre del grupo por defecto es el texto buscado (*tote*) o el título de la página sin "| Marc Jacobs".
 
+## Kate Spade
+
+Desde la v1.11.0.
+
+- Solo la tienda de **EE. UU.** (`www.katespade.com`). El **outlet** (`surprise.katespade.com`) no se extrae. Desde otra región (por ejemplo `katespade.co.uk` o `katespade.jp`) el popup ofrece **Abrir en www.katespade.com**: busca en EE. UU. el texto buscado, o abre la portada (los códigos de otros países no sirven aquí).
+- **Listados** (categorías con o sin filtros y búsquedas `/search?q=…`): la página muestra 16 productos y carga más al bajar, cambiando la URL a `?page=2`, `?page=3`… La extensión descarga las páginas siguientes en segundo plano, sin bajar por la página ni necesitar verla. Si abres `?page=3`, ya tiene los productos de las páginas 1 a 3 y sigue con la 4. El límite es **solo por productos** (50 por defecto, máximo 500).
+- **Página de producto** (`/products/<nombre>/<estilo>-<color>.html`): se extrae solo ese producto, con el precio de venta. No se pide el máximo.
+- **SKU:** el sistema solo lee la columna `sku` y la corta en el primer `-`. La extensión escribe el **estilo** (`KD120-960` → `KD120`): los colores del mismo estilo son una sola fila.
+- **Un producto por familia, siempre** (con o sin *Extraer variantes*): una familia de Kate Spade reúne varios estilos (por ejemplo `KN974`, `KN975`, `KO584`, `KO585` y `KP497` son la misma cartera con otros colores o estampados), y el sistema crearía cada estilo como un producto aparte. Por eso la extensión deja **el primero que aparece en la página**.
+  - **Cómo lo sabe:** descarga en segundo plano la página de cada producto y lee sus variantes. Los estilos que ya conoce no se vuelven a descargar. Pausa de 1,5 a 3 segundos entre descargas, como en Amazon: **tarda más** (unos 2 a 3 segundos por familia).
+  - Igual que en Amazon: la pregunta *¿Seguir…?* si hay menos familias que el límite, el aviso de familia ya en la lista (con su grupo), *Familia sin verificar* si no se pudo leer (se reintenta al exportar) y un producto por familia en el Excel.
+  - Si Kate Spade bloquea las descargas (*Access Denied*), la extensión deja de descargar y el resumen lo avisa: espera unos minutos y exporta (las que falten se verifican al exportar).
+- **Precio** (solo referencia): el de venta; en un rango (*$88 - $110*) el menor.
+- **Imagen:** la de la tarjeta; si la tarjeta aún no la cargó, se arma desde el link (`…/KateSpade/KD120_960`).
+- No hay anuncios en los listados. Los banners entre los productos no se extraen.
+- El nombre del grupo por defecto es el texto buscado (*wallet*) o el título de la página sin "| kate spade new york".
+
 ## Nombre del grupo
 
 Cada vez que pulsas **Extraer** se crea un **grupo** con los productos de esa extracción. Su nombre sale en la columna `ref_grupo` del Excel, para distinguir las extracciones dentro del archivo unificado.
@@ -116,7 +133,7 @@ Cada vez que pulsas **Extraer** se crea un **grupo** con los productos de esa ex
 
 Desde la v1.10.1, el formulario de **Extraer** tiene dos casillas, **desmarcadas al empezar**:
 
-- **Extraer variantes** → `variacion = Sí` en todas las filas del grupo (el bot extrae todas las variantes y agrupa la familia). Desmarcada → `No` (solo ese producto). En Amazon también decide si se deja un producto por familia (ver *Amazon: un producto por familia*).
+- **Extraer variantes** → `variacion = Sí` en todas las filas del grupo (el bot extrae todas las variantes y agrupa la familia). Desmarcada → `No` (solo ese producto). En Amazon también decide si se deja un producto por familia (ver *Amazon: un producto por familia*). En Kate Spade no cambia eso: siempre se deja uno por familia.
 - **Guía de tallas** → `guia_talla = Sí`; desmarcada → `No`.
 
 Se eligen **al extraer y no se cambian después**: la extracción depende de ellas (con variantes, Amazon verifica familias). Si te equivocaste, elimina el grupo (🗑) y extrae de nuevo. Se ven siempre en la lista, debajo del nombre del grupo (*Variaciones: Sí*, *Guía de tallas: No*), y en la primera línea de su resumen. Si un producto se vuelve a extraer en otro grupo, toma las opciones del grupo nuevo. Los grupos extraídos con versiones anteriores quedan con `No` en ambas.
@@ -148,10 +165,10 @@ Es la **plantilla de scraping del sistema** (`Plantilla_Scraping_General.xlsx`) 
 
 | Columna | Valor |
 |---|---|
-| `ecomerce` | `Amazon`, `Michael Kors`, `Sephora` o `Marc Jacobs`, según el sitio de cada producto |
-| `sku` | ASIN (Amazon), ID del estilo (Michael Kors) o modelo base sin color (Marc Jacobs: `H004L01PF21`). **Vacía en Sephora**: el sistema la saca del link |
+| `ecomerce` | `Amazon`, `Michael Kors`, `Sephora`, `Marc Jacobs` o `Kate Spade`, según el sitio de cada producto |
+| `sku` | ASIN (Amazon), ID del estilo (Michael Kors), modelo base sin color (Marc Jacobs: `H004L01PF21`) o estilo sin color (Kate Spade: `KD120`). **Vacía en Sephora**: el sistema la saca del link |
 | `condicion` | `Reacondicionado` si el título dice *Renewed* / *Refurbished*; si no, `Nuevo`. **Revísala.** |
-| `link` | Amazon: `https://www.amazon.com/dp/<ASIN>`. Michael Kors: el link del producto, terminado en `/<ID>.html`. Sephora: `…/product/<nombre>-P<ID>?skuId=<SKU>`. Marc Jacobs: el link del producto sin parámetros (solo referencia: el sistema no lo lee) |
+| `link` | Amazon: `https://www.amazon.com/dp/<ASIN>`. Michael Kors: el link del producto, terminado en `/<ID>.html`. Sephora: `…/product/<nombre>-P<ID>?skuId=<SKU>`. Marc Jacobs y Kate Spade: el link del producto sin parámetros (solo referencia: el sistema no lo lee) |
 | `Buscar categoria` | Ruta de la categoría elegida en el popup (vacía con *No llenar categoría*) |
 | `codigo_categoria` | Código de esa categoría. Es una fórmula: si cambias `Buscar categoria`, se actualiza sola |
 | `seguimiento` | `Scraping` |
@@ -170,7 +187,7 @@ Es la **plantilla de scraping del sistema** (`Plantilla_Scraping_General.xlsx`) 
 | `ref_imagen` | Vista previa con `=IMAGE()`. Funciona en **Google Sheets** (en LibreOffice o Excel antiguo muestra `#NAME?`) |
 | `ref_nombre` / `ref_marca` / `ref_precio` | Nombre, marca y precio que muestra el sitio, solo como referencia |
 | `ref_sku_id` | Sephora: el `skuId` del link (en las demás tiendas queda vacía) |
-| `ref_duplicado` | `Posible variante: fila N` cuando otra fila tiene el mismo nombre o la misma imagen. Suele ser otro color o talla del mismo producto: deja una sola fila y marca `variacion = Sí`. Amazon: `Familia sin verificar` si no se pudo leer su familia (puede ser de la misma familia que otra fila; revísala antes de subir) |
+| `ref_duplicado` | `Posible variante: fila N` cuando otra fila tiene el mismo nombre o la misma imagen. Suele ser otro color o talla del mismo producto: deja una sola fila y marca `variacion = Sí`. Amazon y Kate Spade: `Familia sin verificar` si no se pudo leer su familia (puede ser de la misma familia que otra fila; revísala antes de subir) |
 
 **Para que la carga no pierda filas:**
 - Sube el archivo como **.xlsx** (en Google Sheets: *Archivo → Descargar → Microsoft Excel*). **Nunca como CSV**: en CSV las celdas vacías llegan como texto vacío y el sistema descarta esas filas sin avisar.
