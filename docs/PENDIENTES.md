@@ -1,8 +1,9 @@
 # Pendientes y próximos pasos
 
-Estado al **06/10/2026**.
+Estado al **07/10/2026**.
 
-- **Publicada: v1.12.0** (06/10/2026): icono por sitio (logo del sitio en un marco naranja, en la barra y en el popup) y **vista previa** del Excel en una pestaña, con la opción de quitar productos antes de descargar (sección 7).
+- **Publicada: v1.12.1** (07/10/2026, corrección): Sephora, páginas de producto de un solo SKU (sin tonos ni tamaños, p. ej. calendarios de adviento) no extraían nada: la página no trae `data-cnstrc-item-variation-id`; ahora el `skuId` se lee de "Item 3031002" (`variantChild`).
+- v1.12.0 (06/10/2026): icono por sitio (logo del sitio en un marco naranja, en la barra y en el popup) y **vista previa** del Excel en una pestaña, con la opción de quitar productos antes de descargar (sección 7).
 - v1.11.0 (06/10/2026): Kate Spade (solo `www.katespade.com`, sin el outlet; un producto por familia siempre, leída del JSON-LD de cada producto; páginas siguientes del scroll infinito descargadas en segundo plano; límite solo por productos; botón a EE. UU. desde otra región). Familias generalizadas a cualquier sitio.
 - v1.10.1 (03/10/2026, correcciones): Amazon, un producto por familia (sección 6); opciones del grupo *Extraer variantes* y *Guía de tallas* (`variacion`/`guia_talla` = Sí/No, fijas desde la extracción; sin variantes no se verifican familias); columnas vacías del backend al final del Excel; duración de la extracción en el resumen y la notificación.
 - v1.10.0 (02/10/2026): Marc Jacobs (solo `/us-en/`; una fila por modelo; categorías y búsquedas con carga en segundo plano; botón a EE. UU. desde otra región).

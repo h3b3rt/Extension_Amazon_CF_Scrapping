@@ -73,7 +73,18 @@ globalThis.__cfScraper = async function (config, options = {}) {
   // (el backend toma la primera coincidencia), el producto se omite.
   function variantLink(item, layout, asin) {
     const a = item.matches?.('a[href]') ? item : firstEl(item, layout.link);
-    return armarLink(a ? a.getAttribute('href') : location.href, asin, item.getAttribute(config.variant?.attr || ''));
+    return armarLink(a ? a.getAttribute('href') : location.href, asin,
+      item.getAttribute(config.variant?.attr || '') || variantFromChild(item, layout));
+  }
+
+  // Respaldo (v1.12.1): producto de un solo SKU sin el atributo de la variante (Sephora:
+  // el <main> no trae data-cnstrc-item-variation-id). Se lee del texto de un elemento
+  // del producto (`variantChild`, "Item 3031002") con `variantChildText` (grupo 1).
+  function variantFromChild(item, layout) {
+    if (!layout.variantChild) return '';
+    let re;
+    try { re = new RegExp(layout.variantChildText || '(\\d+)'); } catch { return ''; }
+    return firstValue(item, layout.variantChild, el => text(el).match(re)?.[1] || '');
   }
 
   // Link limpio con la variante (ver variantLink); también para los datos JSON de la página.
