@@ -258,9 +258,10 @@ export function filasExcel(products, config = {}) {
   const conSku = products.filter(p => (p.asin || '').trim());
   const sinSku = products.filter(p => !(p.asin || '').trim());
   const dup = duplicados(conSku, 2);
-  // Ecommerce cuyo SKU el backend saca del link (Sephora: skuId e ID "P…"): la
-  // celda sku no se escribe, porque llena reemplazaría el ID "P…" del link.
-  const skuSoloLink = new Set(Array.isArray(config.skuOnlyInLink) ? config.skuOnlyInLink : ['Sephora']);
+  // Ecommerce cuyo SKU el bot de scraping saca del link (todos menos Amazon): la celda
+  // sku no se escribe. Y al revés, los que van solo con sku (Amazon): sin link.
+  const skuSoloLink = new Set(Array.isArray(config.skuOnlyInLink) ? config.skuOnlyInLink : ['Sephora', 'Michael Kors', 'Marc Jacobs', 'Kate Spade']);
+  const sinLink = new Set(Array.isArray(config.linkOmit) ? config.linkOmit : ['Amazon']);
   const resumen = {
     filas: conSku.length,
     omitidos: sinSku.length,
@@ -292,7 +293,7 @@ export function filasExcel(products, config = {}) {
         variacion: p.variacion || '',
         guia_talla: p.guiaTalla || '',
         condicion,
-        link: p.link || '',
+        link: sinLink.has(ecomerce) ? '' : p.link || '',
         [SEARCH_HEADER]: ruta,
         [CODE_HEADER]: codigo,
         seguimiento: config.seguimiento || 'Scraping',

@@ -480,6 +480,9 @@ globalThis.__cfScraper = async function (config, options = {}) {
           if (config.familias.guardarHermanos) p.hermanos = r.hermanos;
           // Tamaño de la familia (solo informativo: lo muestra la vista previa).
           p.familiaTam = r.hermanos.length;
+          // Datos de cada variante (también informativos: desplegable de la vista previa).
+          if (r.variantes?.length) p.variantes = r.variantes;
+          if (r.dimensiones?.length) p.variantesDims = r.dimensiones;
         }
       }
       if (!f) {

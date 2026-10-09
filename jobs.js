@@ -130,10 +130,11 @@ export async function verificarLista(config, avance = () => {}, detener = async 
     const conocida = (hs = []) => [p.asin, ...hs].map(h => conocidas.get(`${ecomerce}:${h}`)).find(Boolean) || '';
     let f = conocida();
     let hermanos = null;
+    let d = null;
     if (!f && F && !bloqueados.has(ecomerce)) {
       if (descargas[ecomerce]) await esperar(Fam.pausa(F));
       descargas[ecomerce] = (descargas[ecomerce] || 0) + 1;
-      const d = await Fam.descargar(p.asin, F, undefined, p.link);
+      d = await Fam.descargar(p.asin, F, undefined, p.link);
       if (d.error === 'captcha') { bloqueados.add(ecomerce); r.captcha = true; r.captchaSitios.push(ecomerce); }
       if (d.familia) {
         f = conocida(d.hermanos) || d.familia;
@@ -148,6 +149,10 @@ export async function verificarLista(config, avance = () => {}, detener = async 
     if (f) {
       actual[k].familia = f;
       if (hermanos) actual[k].hermanos = hermanos;
+      // Solo informativo (vista previa): tamaño de la familia y datos de sus variantes.
+      if (d?.familia) actual[k].familiaTam = d.hermanos.length;
+      if (d?.variantes?.length) actual[k].variantes = d.variantes;
+      if (d?.dimensiones?.length) actual[k].variantesDims = d.dimensiones;
       delete actual[k].familiaAviso;
       r.verificados++;
     } else { actual[k].familiaAviso = Fam.AVISO; r.sinVerificar++; }

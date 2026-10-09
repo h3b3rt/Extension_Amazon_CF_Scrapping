@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "revision": 23,
+  "revision": 24,
   "updatedAt": "2026-10-03",
   "remoteConfigUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/config.json",
   "minExtensionVersion": "1.1.0",
-  "latestVersion": "1.12.1",
+  "latestVersion": "1.13.0",
   "downloadUrl": "https://github.com/h3b3rt/Extension_Amazon_CF_Scrapping/releases/latest",
   "notice": "",
   "appName": "COMPRAFACIL Scraper",
@@ -570,7 +570,8 @@
     },
     "imageFormula": "IMAGE({celda})",
     "rowHeight": 60,
-    "skuOnlyInLink": ["Sephora"],
+    "skuOnlyInLink": ["Sephora", "Michael Kors", "Marc Jacobs", "Kate Spade"],
+    "linkOmit": ["Amazon"],
     "refColumns": [
       { "header": "ref_grupo", "field": "grupo", "width": 28 },
       { "header": "ref_imagen_link", "field": "imagen", "width": 30 },

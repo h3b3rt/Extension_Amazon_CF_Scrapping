@@ -31,11 +31,27 @@ let config = null;
 // Claves elegidas con las casillas y lo quitado en el último cambio (para Deshacer).
 const seleccion = new Set();
 let ultimoQuitado = null;
+// Productos con el desplegable de variantes abierto (por clave) y variantes leídas de
+// la página del producto (Sephora, Michael Kors, o extraídos antes de la v1.13.0): { variantes,
+// dims } | { cargando } | { error }. Las leídas se guardan en storage.local
+// (variantesLeidas) y se recuerdan 7 días.
+const abiertos = new Set();
+const cargadas = new Map();
+const VIGENCIA_MS = 7 * 24 * 3600 * 1000;
+// Versión de lo guardado: sube cuando cambia cómo se leen (lo anterior se vuelve a buscar).
+const VERSION_LEIDAS = 5;
+// Búsqueda automática de las variantes (Sephora, Michael Kors), una a una (detenida tras un bloqueo).
+const cola = { activa: false, detenida: false };
+const esperar = ms => new Promise(r => setTimeout(r, ms));
 
 // ---------- datos ----------
 
 async function cargar() {
-  const { collected = {}, groups = {} } = await chrome.storage.local.get(['collected', 'groups']);
+  const { collected = {}, groups = {}, variantesLeidas = {} } = await chrome.storage.local.get(['collected', 'groups', 'variantesLeidas']);
+  for (const [k, v] of Object.entries(variantesLeidas)) {
+    if (cargadas.get(k)?.variantes || v?.version !== VERSION_LEIDAS || !Array.isArray(v.variantes) || !(Date.now() - (v.fecha || 0) < VIGENCIA_MS)) continue;
+    cargadas.set(k, { variantes: v.variantes, dims: Array.isArray(v.dims) ? v.dims : [], ...(typeof v.nota === 'string' && v.nota ? { nota: v.nota } : {}), ...(Array.isArray(v.aparte) && v.aparte.length ? { aparte: v.aparte } : {}) });
+  }
   // Productos de versiones anteriores sin grupo: el mismo reparto que hace el popup
   // (aquí solo en memoria; el popup lo guarda).
   syncGroups(collected, groups, await getHistory());
@@ -108,7 +124,17 @@ function renderResumen() {
   // de variantes solo si todos los representantes traen su tamaño.
   const reps = datos.filas.map(f => f.producto).filter(representaFamilia);
   const omitidosAlExtraer = reps.reduce((s, p) => s + (p.familiaOmitidos || 0), 0);
-  const variantes = reps.length && reps.every(p => p.familiaTam) ? reps.reduce((s, p) => s + p.familiaTam, 0) : 0;
+  // Sephora y Michael Kors con *Extraer variantes*: sus variantes leídas (al menos la propia).
+  const seph = datos.filas.map(f => f.producto).filter(buscaVariantes);
+  const tonos = p => cargadas.get(p.clave)?.variantes;
+  // Familias con cifras guardadas al extraer (Amazon); las de búsqueda automática (Kate
+  // Spade) se cuentan con lo leído de su página, una sola vez.
+  const repsGuardadas = reps.filter(p => !buscaVariantes(p));
+  const todas = (repsGuardadas.length || seph.length) && repsGuardadas.every(p => p.familiaTam) && seph.every(tonos);
+  const variantes = todas
+    ? repsGuardadas.reduce((s, p) => s + p.familiaTam, 0) + seph.reduce((s, p) => s + Math.max(1, tonos(p).length), 0)
+    : 0;
+  const buscando = cola.activa ? seph.filter(p => !tonos(p) && !cargadas.get(p.clave)?.error).length : 0;
   const familia = fuera.filter(f => f.motivo.startsWith('Familia')).length;
   const chips = [
     ['ok', 'Filas en el Excel', r.filas],
@@ -123,6 +149,7 @@ function renderResumen() {
     ['bad', 'SKU con guion', r.conGuion],
     ['', 'Familias en el Excel', reps.length],
     ['', 'Variantes que creará el sistema', variantes],
+    ['', 'Buscando variantes', buscando],
     ['', 'Omitidos al extraer (misma familia)', omitidosAlExtraer],
   ].filter(([, , n], i) => i < 2 || n);
   $('chips').replaceChildren(...chips.map(([cls, txt, n]) => el('span', { className: `chip ${cls}` }, `${txt}: `, el('b', { textContent: n }))));
@@ -159,16 +186,19 @@ function visible(f, avisos) {
   if ($('groupFilter').value && f.ref.grupo !== $('groupFilter').value) return false;
   if ($('siteFilter').value && f.celdas.ecomerce !== $('siteFilter').value) return false;
   if ($('warnFilter').checked && !avisos.length) return false;
-  if (q && ![p.nombre, p.marca, p.asin, p.link, p.variante].some(v => String(v || '').toLowerCase().includes(q))) return false;
+  const deVariantes = (Array.isArray(p.variantes) && tieneVariantes(p) ? p.variantes : []).flatMap(v => [v.sku, ...(v.atributos || [])]);
+  if (q && ![p.nombre, p.marca, p.asin, p.link, p.variante, ...deVariantes].some(v => String(v || '').toLowerCase().includes(q))) return false;
   return true;
 }
 
 function celdaSku(f) {
   if (f.celdas.sku) return el('td', { className: 'sku' }, el('span', { className: 'mono', textContent: f.celdas.sku }));
-  // Sephora: la celda sku va vacía; el sistema saca el SKU del link (skuId).
+  // Todos menos Amazon: la celda sku va vacía; el bot saca el SKU del link.
+  // Debajo, como referencia, el skuId (Sephora) o el estilo (los demás).
   const td = el('td', { className: 'sku' });
   td.append(el('span', { className: 'muted', textContent: 'Vacía (va en el link)' }));
   if (f.ref.variante) td.append(el('div', { className: 'mono', textContent: `skuId ${f.ref.variante}` }));
+  else if (f.producto.asin) td.append(el('div', { className: 'mono muted', textContent: f.producto.asin }));
   return td;
 }
 
@@ -197,18 +227,302 @@ function celdaQuitar(p, tr) {
 // Los extraídos antes de la v1.12.0 no traen esas cifras.
 function celdaFamilia(p) {
   const td = el('td', { className: 'fam' });
-  if (!representaFamilia(p)) {
+  // Con búsqueda automática (Sephora, Michael Kors, Marc Jacobs, Kate Spade) la celda
+  // muestra lo leído de la página; si no, las cifras guardadas al extraer (Amazon).
+  const familia = representaFamilia(p) && !buscaVariantes(p);
+  if (!familia && !buscaVariantes(p)) {
     td.append(el('span', { className: 'muted', textContent: '—' }));
     return td;
   }
-  const unidad = p.ecomerce === 'Kate Spade' ? 'estilo' : 'variante';
-  const tam = p.familiaTam === 1 ? 'Sin otras variantes' : p.familiaTam ? plural(p.familiaTam, unidad) : 'Representa su familia';
-  td.append(el('div', { textContent: tam }));
+  if (familia) {
+    const unidad = p.ecomerce === 'Kate Spade' ? 'estilo' : 'variante';
+    const tam = p.familiaTam === 1 ? 'Sin variantes' : p.familiaTam ? plural(p.familiaTam, unidad) : 'Representa su familia';
+    td.append(el('div', { textContent: tam }));
+  } else {
+    // Sephora, Michael Kors: se cuentan al leerlas de su página (búsqueda automática).
+    const c = cargadas.get(p.clave);
+    const boton = (texto, accion) => {
+      const b = el('button', { type: 'button', className: 'toggle', textContent: texto });
+      b.addEventListener('click', accion);
+      return b;
+    };
+    if (c?.variantes) {
+      td.append(el('div', { textContent: c.variantes.length > 1 ? plural(c.variantes.length, 'variante') : 'Sin variantes' }));
+      // Sin otras variantes pero la página ofrece tamaños o colores de otro modelo
+      // (Marc Jacobs: SMALL y LARGE son estilos distintos): se dice cuál es.
+      if (c.variantes.length <= 1 && c.aparte?.length) {
+        const pids = [...new Set(c.aparte.map(a => a.pid))];
+        const de = (tipo, uno, varios) => { const l = c.aparte.filter(a => a.tipo === tipo).map(a => a.nombre); return l.length ? `${l.length === 1 ? uno : varios} ${l.join(', ')}` : ''; };
+        const que = [de('talla', 'tamaño', 'tamaños'), de('color', 'color', 'colores')].filter(Boolean).join(' · ');
+        td.append(el('div', { className: 'muted', textContent: `Otro modelo (${pids.join(', ')}): ${que}` }));
+      }
+    }
+    else if (c?.error) {
+      td.append(el('div', { className: 'err', textContent: 'No se pudieron leer', title: c.error }),
+        boton('Reintentar', () => { cargadas.delete(p.clave); cola.detenida = false; renderFilas(); buscarVariantes(); }));
+    } else if (cola.detenida && !cola.activa && !c) {
+      td.append(el('div', { className: 'muted', textContent: 'Variantes sin leer' }),
+        boton('Buscar variantes', () => { cola.detenida = false; buscarVariantes(); }));
+    } else td.append(el('div', { className: 'muted', textContent: 'Buscando variantes…' }));
+  }
+  if (tieneVariantes(p)) {
+    const abierto = abiertos.has(p.clave);
+    const btn = el('button', { type: 'button', className: 'toggle', textContent: abierto ? '▾ Ocultar variantes' : '▸ Ver variantes' });
+    btn.setAttribute('aria-expanded', String(abierto));
+    btn.addEventListener('click', () => {
+      if (abierto) abiertos.delete(p.clave);
+      else abiertos.add(p.clave);
+      renderFilas();
+    });
+    td.append(btn);
+  }
+  if (!familia) return td;
   if (p.familiaOmitidos) td.append(el('div', { className: 'muted', textContent: `${plural(p.familiaOmitidos, 'omitido')} al extraer` }));
   else if (!p.familiaTam) {
     td.append(el('div', { className: 'muted', textContent: 'sin cifras', title: 'Extraído antes de la v1.12.0, o su familia ya se conocía sin descargar su página' }));
   }
   return td;
+}
+
+// ---------- variantes de la familia (desplegable) ----------
+
+// ¿Tiene otras variantes que mostrar? Un "Sin variantes" (familiaTam 1) no,
+// salvo que traiga varias (Kate Spade: un solo estilo con varios colores).
+// Sephora y Michael Kors no tienen familias: con *Extraer variantes* en el grupo el
+// sistema crea todas las variantes del producto (tonos; colores y tallas), que se
+// buscan solas al abrir la vista previa.
+const buscaVariantes = p => !!p.conVariaciones && globalThis.__cfFamilias.leeVariantes(p);
+const tieneVariantes = p => (buscaVariantes(p)
+  ? cargadas.get(p.clave)?.variantes?.length > 1
+  : representaFamilia(p) && (p.variantes?.length > 1 || p.familiaTam !== 1));
+
+// Variantes del producto y sus dimensiones (Amazon: talla, color…): las guardadas al
+// extraer o las cargadas en esta pestaña. null si no hay ninguna.
+function variantesDe(p) {
+  const c = cargadas.get(p.clave);
+  if (c?.variantes) return { vs: c.variantes, dims: c.dims || [] };
+  if (Array.isArray(p.variantes) && p.variantes.length) return { vs: p.variantes, dims: Array.isArray(p.variantesDims) ? p.variantesDims : null };
+  return null;
+}
+
+// Guarda las variantes leídas (no la lista: clave aparte, sin competir con el service
+// worker) y poda las de productos que ya no están en la lista.
+async function guardarLeida(clave, dato) {
+  try {
+    const { variantesLeidas = {}, collected = {} } = await chrome.storage.local.get(['variantesLeidas', 'collected']);
+    for (const k of Object.keys(variantesLeidas)) if (!(k in collected)) delete variantesLeidas[k];
+    if (clave in collected) variantesLeidas[clave] = { variantes: dato.variantes, dims: dato.dims, ...(dato.nota ? { nota: dato.nota } : {}), ...(dato.aparte ? { aparte: dato.aparte } : {}), fecha: Date.now(), version: VERSION_LEIDAS };
+    await chrome.storage.local.set({ variantesLeidas });
+  } catch (e) { console.warn('No se guardaron las variantes', e); }
+}
+
+// Descarga una vez la página del producto para leer sus variantes (Sephora, o
+// productos extraídos antes de que se guardaran). No cambia la lista.
+async function cargarVariantes(p) {
+  const Fam = globalThis.__cfFamilias;
+  const F = Fam.porEcomerce(config)[Fam.ecomerceDe(p)]?.F;
+  cargadas.set(p.clave, { cargando: true });
+  renderFilas();
+  const r = Fam.leeVariantes(p) ? await Fam.descargarVariantes(p)
+    : F ? await Fam.descargar(p.asin, F, undefined, p.link) : { error: 'el sitio no tiene familias' };
+  const ok = !!(r.familia || r.variantes);
+  const dato = ok
+    ? { variantes: r.variantes || [], dims: r.dimensiones || [], ...(r.nota ? { nota: r.nota } : {}), ...(Array.isArray(r.aparte) && r.aparte.length ? { aparte: r.aparte } : {}) }
+    : { error: r.error === 'captcha' ? 'el sitio pidió verificación (CAPTCHA); abre el producto en Chrome y vuelve a intentarlo' : r.error };
+  cargadas.set(p.clave, dato);
+  if (ok) await guardarLeida(p.clave, dato);
+  renderFilas();
+  renderResumen();
+  return r;
+}
+
+// Productos del Excel (Sephora, Michael Kors) con *Extraer variantes* cuyas variantes faltan.
+const porBuscar = () => (datos?.filas || []).map(f => f.producto).filter(p => buscaVariantes(p) && !cargadas.has(p.clave));
+
+// Busca las variantes uno a uno, con la misma pausa que las familias (1,5–3 s)
+// para no provocar bloqueos. Tras un bloqueo se detiene: el resto queda "sin leer".
+async function buscarVariantes() {
+  if (cola.activa) return;
+  cola.activa = true;
+  cola.detenida = false;
+  renderResumen();
+  try {
+    for (let n = 0, p; (p = porBuscar()[0]); n++) {
+      if (n) await esperar(globalThis.__cfFamilias.pausa({}));
+      if (cargadas.has(p.clave) || !datos.claves.has(p.clave)) continue;
+      const r = await cargarVariantes(p);
+      if (r.error === 'captcha') { cola.detenida = true; break; }
+    }
+  } finally {
+    cola.activa = false;
+    renderFilas();
+    renderResumen();
+  }
+}
+
+// Fila con un mensaje bajo el producto (cargando, error, sin datos).
+function filaMensaje(...hijos) {
+  return el('tr', { className: 'variante' }, el('td'), el('td', { className: 'num', textContent: '↳' }), el('td', { colSpan: 11 }, ...hijos));
+}
+
+// Botón que lee las variantes de la página del producto, con el error anterior si hubo.
+function filaCargar(p, texto, nota) {
+  const c = cargadas.get(p.clave);
+  if (c?.cargando) return filaMensaje(el('span', { className: 'muted', textContent: 'Cargando variantes…' }));
+  const b = el('button', { type: 'button', className: 'toggle', textContent: c?.error ? 'Reintentar' : texto });
+  b.addEventListener('click', () => cargarVariantes(p));
+  return filaMensaje(
+    c?.error ? el('div', { className: 'err', textContent: `No se pudieron cargar: ${c.error}.` }) : null,
+    el('div', { className: 'muted', textContent: nota }),
+    b,
+  );
+}
+
+// Subfilas de las variantes de un producto, con las mismas columnas. Grupo,
+// categoría, opciones y condición son las del producto: el sistema las aplica igual.
+// Con dimensiones que no cambian la imagen (ropa: talla), una fila por color/modelo
+// con sus tallas en chips; si no, una fila por variante.
+function filasVariantes(f) {
+  const p = f.producto;
+  const d = variantesDe(p);
+  if (!d) return [filaCargar(p, 'Cargar variantes', 'Se extrajo antes de la v1.13.0: sus variantes no se guardaron. Se pueden leer de la página del producto (una descarga).')];
+  const { vs, dims } = d;
+  if (!vs.length) return [filaMensaje(el('span', { className: 'muted', textContent: 'La página del producto no trae datos de sus variantes.' }))];
+
+  const X = config.xlsx || {};
+  // Productos de la lista de la misma familia ("No irán al Excel"): traen nombre y precio.
+  const deLista = new Map((datos.omitidosPorFamilia.get(familiaDe(p, X)) || []).map(h => [String(h.asin).toUpperCase(), h]));
+  let origen = 'https://www.amazon.com';
+  try { if (esHttps(p.link)) origen = new URL(p.link).origin; } catch { /* link inválido */ }
+  const mut = t => el('span', { className: 'muted', textContent: t || '—' });
+  // La variante que va al Excel: el ASIN o estilo; en Sephora, el skuId del link.
+  const idExcel = String((p.ecomerce === 'Sephora' ? p.variante : p.asin) || '').toUpperCase();
+  const propio = sku => !!idExcel && String(sku || '').toUpperCase() === idExcel;
+  // Amazon: /dp/ASIN en el mismo dominio del producto; Kate Spade trae su link.
+  const linkDe = v => (esHttps(v.link) ? v.link : /^[A-Z0-9]{10}$/i.test(v.sku || '') && p.ecomerce !== 'Kate Spade' ? `${origen}/dp/${v.sku}` : '');
+
+  // Fila con las columnas de la tabla. `datosFila`: imagen, nombre (o null: el del
+  // producto, atenuado), atributos, extra (nodo bajo los atributos), precio, sku
+  // (nodo), familia (texto), link y si contiene la variante que va al Excel.
+  const fila = ({ imagen, nombre, atributos, extra, precio, sku, familia, link, este }) => {
+    const tr = el('tr', { className: `variante${este ? ' este' : ''}` });
+    tr.append(el('td'), el('td', { className: 'num', textContent: '↳' }));
+    const tdImg = el('td', { className: 'img' });
+    if (esHttps(imagen)) tdImg.append(el('img', { src: imagen, alt: '', loading: 'lazy', referrerPolicy: 'no-referrer' }));
+    else tdImg.append(mut('—'));
+    tr.append(tdImg);
+
+    const tdName = el('td', { className: 'name' });
+    // Sin nombre propio (Amazon): el del producto, atenuado; puede nombrar otro color.
+    tdName.append(el('div', { className: nombre ? '' : 'muted', textContent: nombre || p.nombre || '(sin nombre)' }));
+    if (atributos) tdName.append(el('div', { className: 'attrs', textContent: atributos }));
+    if (extra) tdName.append(extra);
+    const pie = el('div');
+    if (p.marca) pie.append(el('span', { className: 'marca', textContent: p.marca }));
+    if (Number.isFinite(precio)) pie.append(p.marca ? ' · ' : '', el('span', { className: 'price', textContent: `$${precio.toFixed(2)}` }));
+    if (pie.childNodes.length) tdName.append(pie);
+    tr.append(tdName);
+
+    tr.append(el('td', {}, mut('—')));
+    tr.append(el('td', {}, el('span', { className: 'site' }, iconoDeSitio(f.celdas.ecomerce), f.celdas.ecomerce)));
+    const tdSku = el('td', { className: 'sku' }, sku);
+    if (este) tdSku.append(el('div', {}, el('span', { className: 'tag on', textContent: 'Va al Excel' })));
+    tr.append(tdSku);
+    tr.append(el('td', { className: 'fam' }, mut(familia)));
+
+    const tdLink = el('td', { className: 'link' });
+    if (link) {
+      const u = new URL(link);
+      tdLink.append(el('a', { href: u.href, target: '_blank', rel: 'noopener noreferrer', title: u.href, textContent: `${u.hostname.replace(/^www\./, '')}${u.pathname}` }));
+    } else tdLink.append(mut('—'));
+    tr.append(tdLink);
+
+    tr.append(el('td', {}, mut(f.ref.grupo)));
+    tr.append(el('td', { className: 'cat' }, mut(f.celdas.codigo_categoria ? f.celdas['Buscar categoria'] : 'Elegir en la plantilla')));
+    tr.append(el('td', {}, mut(`Variantes: ${f.celdas.variacion || 'No'} · Guía: ${f.celdas.guia_talla || 'No'}`)));
+    tr.append(el('td', {}, mut(f.celdas.condicion)));
+    return tr;
+  };
+
+  const filas = [];
+  // Aviso al final (Marc Jacobs: colores de otro modelo que la página también muestra).
+  const conNota = fs => (d.nota || cargadas.get(p.clave)?.nota ? [...fs, filaMensaje(el('span', { className: 'muted', textContent: d.nota || cargadas.get(p.clave).nota }))] : fs);
+  // Variantes de Amazon guardadas sin dimensiones (versión de prueba): se pueden releer.
+  if (dims === null && vs.some(v => v.atributos?.length > 1) && p.ecomerce !== 'Kate Spade') {
+    filas.push(filaCargar(p, 'Actualizar variantes', 'Para agruparlas por color o modelo hay que volver a leer la página del producto (una descarga).'));
+  }
+
+  const n = vs[0].atributos?.length || 0;
+  const usables = Array.isArray(dims) && dims.length === n && vs.every(v => v.atributos?.length === n);
+  const visuales = usables ? dims.map((x, i) => (x.visual ? i : -1)).filter(i => i >= 0) : [];
+  const otras = usables ? dims.map((x, i) => (x.visual ? -1 : i)).filter(i => i >= 0) : [];
+
+  if (!visuales.length || !otras.length) {
+    // Una fila por variante (todas cambian la imagen, o una sola dimensión).
+    for (const v of vs) {
+      const h = deLista.get(String(v.sku).toUpperCase());
+      filas.push(fila({
+        imagen: [v.imagen, h?.imagen].find(esHttps),
+        nombre: h?.nombre || v.nombre,
+        atributos: (v.atributos || []).join(' · '),
+        extra: v.tamano ? el('div', { className: 'muted', textContent: v.tamano }) : null,
+        precio: Number.isFinite(v.precio) ? v.precio : parseFloat(h?.precio),
+        sku: el('span', { className: 'mono', textContent: String(v.sku || '') }),
+        familia: propio(v.sku) ? 'Representa la familia' : `Variante de ${p.asin}`,
+        link: linkDe(v),
+        este: propio(v.sku),
+      }));
+    }
+    return conNota(filas);
+  }
+
+  // Agrupadas por las dimensiones visuales (color), en el orden guardado (el de la página).
+  const grupos = new Map();
+  for (const v of vs) {
+    const k = visuales.map(i => v.atributos[i]).join(' · ');
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(v);
+  }
+  const nombreVisual = visuales.map(i => dims[i].nombre).join(' / ');
+  const nombreOtras = otras.map(i => dims[i].nombre).join(' / ');
+  // El color del link del Excel, si lo trae: Michael Kors dwvar_<ID>_color=0001,
+  // Marc Jacobs …/<ID>-002.html.
+  const idLimpio = String(p.asin || '').replace(/[^A-Za-z0-9]/g, '');
+  const colorExcel = p.ecomerce === 'Michael Kors'
+    ? (String(p.link || '').match(new RegExp(`dwvar_${idLimpio}_color=(\\d{4})`, 'i')) || [])[1]
+    : p.ecomerce === 'Marc Jacobs'
+      ? (String(p.link || '').split('?')[0].match(new RegExp(`/${idLimpio}-([A-Za-z0-9]+)\\.html$`, 'i')) || [])[1]
+      : '';
+  for (const [k, lista] of grupos) {
+    const este = lista.some(v => propio(v.sku)) || (!!colorExcel && lista.some(v => v.codigoColor === colorExcel));
+    const chips = el('div', { className: 'chips-talla', title: nombreOtras });
+    for (const v of lista) {
+      const texto = otras.map(i => v.atributos[i]).join(' · ') || v.sku;
+      const link = linkDe(v);
+      const chip = link
+        ? el('a', { href: link, target: '_blank', rel: 'noopener noreferrer', title: `${nombreOtras} ${texto}: ${v.sku}${v.agotada ? ' (agotada)' : ''}`, textContent: texto })
+        : el('span', { title: `${v.sku}${v.agotada ? ' (agotada)' : ''}`, textContent: texto });
+      if (propio(v.sku)) chip.className = 'on';
+      if (v.agotada) chip.classList.add('agotada');
+      chips.append(chip);
+    }
+    filas.push(fila({
+      // Un solo color sin imagen propia: la del producto (es el mismo color).
+      imagen: lista.map(v => v.imagen).find(esHttps) || (grupos.size === 1 ? p.imagen : undefined),
+      nombre: null,
+      // Sin color en la página (solo tallas, p. ej. un abrigo de Kate Spade): no se
+      // muestra el "—". En Amazon sí, porque la dimensión visual no siempre es el color.
+      // (también "— (KP115)", guardado antes con el estilo de la familia).
+      atributos: p.ecomerce !== 'Amazon' && k.split(' · ').every(x => /^(—\s*(\([^)]*\))?)?$/.test(x.trim())) ? '' : k,
+      extra: chips,
+      precio: lista.map(v => v.precio).find(Number.isFinite),
+      sku: el('span', { textContent: `${plural(lista.length, p.ecomerce === 'Amazon' ? 'ASIN' : 'SKU', p.ecomerce === 'Amazon' ? 'ASIN' : 'SKU')}` }),
+      familia: `${nombreVisual} de ${p.asin}`,
+      link: linkDe(lista.find(v => propio(v.sku)) || lista[0]),
+      este,
+    }));
+  }
+  return conNota(filas);
 }
 
 function filaHtml(f, avisos) {
@@ -246,6 +560,10 @@ function filaHtml(f, avisos) {
   if (esHttps(f.celdas.link)) {
     const u = new URL(f.celdas.link);
     tdLink.append(el('a', { href: u.href, target: '_blank', rel: 'noopener noreferrer', title: u.href, textContent: `${u.hostname.replace(/^www\./, '')}${u.pathname}${u.search}` }));
+  } else if (!f.celdas.link && esHttps(p.link)) {
+    // Amazon: la celda link va vacía (el bot usa el sku); el link, solo para abrirlo.
+    tdLink.append(el('span', { className: 'muted', textContent: 'Vacía (va en el SKU)' }),
+      el('a', { href: p.link, target: '_blank', rel: 'noopener noreferrer', title: p.link, textContent: p.link.replace(/^https:\/\/(www\.)?/, '') }));
   } else {
     tdLink.append(el('span', { className: 'muted', textContent: f.celdas.link || '—' }));
   }
@@ -276,7 +594,10 @@ function renderFilas() {
   const conAvisos = datos.filas.map(f => [f, avisosDe(f)]);
   const vistas = conAvisos.filter(([f, a]) => visible(f, a));
   clavesVisibles = vistas.map(([f]) => f.producto.clave);
-  $('rows').replaceChildren(...vistas.map(([f, a]) => filaHtml(f, a)));
+  $('rows').replaceChildren(...vistas.flatMap(([f, a]) => [
+    filaHtml(f, a),
+    ...(abiertos.has(f.producto.clave) && tieneVariantes(f.producto) ? filasVariantes(f) : []),
+  ]));
   renderSeleccion();
   $('shown').textContent = vistas.length === datos.filas.length
     ? plural(datos.filas.length, 'fila')
@@ -324,6 +645,7 @@ async function render() {
   renderFilas();
   renderFuera();
   $('download').disabled = !datos.total;
+  if (!cola.detenida && porBuscar().length) buscarVariantes();
 }
 
 // ---------- quitar productos ----------
