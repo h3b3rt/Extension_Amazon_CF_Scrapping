@@ -2,7 +2,8 @@
 
 Estado al **12/10/2026**.
 
-- **Publicada: v1.14.1** (12/10/2026): el popup usa el mismo selector de categoría que la vista previa (`selector-categoria.js`); README revisado.
+- **Publicada: v1.14.2** (12/10/2026, corrección): la vista previa ya no hace parpadear las imágenes al abrir tallas o variantes (reutiliza las `<img>`), y la vista resumida muestra los 3 primeros productos del grupo en el orden del Excel (asignar una categoría ya no los mueve).
+- v1.14.1 (12/10/2026): el popup usa el mismo selector de categoría que la vista previa (`selector-categoria.js`); README revisado.
 - v1.14.0 (12/10/2026): vista previa rediseñada para quien revisa el contenido (colores de COMPRAFACIL, resumen con estado en palabras, pestañas *Todos* / *Para revisar* / *No irán al Excel*, tarjetas por grupo con avisos explicados, variantes en miniaturas cerradas al empezar, interruptor *Ver datos técnicos* con la fila del Excel como hoja de cálculo, casillas por producto y por grupo con barra de selección; muchas tallas resumidas por color con tabla cintura × largo, y solo 14 colores a la vista; grupos comprimido / resumido / completo; asignar categoría por grupo, producto o selección con Deshacer). Probada en Chrome real el 12/10/2026.
 - v1.13.0 (09/10/2026): vista previa con la imagen más grande (104 px) y el desplegable **▸ Ver variantes** de cada familia, buscadas solas en Sephora, Michael Kors, Marc Jacobs y Kate Spade (sección 7); Excel con `sku` solo en Amazon (sin `link`) y `link` sin `sku` en los demás sitios; permiso `unlimitedStorage`.
 - v1.12.1 (07/10/2026, corrección): Sephora, páginas de producto de un solo SKU (sin tonos ni tamaños, p. ej. calendarios de adviento) no extraían nada: la página no trae `data-cnstrc-item-variation-id`; ahora el `skuId` se lee de "Item 3031002" (`variantChild`).

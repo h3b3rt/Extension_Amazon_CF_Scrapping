@@ -177,12 +177,25 @@ function iconoDeSitio(ecomerce) {
 
 const sitio = ecomerce => el('span', { className: 'site' }, iconoDeSitio(ecomerce), ecomerce);
 
+// Las <img> se reutilizan entre dibujados (renderFilas rehace la lista): una imagen
+// nueva, aun en caché, se ve vacía un instante y la página parpadea.
+const imagenes = new Map();
+let pasada = 0;
+
 // Foto del producto o de una variante (cuadro gris si no hay).
 function foto(src, link) {
   const box = el('div', { className: 'foto' });
   if (esHttps(src)) {
-    const img = el('img', { src, alt: '', loading: 'lazy', referrerPolicy: 'no-referrer' });
-    img.onerror = () => img.replaceWith('Sin imagen');
+    let img = imagenes.get(src);
+    // La misma imagen dos veces en un dibujado: la segunda es otra <img>.
+    if (!img || img.dataset.pasada === String(pasada)) {
+      // referrerPolicy antes que src: cambiarlo después vuelve a pedir la imagen.
+      img = el('img', { alt: '', loading: 'lazy', referrerPolicy: 'no-referrer', src });
+      const esta = img;
+      img.onerror = () => { if (imagenes.get(src) === esta) imagenes.delete(src); esta.replaceWith('Sin imagen'); };
+      if (!imagenes.has(src)) imagenes.set(src, img);
+    }
+    img.dataset.pasada = pasada;
     box.append(img);
   } else box.append('Sin imagen');
   if (!link) return box;
@@ -983,6 +996,7 @@ let esperaAncho = null;
 window.addEventListener('resize', () => { clearTimeout(esperaAncho); esperaAncho = setTimeout(colocarDetalles, 100); });
 
 function renderFilas() {
+  pasada++;
   for (const b of document.querySelectorAll('.tab')) b.classList.toggle('on', b.dataset.tab === pestana);
   let nodos;
   let vistos;
@@ -1009,12 +1023,10 @@ function renderFilas() {
     nodos = [...porGrupo].map(([nombre, lista]) => {
       const vista = buscando ? 'completo' : vistaDe(nombre);
       const revisar = lista.filter(([, a]) => a.length).length;
-      // Resumido: los primeros, con los que tienen avisos antes (en su orden).
+      // Resumido: los primeros del Excel, como en la vista completa (corregir un aviso
+      // no mueve nada; los que tienen avisos están en "Para revisar").
       let dibujar = vista === 'comprimido' ? [] : lista;
-      if (vista === 'resumido' && lista.length > MAX_RESUMIDO) {
-        const elegidos = new Set([...lista.filter(([, a]) => a.length), ...lista.filter(([, a]) => !a.length)].slice(0, MAX_RESUMIDO));
-        dibujar = lista.filter(x => elegidos.has(x));
-      }
+      if (vista === 'resumido') dibujar = lista.slice(0, MAX_RESUMIDO);
       clavesVisibles.push(...lista.map(([f]) => f.producto.clave));
       const resto = lista.length - dibujar.length;
       let pie = null;
