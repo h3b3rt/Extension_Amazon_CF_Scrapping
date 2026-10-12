@@ -145,3 +145,56 @@ export function restaurarEnLista(collected, groups, quitados) {
 }
 
 export const quitadosTxt = g => (g?.quitados ? `Quitados a mano en la vista previa: ${g.quitados}` : '');
+
+// Categoría asignada desde la vista previa: los mismos campos que guarda una
+// extracción (jobs.js) y que lee el Excel (filasExcel: codCategoria y los 3 niveles).
+const CAMPOS_CAT = ['categoria', 'categoriaSecundaria', 'categoriaTerciaria', 'codCategoria', 'categoriaRuta'];
+
+// Escribe `cat` ({ principal, secundaria, terciaria, codigo, ruta }) en los productos
+// `claves`. Devuelve sus valores anteriores ({ clave, antes }) para deshacerlo.
+export function asignarCategoria(collected, groups, claves, cat) {
+  const previos = [];
+  const grupos = new Set();
+  for (const clave of new Set(claves)) {
+    const p = collected[clave];
+    if (!p) continue;
+    previos.push({ clave, antes: Object.fromEntries(CAMPOS_CAT.map(c => [c, typeof p[c] === 'string' ? p[c] : ''])) });
+    Object.assign(p, { categoria: cat.principal, categoriaSecundaria: cat.secundaria, categoriaTerciaria: cat.terciaria, codCategoria: cat.codigo, categoriaRuta: cat.ruta });
+    grupos.add(p.grupo);
+  }
+  for (const id of grupos) categoriaDelGrupo(collected, groups, id);
+  return previos;
+}
+
+// Deshacer: devuelve a cada producto que sigue en la lista su categoría anterior.
+export function restaurarCategoria(collected, groups, previos) {
+  let n = 0;
+  const grupos = new Set();
+  for (const { clave, antes } of Array.isArray(previos) ? previos : []) {
+    const p = collected[clave];
+    if (!p || !antes || typeof antes !== 'object') continue;
+    for (const c of CAMPOS_CAT) p[c] = typeof antes[c] === 'string' ? antes[c] : '';
+    grupos.add(p.grupo);
+    n++;
+  }
+  for (const id of grupos) categoriaDelGrupo(collected, groups, id);
+  return n;
+}
+
+// Categoría del grupo (tooltip del popup y línea "Categoría:" de su resumen): la de
+// sus productos si todos comparten una; si no, "Varias categorías".
+function categoriaDelGrupo(collected, groups, id) {
+  const g = groups[id];
+  const ps = Object.values(collected).filter(p => p.grupo === id);
+  if (!g || !ps.length) return;
+  const codigos = new Set(ps.map(p => p.codCategoria || ''));
+  const p = ps[0];
+  const ruta = p.categoriaRuta || [p.categoria, p.categoriaSecundaria, p.categoriaTerciaria].filter(Boolean).join(' / ');
+  const una = codigos.size === 1;
+  g.categoria = una ? (p.codCategoria ? ruta : '') : 'Varias categorías';
+  const txt = !una ? 'varias (asignadas en la vista previa)' : p.codCategoria ? `${ruta} (${p.codCategoria})` : 'sin llenar (elegir en la plantilla)';
+  if (Array.isArray(g.resumen)) {
+    const i = g.resumen.findIndex(l => typeof l === 'string' && l.startsWith('Categoría: '));
+    if (i >= 0) g.resumen[i] = `Categoría: ${txt}`;
+  }
+}

@@ -3,7 +3,7 @@ import { appName, findSite, siteTitle, siteIcon, DEFAULT_ICON, familiasConfig } 
 import { getPrefs } from './prefs.js';
 import { getJobs, setJobs, guardarResultado, familiasDeLaLista, verificarLista, duracionTxt } from './jobs.js';
 import { exportList, exportSummary } from './export.js';
-import { quitarDeLista, restaurarEnLista } from './groups.js';
+import { quitarDeLista, restaurarEnLista, asignarCategoria, restaurarCategoria } from './groups.js';
 import { getCachedCategories } from './categories.js';
 
 const SYNC_ALARM = 'config-sync';
@@ -79,13 +79,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 const dePaginaPropia = sender => (sender?.url || '').startsWith(chrome.runtime.getURL(''));
 
 // Cambia la lista (collected y groups) dentro de conLock. `fn` la modifica y
-// devuelve la respuesta. No se cambia mientras se exporta.
-async function cambiarLista(fn) {
+// devuelve la respuesta. No se cambia mientras se exporta (`que`: lo que se pidió).
+async function cambiarLista(fn, que = 'quitar productos') {
   let res = { error: 'No se pudo cambiar la lista.' };
   await conLock(async () => {
     const st = await getJobs();
     if (st.actual?.tipo === 'exportar') {
-      res = { error: 'Hay una exportación en curso: espera a que termine para quitar productos.' };
+      res = { error: `Hay una exportación en curso: espera a que termine para ${que}.` };
       return;
     }
     const { collected = {}, groups = {} } = await chrome.storage.local.get(['collected', 'groups']);
@@ -167,6 +167,25 @@ const HANDLERS = {
   async restaurarProductos({ quitados }, sender) {
     if (!dePaginaPropia(sender)) return { error: 'Origen no permitido.' };
     return cambiarLista((collected, groups) => ({ restaurados: restaurarEnLista(collected, groups, Array.isArray(quitados) ? quitados : []) }));
+  },
+  // Asignar categoría a productos (y deshacerlo). Solo categorías del catálogo: con código.
+  async asignarCategoria({ claves, cat }, sender) {
+    if (!dePaginaPropia(sender)) return { error: 'Origen no permitido.' };
+    const texto = v => (typeof v === 'string' ? v.trim() : '');
+    const c = { principal: texto(cat?.principal), secundaria: texto(cat?.secundaria), terciaria: texto(cat?.terciaria), codigo: texto(cat?.codigo) };
+    if (!c.principal || !c.secundaria || !c.terciaria || !c.codigo) return { error: 'Categoría no válida.' };
+    c.ruta = texto(cat?.ruta) || `${c.principal} / ${c.secundaria} / ${c.terciaria}`;
+    return cambiarLista((collected, groups) => ({ previos: asignarCategoria(collected, groups, Array.isArray(claves) ? claves : [], c) }), 'cambiar la categoría');
+  },
+  // Dejar productos sin categoría (se elige en la plantilla).
+  async limpiarCategoria({ claves }, sender) {
+    if (!dePaginaPropia(sender)) return { error: 'Origen no permitido.' };
+    const vacia = { principal: '', secundaria: '', terciaria: '', codigo: '', ruta: '' };
+    return cambiarLista((collected, groups) => ({ previos: asignarCategoria(collected, groups, Array.isArray(claves) ? claves : [], vacia) }), 'cambiar la categoría');
+  },
+  async restaurarCategoria({ previos }, sender) {
+    if (!dePaginaPropia(sender)) return { error: 'Origen no permitido.' };
+    return cambiarLista((collected, groups) => ({ restaurados: restaurarCategoria(collected, groups, previos) }), 'cambiar la categoría');
   },
 
   // Desde el scraper (en la pestaña).

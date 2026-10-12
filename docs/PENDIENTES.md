@@ -1,14 +1,18 @@
 # Pendientes y próximos pasos
 
-Estado al **09/10/2026**.
+Estado al **12/10/2026**.
 
-- **Publicada: v1.13.0** (09/10/2026): vista previa con la imagen más grande (104 px) y el desplegable **▸ Ver variantes** de cada familia, buscadas solas en Sephora, Michael Kors, Marc Jacobs y Kate Spade (sección 7); Excel con `sku` solo en Amazon (sin `link`) y `link` sin `sku` en los demás sitios; permiso `unlimitedStorage`.
+- **Publicada: v1.14.0** (12/10/2026): vista previa rediseñada para quien revisa el contenido (colores de COMPRAFACIL, resumen con estado en palabras, pestañas *Todos* / *Para revisar* / *No irán al Excel*, tarjetas por grupo con avisos explicados, variantes en miniaturas cerradas al empezar, interruptor *Ver datos técnicos* con la fila del Excel como hoja de cálculo, casillas por producto y por grupo con barra de selección; muchas tallas resumidas por color con tabla cintura × largo, y solo 14 colores a la vista; grupos comprimido / resumido / completo; asignar categoría por grupo, producto o selección con Deshacer). Falta probarla en Chrome real.
+- v1.13.0 (09/10/2026): vista previa con la imagen más grande (104 px) y el desplegable **▸ Ver variantes** de cada familia, buscadas solas en Sephora, Michael Kors, Marc Jacobs y Kate Spade (sección 7); Excel con `sku` solo en Amazon (sin `link`) y `link` sin `sku` en los demás sitios; permiso `unlimitedStorage`.
 - v1.12.1 (07/10/2026, corrección): Sephora, páginas de producto de un solo SKU (sin tonos ni tamaños, p. ej. calendarios de adviento) no extraían nada: la página no trae `data-cnstrc-item-variation-id`; ahora el `skuId` se lee de "Item 3031002" (`variantChild`).
 - v1.12.0 (06/10/2026): icono por sitio (logo del sitio en un marco naranja, en la barra y en el popup) y **vista previa** del Excel en una pestaña, con la opción de quitar productos antes de descargar (sección 7).
 - v1.11.0 (06/10/2026): Kate Spade (solo `www.katespade.com`, sin el outlet; un producto por familia siempre, leída del JSON-LD de cada producto; páginas siguientes del scroll infinito descargadas en segundo plano; límite solo por productos; botón a EE. UU. desde otra región). Familias generalizadas a cualquier sitio.
 - v1.10.1 (03/10/2026, correcciones): Amazon, un producto por familia (sección 6); opciones del grupo *Extraer variantes* y *Guía de tallas* (`variacion`/`guia_talla` = Sí/No, fijas desde la extracción; sin variantes no se verifican familias); columnas vacías del backend al final del Excel; duración de la extracción en el resumen y la notificación.
 - v1.10.0 (02/10/2026): Marc Jacobs (solo `/us-en/`; una fila por modelo; categorías y búsquedas con carga en segundo plano; botón a EE. UU. desde otra región).
 - v1.9.0 (02/10/2026): Sephora; anuncios fuera, páginas siguientes y portada de categoría en Amazon; límite por páginas; extracciones en segundo plano con cola, notificación y "Detener"; resumen desplegable y 🗑 por grupo.
+
+## 0. Mejoras pendientes de la vista previa
+- [ ] Popup: usar el módulo `selector-categoria.js` (el de la vista previa) en lugar de su buscador propio, para no mantener dos.
 
 ## 1. Categorías automáticas desde la API ✅
 - [x] Secrets **`CF_EMAIL`** y **`CF_PASSWORD`** creados en GitHub. Ver [CATEGORIAS.md](CATEGORIAS.md).
