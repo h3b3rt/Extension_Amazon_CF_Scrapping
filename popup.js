@@ -7,17 +7,14 @@ import { getJobs, jobForUrl } from './jobs.js';
 import {
   MAX_GROUP_NAME, cleanGroupName, nameTaken, defaultGroupName, syncGroups, sortedGroups, opcionesDe, siNo, quitadosTxt,
 } from './groups.js';
-import {
-  getCachedCategories, getCategories, refreshCategories, findCategory, searchCategories, categoryLabel, normalizeText,
-  sourceLabel,
-} from './categories.js';
+import { getCachedCategories, getCategories } from './categories.js';
+import { crearSelector, recordarCategoria } from './selector-categoria.js';
 import {
   appName, sitesOf, findSite, siteConfig, siteTitle, siteIcon, DEFAULT_ICON, productKey, pageLabel, pageTypeByUrl, regionRedirect,
 } from './sites.js';
 
 const $ = id => document.getElementById(id);
 const STALE_MS = 30 * 60 * 1000;
-const MAX_RECENT_CATEGORIES = 15;
 const DEFAULT_LOAD_LIMIT = 50;
 const MAX_LOAD_LIMIT = 500;
 const DEFAULT_PAGES = 1;
@@ -29,8 +26,9 @@ let pending = null;
 let defaultPrefix = DEFAULT_PREFIX;
 let updateFileNamePreview = () => {};
 let updateExportNamePreview = () => {};
-// Categorías del sistema (en caché; vacía si la API no está configurada).
-let catalogCache = { items: [], fetchedAt: null, error: null };
+// Categorías del sistema (caché o lista incluida) y el selector del formulario.
+let catalogCache = null;
+let selector = null;
 
 function showStatus(message, type = '') {
   const status = $('status');
@@ -391,19 +389,23 @@ function hideDuplicate() {
   $('scrape').hidden = false;
 }
 
-// Pide la categoría antes de cada extracción. Con la API configurada se elige
-// de la lista del sistema (buscando por cualquier parte de la ruta o por código);
-// sin API se escribe a mano. Propone la última usada o la de la extracción
-// anterior de esta página.
+// Pide la categoría antes de cada extracción, con el selector de la vista previa
+// (selector-categoria.js): se busca por cualquier parte de la ruta o por código, o
+// se elige por niveles. Propone la de la extracción anterior de esta página o la
+// última usada.
 async function askCategory() {
-  const { recentCategories = [] } = await chrome.storage.local.get('recentCategories');
-  const previous = pending?.previous;
+  const { recentCategories = [], categoryMode = 'search' } = await chrome.storage.local.get(['recentCategories', 'categoryMode']);
   // Siempre empieza desmarcada: "No llenar categoría" es la excepción, no la regla.
   $('multiCategory').checked = false;
-
-  const catalog = catalogCache.items;
-  combo.recent = recentCategories;
-  $('category').placeholder = catalog.length ? 'Escribe para buscar: ollas, audífonos, CF0101…' : 'Ej: Audífonos inalámbricos';
+  selector = crearSelector({
+    actual: pending?.previous?.categoria || recentCategories[0] || '',
+    recientes: recentCategories,
+    modo: categoryMode,
+    onEscape: hideCategoryForm,
+  });
+  $('categoryPicker').replaceChildren(selector.nodo);
+  // La caché incluye lo descargado con "↻ Actualizar" en un formulario anterior.
+  if (catalogCache) selector.cargar(catalogCache = await getCachedCategories());
   $('scrape').hidden = true;
   $('categoryForm').hidden = false;
   // En modo acumular el nombre se pide al descargar, no en cada extracción.
@@ -431,308 +433,14 @@ async function askCategory() {
     const modo = soloProductos || p.modo === 'productos' ? 'productos' : 'paginas';
     setLimitMode(modo, modo === 'paginas' ? p.paginas || DEFAULT_PAGES : p.productos || pending.cfg.loadMore.defaultLimit || DEFAULT_LOAD_LIMIT);
   }
-  const input = $('category');
-  const sugerida = previous?.categoria || recentCategories[0] || '';
-  combo.selected = catalog.length ? findCategory(catalog, sugerida) : null;
-  input.value = catalog.length ? (combo.selected ? categoryLabel(combo.selected) : '') : sugerida;
-  const { categoryMode: savedMode = 'search' } = await chrome.storage.local.get('categoryMode');
-  syncMultiCategory();
-  setCategoryMode(savedMode, { focus: false });
-  focusCategoryField();
+  selector.enfocar();
 }
 
-// ---- Dos formas de elegir: buscador o niveles (principal → secundaria → terciaria) ----
-
-let categoryMode = 'search';
-
-function setCategoryMode(mode, { focus = true } = {}) {
-  const hasCatalog = catalogCache.items.length > 0;
-  categoryMode = hasCatalog ? mode : 'search';
-  $('modeBrowse').disabled = !hasCatalog;
-  $('modeBrowse').title = hasCatalog ? '' : 'Disponible cuando haya categorías cargadas';
-  for (const [id, m] of [['modeSearch', 'search'], ['modeBrowse', 'browse']]) {
-    $(id).classList.toggle('active', m === categoryMode);
-    $(id).setAttribute('aria-selected', String(m === categoryMode));
-  }
-  $('browseGroup').hidden = categoryMode !== 'browse';
-  $('searchGroup').hidden = categoryMode !== 'search';
-  setComboOpen(false);
-  // Lo elegido en un modo se ve en el otro.
-  if (categoryMode === 'browse') renderLevels(levelsOf(combo.selected));
-  else if (combo.selected) $('category').value = categoryLabel(combo.selected);
-  updateCategoryHint();
-  if (focus) focusCategoryField();
-}
-
-// Enfoca el campo que toca completar: el buscador o el primer nivel sin elegir.
-function focusCategoryField() {
-  if ($('multiCategory').checked) return;
-  if (categoryMode === 'browse') {
-    const next = ['level1', 'level2', 'level3'].find(id => !$(id).value && !$(id).disabled) || 'level3';
-    $(next).focus();
-  } else {
-    $('category').focus();
-    $('category').select();
-    renderComboList();
-  }
-}
-
-const levelsOf = c => (c ? { primaria: c.primaria, secundaria: c.secundaria, codigo: c.codigo } : {});
-
-function fillSelect(select, placeholder, options, value) {
-  select.replaceChildren(
-    Object.assign(document.createElement('option'), { value: '', textContent: placeholder }),
-    ...options.map(([v, t]) => Object.assign(document.createElement('option'), { value: v, textContent: t })),
-  );
-  select.value = options.some(([v]) => v === value) ? value : '';
-}
-
-// Cada lista muestra solo las opciones del nivel superior elegido.
-function renderLevels({ primaria = '', secundaria = '', codigo = '' } = {}) {
-  const catalog = catalogCache.items;
-  const unique = values => [...new Set(values)];
-  fillSelect($('level1'), 'Categoría principal…', unique(catalog.map(c => c.primaria)).map(p => [p, p]), primaria);
-  const p = $('level1').value;
-  const secundarias = unique(catalog.filter(c => c.primaria === p).map(c => c.secundaria));
-  fillSelect($('level2'), p ? 'Categoría secundaria…' : 'Elige primero la principal', secundarias.map(s => [s, s]), secundaria);
-  const s = $('level2').value;
-  const terciarias = catalog.filter(c => c.primaria === p && c.secundaria === s);
-  fillSelect($('level3'), s ? 'Categoría terciaria…' : 'Elige primero la secundaria', terciarias.map(c => [c.codigo, c.terciaria]), codigo);
-  const multi = $('multiCategory').checked;
-  $('level1').disabled = multi;
-  $('level2').disabled = multi || !p;
-  $('level3').disabled = multi || !s;
-}
-
-function onLevelChange(e) {
-  renderLevels({ primaria: $('level1').value, secundaria: $('level2').value, codigo: $('level3').value });
-  const codigo = $('level3').value;
-  combo.selected = codigo ? catalogCache.items.find(c => c.codigo === codigo) || null : null;
-  $('category').value = combo.selected ? categoryLabel(combo.selected) : '';
-  updateCategoryHint();
-  // Avanzar al siguiente nivel en cuanto se elige uno.
-  const next = { level1: 'level2', level2: 'level3' }[e.target.id];
-  if (next && e.target.value && !$(next).disabled) $(next).focus();
-}
-
-// Tras cargar o actualizar la lista: habilitar "Por niveles" y refrescar sus opciones.
-function refreshCategoryUi() {
-  if ($('categoryForm').hidden) return;
-  setCategoryMode(categoryMode, { focus: false });
-}
-
-// ---- Buscador de categorías (lista desplegable que filtra mientras se escribe) ----
-
-const combo = { selected: null, recent: [], items: [], active: -1 };
-
-const comboLabel = item => (typeof item === 'string' ? item : categoryLabel(item));
-
-// Qué mostrar: resultados de la búsqueda o, con el campo vacío, las recientes.
-function comboEntries() {
-  const catalog = catalogCache.items;
-  const input = $('category');
-  const typed = combo.selected && input.value === categoryLabel(combo.selected) ? '' : input.value.trim();
-  if (catalog.length) {
-    if (typed) return { query: typed, groups: [{ title: '', items: searchCategories(catalog, typed, 50) }] };
-    const recientes = combo.recent.map(r => findCategory(catalog, r)).filter(Boolean);
-    return {
-      query: '',
-      groups: recientes.length ? [{ title: 'Usadas recientemente', items: recientes }] : [],
-      emptyText: recientes.length ? '' : `Escribe para buscar entre ${catalog.length} categorías.`,
-    };
-  }
-  // Sin categorías del sistema: sugerir las escritas antes.
-  const t = normalizeText(typed);
-  const recientes = combo.recent.filter(r => !t || normalizeText(r).includes(t));
-  return { query: typed, groups: recientes.length ? [{ title: 'Usadas recientemente', items: recientes }] : [] };
-}
-
-// Resalta (con <mark>) las partes del texto que coinciden, ignorando tildes.
-function highlight(text, terms) {
-  const frag = document.createDocumentFragment();
-  if (!terms.length) { frag.append(text); return frag; }
-  let norm = '';
-  const map = [];
-  for (let i = 0; i < text.length; i++) {
-    for (const ch of text[i].normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()) {
-      norm += ch;
-      map.push(i);
-    }
-  }
-  const marked = new Array(text.length).fill(false);
-  for (const t of terms) {
-    for (let idx = norm.indexOf(t); idx !== -1; idx = norm.indexOf(t, idx + t.length)) {
-      for (let k = idx; k < idx + t.length; k++) marked[map[k]] = true;
-    }
-  }
-  let buf = '';
-  let on = false;
-  const flush = () => {
-    if (!buf) return;
-    if (on) frag.append(Object.assign(document.createElement('mark'), { textContent: buf }));
-    else frag.append(buf);
-    buf = '';
-  };
-  for (let i = 0; i < text.length; i++) {
-    if (marked[i] !== on) { flush(); on = marked[i]; }
-    buf += text[i];
-  }
-  flush();
-  return frag;
-}
-
-function comboOption(item, index, terms) {
-  const li = document.createElement('li');
-  li.setAttribute('role', 'option');
-  li.id = `cat-opt-${index}`;
-  const path = document.createElement('span');
-  path.className = 'path';
-  if (typeof item === 'string') {
-    path.append(highlight(item, terms));
-    li.append(path);
-  } else {
-    const ultimo = document.createElement('b');
-    ultimo.append(highlight(item.terciaria, terms));
-    path.append(highlight(`${item.primaria} / ${item.secundaria} / `, terms), ultimo);
-    const code = document.createElement('span');
-    code.className = 'code';
-    code.append(highlight(item.codigo, terms));
-    li.append(path, code);
-  }
-  // mousedown (no click) para elegir antes de que el campo pierda el foco.
-  li.addEventListener('mousedown', e => { e.preventDefault(); chooseComboItem(index); });
-  li.addEventListener('mousemove', () => { if (combo.active !== index) { combo.active = index; highlightActive(); } });
-  return li;
-}
-
-function renderComboList() {
-  const { query, groups, emptyText = '' } = comboEntries();
-  combo.items = groups.flatMap(g => g.items);
-  const terms = normalizeText(query).split(' ').filter(t => t && t !== '/');
-  const nodes = [];
-  let index = 0;
-  for (const g of groups) {
-    if (g.title) nodes.push(Object.assign(document.createElement('li'), { className: 'group', textContent: g.title }));
-    for (const item of g.items) nodes.push(comboOption(item, index++, terms));
-  }
-  if (!combo.items.length && catalogCache.items.length) {
-    const text = query ? 'Sin resultados. Prueba con otra palabra o con el código.' : emptyText;
-    if (text) nodes.push(Object.assign(document.createElement('li'), { className: 'empty', textContent: text }));
-  }
-  $('categoryList').replaceChildren(...nodes);
-  combo.active = query && combo.items.length ? 0 : -1;
-  highlightActive();
-  setComboOpen(nodes.length > 0);
-}
-
-function highlightActive() {
-  const input = $('category');
-  $('categoryList').querySelectorAll('[role=option]').forEach(li => {
-    const on = li.id === `cat-opt-${combo.active}`;
-    li.classList.toggle('active', on);
-    li.setAttribute('aria-selected', String(on));
-    if (on) li.scrollIntoView({ block: 'nearest' });
-  });
-  if (combo.active >= 0) input.setAttribute('aria-activedescendant', `cat-opt-${combo.active}`);
-  else input.removeAttribute('aria-activedescendant');
-}
-
-function setComboOpen(open) {
-  $('categoryList').hidden = !open;
-  $('category').setAttribute('aria-expanded', String(open));
-}
-
-function chooseComboItem(index) {
-  const item = combo.items[index];
-  if (item === undefined) return;
-  combo.selected = typeof item === 'string' ? null : item;
-  $('category').value = comboLabel(item);
-  setComboOpen(false);
-  updateCategoryHint();
-}
-
-function onComboKeydown(e) {
-  const open = !$('categoryList').hidden;
-  const count = combo.items.length;
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    e.preventDefault();
-    if (!open) return renderComboList();
-    if (!count) return;
-    const step = e.key === 'ArrowDown' ? 1 : -1;
-    combo.active = combo.active < 0 ? (step > 0 ? 0 : count - 1) : (combo.active + step + count) % count;
-    highlightActive();
-  } else if (e.key === 'Enter' && open && combo.active >= 0) {
-    e.preventDefault();
-    chooseComboItem(combo.active);
-  } else if (e.key === 'Escape') {
-    e.preventDefault();
-    if (open) setComboOpen(false);
-    else hideCategoryForm();
-  }
-}
-
-// Debajo del campo: código de la categoría elegida, o el estado de la lista.
-// `message` (p. ej. un error de validación o el resultado de "Actualizar") tiene prioridad.
-function updateCategoryHint(message = '', type = 'error') {
-  const hint = $('categoryHint');
-  const catalog = catalogCache.items;
-  const multi = $('multiCategory').checked;
-  let text = message;
-  if (!text && !multi && catalog.length) {
-    const c = combo.selected || findCategory(catalog, $('category').value);
-    if (c) text = `Código: ${c.codigo}`;
-  }
-  if (!text && !multi && !catalog.length) text = 'Aún no hay categorías cargadas. Pulsa "↻ Actualizar".';
-  hint.textContent = text;
-  hint.className = `hint${message ? ` ${type}` : ''}`;
-  hint.hidden = !text;
-}
-
-async function onRefreshCategories() {
-  const btn = $('refreshCats');
-  btn.disabled = true;
-  btn.textContent = '↻ Actualizando…';
-  catalogCache = await refreshCategories();
-  btn.disabled = false;
-  btn.textContent = '↻ Actualizar';
-  // Si la categoría escrita existe en la lista nueva, queda elegida.
-  combo.selected = findCategory(catalogCache.items, $('category').value) || null;
-  refreshCategoryUi();
-  if (catalogCache.error) {
-    const respaldo = catalogCache.items.length ? ` Se sigue usando la lista anterior (${catalogCache.items.length} categorías).` : '';
-    updateCategoryHint(`⚠ No se pudo actualizar.${respaldo}\n${catalogCache.error}`, 'error');
-  } else {
-    updateCategoryHint(`✓ ${catalogCache.items.length} categorías actualizadas (${sourceLabel(catalogCache.source)}).`, 'ok');
-  }
-  if (document.activeElement === $('category')) renderComboList();
-}
-
-// Categoría elegida en el formulario, con los 3 niveles y el código.
-// null = "No llenar categoría" (columnas vacías para completar a mano).
+// Categoría del formulario: { ok, cat } con los 3 niveles y el código, o el motivo.
+// cat null = "No llenar categoría" (columnas vacías para completar a mano).
 function readCategory() {
   if ($('multiCategory').checked) return { ok: true, cat: null };
-  const toCat = c => ({ principal: c.primaria, secundaria: c.secundaria, terciaria: c.terciaria, codigo: c.codigo, ruta: categoryLabel(c) });
-  if (categoryMode === 'browse') {
-    return combo.selected
-      ? { ok: true, cat: toCat(combo.selected) }
-      : { ok: false, error: 'Completa los tres niveles: principal, secundaria y terciaria.' };
-  }
-  const text = $('category').value.trim().replace(/\s+/g, ' ');
-  if (!text) return { ok: false, error: 'Escribe o elige una categoría.' };
-  const catalog = catalogCache.items;
-  if (!catalog.length) {
-    return { ok: true, cat: { principal: text, secundaria: '', terciaria: '', codigo: '', ruta: text } };
-  }
-  const c = combo.selected || findCategory(catalog, text);
-  if (!c) return { ok: false, error: 'Elige una categoría de la lista.' };
-  return { ok: true, cat: toCat(c) };
-}
-
-// "No llenar categoría": las columnas quedan vacías para completarlas a mano.
-function syncMultiCategory() {
-  const multi = $('multiCategory').checked;
-  $('category').disabled = multi;
-  if (categoryMode === 'browse') renderLevels(levelsOf(combo.selected));
+  return selector.leer();
 }
 
 // Grupos contra los que no se puede repetir el nombre: ninguno si cada extracción
@@ -832,13 +540,6 @@ function hideCategoryForm() {
   $('scrape').hidden = false;
 }
 
-async function rememberCategory(categoria) {
-  const { recentCategories = [] } = await chrome.storage.local.get('recentCategories');
-  const key = normalizeText(categoria);
-  const next = [categoria, ...recentCategories.filter(c => normalizeText(c) !== key)];
-  await chrome.storage.local.set({ recentCategories: next.slice(0, MAX_RECENT_CATEGORIES) });
-}
-
 // Qué cambia con "Extraer variantes" en este sitio (Amazon: familias; Kate Spade:
 // familias siempre, con o sin variantes).
 function updateOptionsHint() {
@@ -857,7 +558,7 @@ function updateOptionsHint() {
 // `limite`: { modo: 'paginas' | 'productos', valor } o null (página sin límite).
 async function enqueue(cat, nombreGrupo, limite = null) {
   const { tabId, tabUrl, url, title, replace, site } = pending;
-  if (cat) await rememberCategory(cat.ruta);
+  if (cat) await recordarCategoria(cat.ruta);
   const opciones = { variaciones: $('optVariaciones').checked, guiaTalla: $('optGuiaTalla').checked };
   // Sin variantes, el sistema crea solo cada ASIN: no se agrupan por familia
   // (salvo los sitios con familias.siempre, como Kate Spade).
@@ -969,8 +670,8 @@ async function init() {
     e.preventDefault();
     const choice = readCategory();
     if (!choice.ok) {
-      updateCategoryHint(choice.error);
-      return focusCategoryField();
+      selector.avisar(choice.error);
+      return selector.enfocar();
     }
     const group = await readGroupName();
     if (!group.ok) {
@@ -1020,31 +721,11 @@ async function init() {
     $('groupHint').textContent = 'Se verá en la columna ref_grupo del Excel.';
     $('groupHint').className = 'hint';
   });
-  for (const [id, mode] of [['modeSearch', 'search'], ['modeBrowse', 'browse']]) {
-    $(id).addEventListener('click', () => {
-      setCategoryMode(mode);
-      chrome.storage.local.set({ categoryMode: mode });
-    });
-  }
-  for (const id of ['level1', 'level2', 'level3']) $(id).addEventListener('change', onLevelChange);
-  $('browseGroup').addEventListener('keydown', e => {
-    if (e.key === 'Escape') { e.preventDefault(); hideCategoryForm(); }
-  });
   $('multiCategory').addEventListener('change', () => {
-    syncMultiCategory();
-    updateCategoryHint();
-    focusCategoryField();
-  });
-  $('category').addEventListener('input', () => {
-    combo.selected = null;
-    renderComboList();
-    updateCategoryHint();
+    selector?.apagar($('multiCategory').checked);
+    selector?.enfocar();
   });
   $('cancelCategory').addEventListener('click', hideCategoryForm);
-  $('refreshCats').addEventListener('click', onRefreshCategories);
-  $('category').addEventListener('keydown', onComboKeydown);
-  $('category').addEventListener('focus', renderComboList);
-  $('category').addEventListener('blur', () => setComboOpen(false));
   updateFileNamePreview = bindFileNamePreview('fileName', 'fileNamePreview');
   updateExportNamePreview = bindFileNamePreview('exportName', 'exportNamePreview');
   const hideExportForm = () => { $('exportForm').hidden = true; $('download').parentElement.hidden = false; };
@@ -1059,7 +740,7 @@ async function init() {
     e.preventDefault();
     const { collected, groups } = await getState();
     try {
-      const r = await descargarLista(collected, groups, catalogCache.items, $('exportName').value);
+      const r = await descargarLista(collected, groups, (await getCachedCategories()).items, $('exportName').value);
       hideExportForm();
       if (r.encolada) {
         showStatus(encoladaTxt(r.encolada));
@@ -1095,10 +776,10 @@ async function init() {
 
   // Categorías: primero la caché (instantáneo) y luego se refresca si está vencida.
   catalogCache = await getCachedCategories();
+  selector?.cargar(catalogCache);
   getCategories().then(fresh => {
     catalogCache = fresh;
-    refreshCategoryUi();
-    if (document.activeElement === $('category')) renderComboList();
+    selector?.cargar(fresh);
   });
 
   // Si la última comprobación es antigua, refrescar en segundo plano.

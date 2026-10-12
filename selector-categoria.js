@@ -1,16 +1,17 @@
-// Selector de categoría en una ventana (vista previa): mismo comportamiento que el del
-// popup antes de extraer. Modos "🔍 Buscar" (lista que filtra mientras se escribe, con
-// flechas y Enter) y "☰ Por niveles" (tres listas en cascada), "↻ Actualizar" y las
-// categorías usadas recientemente. Comparte con el popup las claves recentCategories
-// (rutas "P / S / T") y categoryMode.
-// elegirCategoria({ titulo, subtitulo, actual }) → Promise<cat | null>, con cat igual
-// al del popup: { principal, secundaria, terciaria, codigo, ruta }. Solo acepta una
-// categoría del catálogo (con código): sin código el Excel no la usaría.
-// Con `limpiar: true` muestra además "Quitar categoría", que resuelve { limpiar: true }.
+// Selector de categoría, único para el popup (en el formulario de "Extraer") y la
+// vista previa (en una ventana). Modos "🔍 Buscar" (lista que filtra mientras se
+// escribe, con flechas y Enter) y "☰ Por niveles" (tres listas en cascada),
+// "↻ Actualizar" y las categorías usadas recientemente. Guarda en storage.local las
+// claves recentCategories (rutas "P / S / T") y categoryMode.
+// crearSelector(...) arma el selector dentro de la página; elegirCategoria(...) lo
+// muestra en una ventana. La categoría elegida tiene la forma
+// { principal, secundaria, terciaria, codigo, ruta }. Solo acepta una categoría del
+// catálogo (con código): sin código el Excel no la usaría.
 // Todo se arma con textContent.
 import { getCategories, refreshCategories, searchCategories, categoryLabel, findCategory, normalizeText, sourceLabel } from './categories.js';
 
 const MAX_RECIENTES = 15;
+let instancias = 0;
 const el = (tag, props = {}, ...hijos) => {
   const e = Object.assign(document.createElement(tag), props);
   e.append(...hijos.filter(h => h != null && h !== ''));
@@ -49,68 +50,74 @@ function resaltar(texto, terminos) {
   return frag;
 }
 
-async function recordar(ruta) {
+// La ruta usada pasa al principio de las recientes.
+export async function recordarCategoria(ruta) {
   const { recentCategories = [] } = await chrome.storage.local.get('recentCategories');
   const k = normalizeText(ruta);
   await chrome.storage.local.set({ recentCategories: [ruta, ...recentCategories.filter(c => normalizeText(c) !== k)].slice(0, MAX_RECIENTES) });
 }
 
-export async function elegirCategoria({ titulo = 'Asignar categoría', subtitulo = '', actual = '', limpiar = false } = {}) {
-  const { categoryMode = 'search', recentCategories = [] } = await chrome.storage.local.get(['categoryMode', 'recentCategories']);
-  let catalogo = { items: [] };
-  const estado = { modo: categoryMode === 'browse' ? 'browse' : 'search', elegida: null, lista: [], activa: -1 };
+// Selector dentro de la página. `actual`: ruta o código a proponer; `recientes` y
+// `modo` (search | browse) vienen de storage.local. `onEnter`: Enter con la lista
+// cerrada (sin él, el Enter sigue su curso y envía el formulario). `onEscape`: Esc
+// con la lista cerrada. El catálogo se entrega con cargar(): mientras no llega,
+// dice "Cargando categorías…".
+export function crearSelector({ actual = '', recientes = [], modo = 'search', onEnter = null, onEscape = null } = {}) {
+  const id = `sc${++instancias}`;
+  let catalogo = null;
+  const estado = { modo: modo === 'browse' ? 'browse' : 'search', elegida: null, lista: [], activa: -1, apagado: false, mensaje: null };
 
-  // ---- ventana ----
-  const input = el('input', { className: 'sc-input', type: 'text', autocomplete: 'off', placeholder: 'Escribe parte del nombre o el código (ej. audífonos)' });
+  const input = el('input', { className: 'sc-input', type: 'text', autocomplete: 'off', spellcheck: false, placeholder: 'Escribe para buscar: ollas, audífonos, CF0101…' });
   input.setAttribute('role', 'combobox');
+  input.setAttribute('aria-label', 'Buscar categoría');
   input.setAttribute('aria-autocomplete', 'list');
   input.setAttribute('aria-expanded', 'false');
-  const lista = el('ul', { className: 'sc-list', hidden: true });
+  input.setAttribute('aria-controls', `${id}-lista`);
+  const lista = el('ul', { className: 'sc-list', id: `${id}-lista`, hidden: true });
   lista.setAttribute('role', 'listbox');
-  const niveles = [1, 2, 3].map(n => el('select', { className: 'sc-select' }));
-  niveles.forEach((s, i) => s.setAttribute('aria-label', `Nivel ${i + 1}`));
+  const niveles = [1, 2, 3].map(() => el('select', { className: 'sc-select' }));
+  const nombresNivel = ['Principal', 'Secundaria', 'Terciaria'];
+  niveles.forEach((s, i) => s.setAttribute('aria-label', `Categoría ${nombresNivel[i].toLowerCase()}`));
   const pista = el('div', { className: 'sc-hint' });
+  pista.setAttribute('aria-live', 'polite');
   const bBuscar = el('button', { type: 'button', className: 'sc-tab', textContent: '🔍 Buscar' });
   const bNiveles = el('button', { type: 'button', className: 'sc-tab', textContent: '☰ Por niveles' });
   const bActualizar = el('button', { type: 'button', className: 'sc-refresh', textContent: '↻ Actualizar', title: 'Descargar la lista de categorías más reciente' });
   const grupoBuscar = el('div', { className: 'sc-group' }, input, lista);
   const grupoNiveles = el('div', { className: 'sc-group sc-levels' },
-    ...niveles.map((s, i) => el('label', {}, el('span', { textContent: ['Principal', 'Secundaria', 'Terciaria'][i] }), s)));
-  const cancelar = el('button', { type: 'button', className: 'ghost', textContent: 'Cancelar' });
-  const bLimpiar = limpiar ? el('button', { type: 'button', className: 'ghost sc-clear', textContent: '✕ Quitar categoría', title: 'Dejar sin categoría (se elige en la plantilla)' }) : null;
-  const aceptar = el('button', { type: 'button', className: 'primary', textContent: 'Asignar categoría' });
-  const modal = el('div', { className: 'modal sc-modal' },
-    el('h3', { className: 'sc-title', textContent: titulo }),
-    subtitulo ? el('p', { className: 'sc-sub', textContent: subtitulo }) : null,
+    ...niveles.map((s, i) => el('label', {}, el('span', { textContent: nombresNivel[i] }), s)));
+  const nodo = el('div', { className: 'sc-picker' },
     el('div', { className: 'sc-tabs' }, bBuscar, bNiveles, el('div', { className: 'grow' }), bActualizar),
-    grupoBuscar, grupoNiveles, pista,
-    el('div', { className: 'actions' }, bLimpiar, el('div', { className: 'grow' }), cancelar, aceptar));
-  modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', titulo);
-  const overlay = el('div', { className: 'overlay sc-overlay' }, modal);
-  document.body.append(overlay);
+    grupoBuscar, grupoNiveles, pista);
+  const items = () => catalogo?.items || [];
 
-  // ---- pista bajo el campo ----
-  const ponerPista = (msg = '', tipo = '') => {
-    let t = msg;
-    if (!t && estado.elegida) t = `Código: ${estado.elegida.codigo}`;
-    if (!t && !catalogo.items.length) t = 'Cargando categorías…';
+  // ---- pista bajo el campo: un mensaje (error, resultado de Actualizar) o el código ----
+  const pintarPista = () => {
+    let t = estado.mensaje?.texto || '';
+    if (!t && !estado.apagado) {
+      if (!catalogo) t = 'Cargando categorías…';
+      else if (estado.elegida) t = `Código: ${estado.elegida.codigo}`;
+      else if (!items().length) t = 'Aún no hay categorías cargadas. Pulsa "↻ Actualizar".';
+    }
     pista.textContent = t;
-    pista.className = `sc-hint${tipo ? ` ${tipo}` : ''}`;
+    pista.className = `sc-hint${estado.mensaje?.tipo ? ` ${estado.mensaje.tipo}` : ''}`;
+  };
+  const avisar = (texto = '', tipo = 'error') => {
+    estado.mensaje = texto ? { texto, tipo } : null;
+    pintarPista();
   };
   const elegir = c => {
     estado.elegida = c;
-    aceptar.disabled = !c;
-    ponerPista();
+    estado.mensaje = null;
+    pintarPista();
   };
 
   // ---- modo Buscar ----
   const entradas = () => {
     const escrito = estado.elegida && input.value === categoryLabel(estado.elegida) ? '' : input.value.trim();
-    if (escrito) return { q: escrito, grupos: [{ titulo: '', items: searchCategories(catalogo.items, escrito, 50) }] };
-    const recientes = recentCategories.map(r => findCategory(catalogo.items, r)).filter(Boolean);
-    return { q: '', grupos: recientes.length ? [{ titulo: 'Usadas recientemente', items: recientes }] : [], vacio: recientes.length ? '' : `Escribe para buscar entre ${catalogo.items.length} categorías.` };
+    if (escrito) return { q: escrito, grupos: [{ titulo: '', items: searchCategories(items(), escrito, 50) }] };
+    const usadas = recientes.map(r => findCategory(items(), r)).filter(Boolean);
+    return { q: '', grupos: usadas.length ? [{ titulo: 'Usadas recientemente', items: usadas }] : [], vacio: usadas.length ? '' : `Escribe para buscar entre ${items().length} categorías.` };
   };
   const marcarActiva = () => {
     lista.querySelectorAll('[role=option]').forEach(li => {
@@ -119,6 +126,8 @@ export async function elegirCategoria({ titulo = 'Asignar categoría', subtitulo
       li.setAttribute('aria-selected', String(on));
       if (on) li.scrollIntoView?.({ block: 'nearest' });
     });
+    if (estado.activa >= 0) input.setAttribute('aria-activedescendant', `${id}-op${estado.activa}`);
+    else input.removeAttribute('aria-activedescendant');
   };
   const abrirLista = abierta => { lista.hidden = !abierta; input.setAttribute('aria-expanded', String(abierta)); };
   const elegirDeLista = i => {
@@ -129,6 +138,7 @@ export async function elegirCategoria({ titulo = 'Asignar categoría', subtitulo
     elegir(c);
   };
   const pintarLista = () => {
+    if (!catalogo || estado.apagado) return abrirLista(false);
     const { q, grupos, vacio = '' } = entradas();
     estado.lista = grupos.flatMap(g => g.items);
     const terminos = normalizeText(q).split(' ').filter(t => t && t !== '/');
@@ -138,7 +148,7 @@ export async function elegirCategoria({ titulo = 'Asignar categoría', subtitulo
       if (g.titulo) nodos.push(el('li', { className: 'group', textContent: g.titulo }));
       for (const c of g.items) {
         const n = i++;
-        const li = el('li', {},
+        const li = el('li', { id: `${id}-op${n}` },
           el('span', { className: 'path' }, resaltar(`${c.primaria} / ${c.secundaria} / `, terminos), el('b', {}, resaltar(c.terciaria, terminos))),
           el('span', { className: 'code' }, resaltar(c.codigo, terminos)));
         li.setAttribute('role', 'option');
@@ -149,7 +159,7 @@ export async function elegirCategoria({ titulo = 'Asignar categoría', subtitulo
         nodos.push(li);
       }
     }
-    if (!estado.lista.length && catalogo.items.length) {
+    if (!estado.lista.length && items().length) {
       const t = q ? 'Sin resultados. Prueba con otra palabra o con el código.' : vacio;
       if (t) nodos.push(el('li', { className: 'empty', textContent: t }));
     }
@@ -159,7 +169,8 @@ export async function elegirCategoria({ titulo = 'Asignar categoría', subtitulo
     abrirLista(nodos.length > 0);
   };
   input.addEventListener('input', () => {
-    if (estado.elegida && input.value !== categoryLabel(estado.elegida)) elegir(findCategory(catalogo.items, input.value));
+    if (estado.elegida && input.value !== categoryLabel(estado.elegida)) elegir(null);
+    else avisar('');
     pintarLista();
   });
   input.addEventListener('focus', pintarLista);
@@ -175,14 +186,15 @@ export async function elegirCategoria({ titulo = 'Asignar categoría', subtitulo
       estado.activa = estado.activa < 0 ? (paso > 0 ? 0 : n - 1) : (estado.activa + paso + n) % n;
       marcarActiva();
     } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (abierta && estado.activa >= 0) elegirDeLista(estado.activa);
-      else if (estado.elegida) aceptar.click();
+      if (abierta && estado.activa >= 0) { e.preventDefault(); elegirDeLista(estado.activa); } else if (onEnter) { e.preventDefault(); onEnter(); }
     } else if (e.key === 'Escape' && abierta) {
       e.preventDefault();
       e.stopPropagation();
       abrirLista(false);
     }
+  });
+  nodo.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && onEscape && !e.defaultPrevented) { e.preventDefault(); onEscape(); }
   });
 
   // ---- modo Por niveles ----
@@ -190,63 +202,122 @@ export async function elegirCategoria({ titulo = 'Asignar categoría', subtitulo
   const llenar = (sel, valores, valor, vacio) => {
     sel.replaceChildren(el('option', { value: '', textContent: vacio }), ...valores.map(v => el('option', { value: v, textContent: v })));
     sel.value = valores.includes(valor) ? valor : '';
-    sel.disabled = !valores.length;
+    sel.disabled = estado.apagado || !valores.length;
   };
   const pintarNiveles = (c = estado.elegida) => {
     const [n1, n2, n3] = niveles;
-    const items = catalogo.items;
-    llenar(n1, unicos(items.map(x => x.primaria)), c?.primaria, 'Elige…');
-    llenar(n2, n1.value ? unicos(items.filter(x => x.primaria === n1.value).map(x => x.secundaria)) : [], c?.secundaria, n1.value ? 'Elige…' : '—');
-    llenar(n3, n2.value ? unicos(items.filter(x => x.primaria === n1.value && x.secundaria === n2.value).map(x => x.terciaria)) : [], c?.terciaria, n2.value ? 'Elige…' : '—');
+    llenar(n1, unicos(items().map(x => x.primaria)), c?.primaria, 'Elige…');
+    llenar(n2, n1.value ? unicos(items().filter(x => x.primaria === n1.value).map(x => x.secundaria)) : [], c?.secundaria, n1.value ? 'Elige…' : 'Elige primero la principal');
+    llenar(n3, n2.value ? unicos(items().filter(x => x.primaria === n1.value && x.secundaria === n2.value).map(x => x.terciaria)) : [], c?.terciaria, n2.value ? 'Elige…' : 'Elige primero la secundaria');
   };
   niveles.forEach((sel, i) => sel.addEventListener('change', () => {
     const [a, b, c] = niveles.map(s => s.value);
-    const parcial = { primaria: a, secundaria: i >= 1 ? b : '', terciaria: i >= 2 ? c : '' };
-    pintarNiveles(parcial);
-    const hallada = catalogo.items.find(x => x.primaria === niveles[0].value && x.secundaria === niveles[1].value && x.terciaria === niveles[2].value) || null;
+    pintarNiveles({ primaria: a, secundaria: i >= 1 ? b : '', terciaria: i >= 2 ? c : '' });
+    const hallada = items().find(x => x.primaria === niveles[0].value && x.secundaria === niveles[1].value && x.terciaria === niveles[2].value) || null;
     elegir(hallada);
-    if (hallada) input.value = categoryLabel(hallada);
+    input.value = hallada ? categoryLabel(hallada) : '';
+    // Avanzar al siguiente nivel en cuanto se elige uno.
+    if (i < 2 && sel.value && !niveles[i + 1].disabled) niveles[i + 1].focus();
   }));
 
-  const ponerModo = (modo, foco = true) => {
-    estado.modo = modo === 'browse' && catalogo.items.length ? 'browse' : 'search';
-    bBuscar.classList.toggle('on', estado.modo === 'search');
-    bNiveles.classList.toggle('on', estado.modo === 'browse');
-    bBuscar.setAttribute('aria-pressed', String(estado.modo === 'search'));
-    bNiveles.setAttribute('aria-pressed', String(estado.modo === 'browse'));
+  const enfocar = () => {
+    if (estado.apagado) return;
+    if (estado.modo === 'browse') (niveles.find(s => !s.value && !s.disabled) || niveles[2]).focus();
+    else { input.focus(); input.select(); }
+  };
+  const ponerModo = (m, foco = true) => {
+    estado.modo = m === 'browse' && items().length ? 'browse' : 'search';
+    bNiveles.disabled = !items().length;
+    bNiveles.title = items().length ? '' : 'Disponible cuando haya categorías cargadas';
+    for (const [b, on] of [[bBuscar, estado.modo === 'search'], [bNiveles, estado.modo === 'browse']]) {
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    }
     grupoBuscar.hidden = estado.modo !== 'search';
     grupoNiveles.hidden = estado.modo !== 'browse';
+    abrirLista(false);
+    // Lo elegido en un modo se ve en el otro.
     if (estado.modo === 'browse') pintarNiveles();
-    if (foco) (estado.modo === 'search' ? input : niveles.find(s => !s.value && !s.disabled) || niveles[2]).focus();
+    else if (estado.elegida) input.value = categoryLabel(estado.elegida);
+    if (foco) enfocar();
   };
   bBuscar.addEventListener('click', () => { ponerModo('search'); chrome.storage.local.set({ categoryMode: 'search' }); });
   bNiveles.addEventListener('click', () => { ponerModo('browse'); chrome.storage.local.set({ categoryMode: 'browse' }); });
 
+  // Catálogo nuevo (al abrir, al llegar la lista fresca o tras "Actualizar"): se
+  // conserva lo elegido si sigue existiendo, o lo escrito si coincide con una ruta.
   const cargar = c => {
+    const primera = !catalogo;
     catalogo = c;
-    bNiveles.disabled = !catalogo.items.length;
-    if (!estado.elegida && actual) {
-      const a = findCategory(catalogo.items, actual);
-      if (a) { input.value = categoryLabel(a); elegir(a); }
-    }
-    if (estado.elegida) estado.elegida = catalogo.items.find(x => x.codigo === estado.elegida.codigo) || null;
+    if (estado.elegida) estado.elegida = items().find(x => x.codigo === estado.elegida.codigo) || null;
+    else if (primera && actual) estado.elegida = findCategory(items(), actual);
+    else if (input.value) estado.elegida = findCategory(items(), input.value);
+    if (estado.elegida && (primera || !input.value)) input.value = categoryLabel(estado.elegida);
     ponerModo(estado.modo, false);
-    ponerPista(c.error && !c.items.length ? `No se pudieron cargar las categorías: ${c.error}` : '', c.error && !c.items.length ? 'error' : '');
+    if (c.error && !items().length) avisar(`No se pudieron cargar las categorías: ${c.error}`);
+    else pintarPista();
+    if (document.activeElement === input) pintarLista();
   };
   bActualizar.addEventListener('click', async () => {
     bActualizar.disabled = true;
-    ponerPista('Actualizando…');
+    bActualizar.textContent = '↻ Actualizando…';
     const c = await refreshCategories();
     cargar(c);
     bActualizar.disabled = false;
-    ponerPista(c.error ? `No se pudo actualizar: ${c.error}. Se usa la lista guardada.` : `Lista actualizada (${c.items.length} categorías, ${sourceLabel(c.source)}).`, c.error ? 'error' : 'ok');
+    bActualizar.textContent = '↻ Actualizar';
+    if (c.error) {
+      const respaldo = c.items.length ? ` Se sigue usando la lista anterior (${c.items.length} categorías).` : '';
+      avisar(`⚠ No se pudo actualizar.${respaldo}\n${c.error}`);
+    } else {
+      avisar(`✓ ${c.items.length} categorías actualizadas (${sourceLabel(c.source)}).`, 'ok');
+    }
   });
 
-  elegir(null);
+  // "No llenar categoría" (popup): campos desactivados y sin pista.
+  const apagar = on => {
+    estado.apagado = on;
+    estado.mensaje = null;
+    input.disabled = on;
+    abrirLista(false);
+    if (estado.modo === 'browse') pintarNiveles();
+    pintarPista();
+  };
+
+  // Categoría elegida: { ok, cat } o { ok: false, error } con el motivo.
+  const leer = () => {
+    const c = estado.elegida || (estado.modo === 'search' ? findCategory(items(), input.value) : null);
+    if (c) return { ok: true, cat: catDe(c) };
+    if (estado.modo === 'browse') return { ok: false, error: 'Completa los tres niveles: principal, secundaria y terciaria.' };
+    if (!input.value.trim()) return { ok: false, error: 'Escribe o elige una categoría.' };
+    return { ok: false, error: 'Elige una categoría de la lista.' };
+  };
+
   ponerModo(estado.modo, false);
-  ponerPista();
-  cargar(await getCategories());
-  ponerModo(estado.modo);
+  pintarPista();
+  return { nodo, cargar, leer, avisar, enfocar, apagar, catalogo: () => catalogo };
+}
+
+// Ventana con el selector (vista previa). Resuelve la categoría elegida o null
+// (Cancelar, Esc, clic fuera). Con `limpiar: true` muestra además "Quitar
+// categoría", que resuelve { limpiar: true }.
+export async function elegirCategoria({ titulo = 'Asignar categoría', subtitulo = '', actual = '', limpiar = false } = {}) {
+  const { categoryMode = 'search', recentCategories = [] } = await chrome.storage.local.get(['categoryMode', 'recentCategories']);
+  const cancelar = el('button', { type: 'button', className: 'ghost', textContent: 'Cancelar' });
+  const bLimpiar = limpiar ? el('button', { type: 'button', className: 'ghost sc-clear', textContent: '✕ Quitar categoría', title: 'Dejar sin categoría (se elige en la plantilla)' }) : null;
+  const aceptar = el('button', { type: 'button', className: 'primary', textContent: 'Asignar categoría' });
+  const selector = crearSelector({ actual, recientes: recentCategories, modo: categoryMode, onEnter: () => aceptar.click() });
+  const modal = el('div', { className: 'modal sc-modal' },
+    el('h3', { className: 'sc-title', textContent: titulo }),
+    subtitulo ? el('p', { className: 'sc-sub', textContent: subtitulo }) : null,
+    selector.nodo,
+    el('div', { className: 'actions' }, bLimpiar, el('div', { className: 'grow' }), cancelar, aceptar));
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-label', titulo);
+  const overlay = el('div', { className: 'overlay sc-overlay' }, modal);
+  document.body.append(overlay);
+  selector.cargar(await getCategories());
+  selector.enfocar();
 
   return new Promise(resolve => {
     const fin = valor => {
@@ -260,10 +331,10 @@ export async function elegirCategoria({ titulo = 'Asignar categoría', subtitulo
     bLimpiar?.addEventListener('click', () => fin({ limpiar: true }));
     overlay.addEventListener('mousedown', e => { if (e.target === overlay) fin(null); });
     aceptar.addEventListener('click', async () => {
-      const c = estado.elegida || findCategory(catalogo.items, input.value);
-      if (!c) return ponerPista('Elige una categoría de la lista.', 'error');
-      await recordar(categoryLabel(c));
-      fin(catDe(c));
+      const r = selector.leer();
+      if (!r.ok) { selector.avisar(r.error); return selector.enfocar(); }
+      await recordarCategoria(r.cat.ruta);
+      fin(r.cat);
     });
   });
 }
