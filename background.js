@@ -3,7 +3,7 @@ import { appName, findSite, siteTitle, siteIcon, DEFAULT_ICON, familiasConfig } 
 import { getPrefs } from './prefs.js';
 import { getJobs, setJobs, guardarResultado, familiasDeLaLista, verificarLista, duracionTxt } from './jobs.js';
 import { exportList, exportSummary } from './export.js';
-import { quitarDeLista, restaurarEnLista, asignarCategoria, restaurarCategoria } from './groups.js';
+import { quitarDeLista, restaurarEnLista, asignarCategoria, restaurarCategoria, cambiarGuiaTalla } from './groups.js';
 import { getCachedCategories } from './categories.js';
 
 const SYNC_ALARM = 'config-sync';
@@ -186,6 +186,12 @@ const HANDLERS = {
   async restaurarCategoria({ previos }, sender) {
     if (!dePaginaPropia(sender)) return { error: 'Origen no permitido.' };
     return cambiarLista((collected, groups) => ({ restaurados: restaurarCategoria(collected, groups, previos) }), 'cambiar la categoría');
+  },
+  // Guía de tallas de un grupo (las variantes no se cambian después de extraer).
+  async cambiarGuiaTalla({ grupo, valor }, sender) {
+    if (!dePaginaPropia(sender)) return { error: 'Origen no permitido.' };
+    if (typeof grupo !== 'string' || typeof valor !== 'boolean') return { error: 'Datos no válidos.' };
+    return cambiarLista((collected, groups) => (cambiarGuiaTalla(groups, grupo, valor) ? {} : { error: 'Ese grupo ya no está en la lista.' }), 'cambiar la guía de tallas');
   },
 
   // Desde el scraper (en la pestaña).

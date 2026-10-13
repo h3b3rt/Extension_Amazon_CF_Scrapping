@@ -174,9 +174,16 @@ footer a{color:#6b7280}
   <input id="groupName" class="text-input" autocomplete="off" maxlength="60" placeholder="Ej: Audífonos HyperX">
   <div class="hint" id="groupHint"></div>
   <div class="group-options">
-    <span class="field-label">Opciones del grupo (no se cambian después)</span>
-    <label class="check"><input type="checkbox" id="optVariaciones"> Extraer variantes <span class="meta">(variacion = Sí)</span></label>
-    <label class="check"><input type="checkbox" id="optGuiaTalla"> Guía de tallas <span class="meta">(guia_talla = Sí)</span></label>
+    <span class="field-label">Opciones del grupo</span>
+    <label class="check"><input type="checkbox" id="optVariaciones"> Extraer variantes <span class="meta">(variacion = Sí; no se cambia después)</span></label>
+    <label class="check"><input type="checkbox" id="optGuiaTalla"> Guía de tallas <span class="meta">(guia_talla = Sí; se cambia en la vista previa)</span></label>
+    <div id="guiaConfirm" class="job-confirm" hidden>
+      <p>¿Desactivar la guía de tallas? Las filas de este grupo irán con guia_talla = No.</p>
+      <div class="row">
+        <button id="guiaOff" class="secondary" type="button">Desactivar</button>
+        <button id="guiaKeep" type="button">Mantener</button>
+      </div>
+    </div>
     <div class="hint" id="optionsHint"></div>
   </div>
   <div id="limitGroup" hidden>

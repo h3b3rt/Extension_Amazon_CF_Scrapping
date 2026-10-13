@@ -102,7 +102,7 @@ function renderSources(collected, groups) {
     });
     borrar.addEventListener('click', () => confirmDelete(li, g, n));
     li.append(borrar);
-    // Opciones del grupo, fijas desde la extracción: siempre a la vista.
+    // Opciones del grupo: siempre a la vista (la guía de tallas se cambia en la vista previa).
     const o = opcionesDe(g);
     const tags = Object.assign(document.createElement('div'), { className: 'tags' });
     for (const [txt, on] of [['Variaciones', o.variaciones], ['Guía de tallas', o.guiaTalla]]) {
@@ -417,9 +417,10 @@ async function askCategory() {
   $('groupName').value = defaultGroupName(pending.label, ...groupsToCheck(groups, prefs));
   $('groupHint').textContent = 'Se verá en la columna ref_grupo del Excel.';
   $('groupHint').className = 'hint';
-  // Opciones del grupo: siempre empiezan en No.
+  // Opciones del grupo: variantes empieza en No; guía de tallas en Sí.
   $('optVariaciones').checked = false;
-  $('optGuiaTalla').checked = false;
+  $('optGuiaTalla').checked = true;
+  $('guiaConfirm').hidden = true;
   updateOptionsHint();
   // Máximo de productos: el último usado en este sitio, o 50.
   $('limitGroup').hidden = !pending.usaLimite;
@@ -715,6 +716,14 @@ async function init() {
   chrome.storage.onChanged.addListener(onStorageChanged);
   $('loadLimit').addEventListener('input', () => setLimitHint());
   $('optVariaciones').addEventListener('change', updateOptionsHint);
+  // Guía de tallas: desactivarla pide confirmación (la casilla sigue marcada hasta confirmar).
+  $('optGuiaTalla').addEventListener('change', () => {
+    if ($('optGuiaTalla').checked) { $('guiaConfirm').hidden = true; return; }
+    $('optGuiaTalla').checked = true;
+    $('guiaConfirm').hidden = false;
+  });
+  $('guiaOff').addEventListener('click', () => { $('optGuiaTalla').checked = false; $('guiaConfirm').hidden = true; });
+  $('guiaKeep').addEventListener('click', () => { $('guiaConfirm').hidden = true; });
   $('limitPages').addEventListener('click', () => onLimitModeClick('paginas'));
   $('limitProducts').addEventListener('click', () => onLimitModeClick('productos'));
   $('groupName').addEventListener('input', () => {

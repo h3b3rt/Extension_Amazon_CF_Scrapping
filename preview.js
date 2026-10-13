@@ -935,6 +935,12 @@ function cabeceraGrupo(nombre, filas, revisar, vista, claves) {
   const bCat = el('button', { type: 'button', className: `gcat${una === '' ? ' falta' : ''}`, textContent: una ? `🏷 ${ultimo}` : una === '' ? '🏷 Asignar categoría' : '🏷 Varias categorías', title: 'Asignar una categoría a todos los productos del grupo' });
   bCat.disabled = datos.bloqueado;
   bCat.addEventListener('click', () => categoriaGrupo(nombre));
+  // Guía de tallas: se activa o desactiva para todo el grupo (desactivar pide confirmación).
+  const guia = g?.guiaTalla === true;
+  const bGuia = el('button', { type: 'button', className: `pill gguia${guia ? ' on' : ''}`, textContent: guia ? '✓ Con guía de tallas' : 'Sin guía de tallas', title: guia ? 'Clic para desactivar la guía de tallas del grupo' : 'Clic para activar la guía de tallas del grupo' });
+  bGuia.setAttribute('aria-pressed', String(guia));
+  bGuia.disabled = datos.bloqueado || !g;
+  bGuia.addEventListener('click', () => guiaGrupo(g, !guia));
   // Control de la vista: comprimido, resumido, completo.
   const vistas = el('div', { className: 'vistas', role: 'group', title: 'Cómo ver los productos del grupo' });
   vistas.setAttribute('aria-label', `Vista del grupo ${nombre}`);
@@ -963,7 +969,7 @@ function cabeceraGrupo(nombre, filas, revisar, vista, claves) {
     check,
     el('h2', { textContent: nombre || '(sin grupo)' }),
     el('span', { className: `pill${c.variacion === 'Sí' ? ' on' : ''}`, textContent: c.variacion === 'Sí' ? '✓ Con variantes' : 'Sin variantes' }),
-    el('span', { className: `pill${c.guia_talla === 'Sí' ? ' on' : ''}`, textContent: c.guia_talla === 'Sí' ? '✓ Con guía de tallas' : 'Sin guía de tallas' }),
+    bGuia,
     bCat,
     revisar ? el('span', { className: 'pill warn', textContent: `⚠ ${revisar} para revisar` }) : null,
     el('span', { className: 'info', textContent: `${plural(filas.length, 'producto')}${cuando}` }),
@@ -1242,6 +1248,17 @@ async function categoriaGrupo(nombre) {
   if (!cat) return;
   const claves = await confirmarCategoria(ps, cat, `de «${nombre}»`);
   if (claves) return asignar(claves, cat);
+}
+
+// Guía de tallas del grupo `g` (de datos.grupos, con su id). Activar no pregunta.
+async function guiaGrupo(g, valor) {
+  if (datos.bloqueado || !g) return;
+  if (!valor && await preguntar(`¿Desactivar la guía de tallas del grupo «${g.nombre}»?\n\nSus filas irán con guia_talla = No.`, 'Desactivar') === 'cancelar') return;
+  const r = await chrome.runtime.sendMessage({ type: 'cambiarGuiaTalla', grupo: g.id, valor }).catch(e => ({ error: e.message }));
+  if (!r || r.error) return avisoDeshacer(r?.error || 'No se pudo cambiar la guía de tallas.', true);
+  ultimoCambio = null;
+  avisoDeshacer(`Guía de tallas ${valor ? 'activada' : 'desactivada'} en «${g.nombre}».`, false, false);
+  await render();
 }
 
 // Productos seleccionados (los que siguen en la lista).

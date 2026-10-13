@@ -1,8 +1,9 @@
 # Pendientes y próximos pasos
 
-Estado al **12/10/2026**.
+Estado al **13/10/2026**.
 
-- **Publicada: v1.14.2** (12/10/2026, corrección): la vista previa ya no hace parpadear las imágenes al abrir tallas o variantes (reutiliza las `<img>`), y la vista resumida muestra los 3 primeros productos del grupo en el orden del Excel (asignar una categoría ya no los mueve).
+- **Publicada: v1.14.3** (13/10/2026): formato condicional de la plantilla según la regla de v1.13.0 (rojo: Amazon con `sku` vacío o `link` lleno; los demás con `link` vacío o `sku` lleno; validación con mensaje en `sku` y `link`); *Guía de tallas* marcada por defecto al extraer, con confirmación para desactivarla; y se puede activar o desactivar por grupo desde la vista previa (mensaje `cambiarGuiaTalla` del service worker). Probada en Chrome real el 13/10/2026.
+- v1.14.2 (12/10/2026, corrección): la vista previa ya no hace parpadear las imágenes al abrir tallas o variantes (reutiliza las `<img>`), y la vista resumida muestra los 3 primeros productos del grupo en el orden del Excel (asignar una categoría ya no los mueve).
 - v1.14.1 (12/10/2026): el popup usa el mismo selector de categoría que la vista previa (`selector-categoria.js`); README revisado.
 - v1.14.0 (12/10/2026): vista previa rediseñada para quien revisa el contenido (colores de COMPRAFACIL, resumen con estado en palabras, pestañas *Todos* / *Para revisar* / *No irán al Excel*, tarjetas por grupo con avisos explicados, variantes en miniaturas cerradas al empezar, interruptor *Ver datos técnicos* con la fila del Excel como hoja de cálculo, casillas por producto y por grupo con barra de selección; muchas tallas resumidas por color con tabla cintura × largo, y solo 14 colores a la vista; grupos comprimido / resumido / completo; asignar categoría por grupo, producto o selección con Deshacer). Probada en Chrome real el 12/10/2026.
 - v1.13.0 (09/10/2026): vista previa con la imagen más grande (104 px) y el desplegable **▸ Ver variantes** de cada familia, buscadas solas en Sephora, Michael Kors, Marc Jacobs y Kate Spade (sección 7); Excel con `sku` solo en Amazon (sin `link`) y `link` sin `sku` en los demás sitios; permiso `unlimitedStorage`.

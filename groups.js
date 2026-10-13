@@ -81,6 +81,19 @@ export const opcionesDe = g => ({ variaciones: g?.variaciones === true, guiaTall
 export const siNo = b => (b ? 'Sí' : 'No');
 export const opcionesTxt = o => `Variaciones: ${siNo(o.variaciones)} · Guía de tallas: ${siNo(o.guiaTalla)}`;
 
+// Guía de tallas cambiada desde la vista previa (las variantes siguen fijas). También
+// actualiza la línea de opciones del resumen del grupo. Devuelve true si el grupo existe.
+export function cambiarGuiaTalla(groups, id, valor) {
+  const g = groups[id];
+  if (!g) return false;
+  g.guiaTalla = valor === true;
+  if (Array.isArray(g.resumen)) {
+    const i = g.resumen.findIndex(l => typeof l === 'string' && l.startsWith('Variaciones: '));
+    if (i >= 0) g.resumen[i] = opcionesTxt(opcionesDe(g));
+  }
+  return true;
+}
+
 // Filas del Excel: agrupadas en orden de extracción, con el nombre del grupo
 // (nunca vacío: una celda '' rompe la carga del backend) y sus opciones.
 // `clave` es la clave del producto en la lista (la usa la vista previa para quitarlo;
