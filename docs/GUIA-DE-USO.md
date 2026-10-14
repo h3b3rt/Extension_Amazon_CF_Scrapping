@@ -132,12 +132,12 @@ Cada vez que pulsas **Extraer** se crea un **grupo** con los productos de esa ex
 
 ## Opciones del grupo: variantes y guía de tallas
 
-Desde la v1.10.1, el formulario de **Extraer** tiene dos casillas. *Extraer variantes* empieza **desmarcada** y, desde la v1.14.3, *Guía de tallas* empieza **marcada**:
+Desde la v1.10.1, el formulario de **Extraer** tiene dos casillas. *Extraer variantes* empieza **desmarcada** en Amazon y Sephora y, desde la v1.14.4, **marcada** en Michael Kors, Marc Jacobs y Kate Spade (al desmarcarla ahí pide confirmación: *Desactivar* / *Mantener*). Desde la v1.14.3, *Guía de tallas* empieza **marcada**:
 
 - **Extraer variantes** → `variacion = Sí` en todas las filas del grupo (el bot extrae todas las variantes y agrupa la familia). Desmarcada → `No` (solo ese producto). En Amazon también decide si se deja un producto por familia (ver *Amazon: un producto por familia*). En Kate Spade no cambia eso: siempre se deja uno por familia.
 - **Guía de tallas** → `guia_talla = Sí`; desmarcada → `No`. Al desmarcarla, el popup pide confirmar (**Desactivar** / **Mantener**); volver a marcarla no pregunta.
 
-*Extraer variantes* se elige **al extraer y no se cambia después**: la extracción depende de ella (con variantes, Amazon verifica familias). Si te equivocaste, elimina el grupo (🗑) y extrae de nuevo. *Guía de tallas* sí se puede cambiar después, desde la **vista previa** (botón en la cabecera de cada grupo; ver *Vista previa del Excel*). Se ven siempre en la lista, debajo del nombre del grupo (*Variaciones: Sí*, *Guía de tallas: No*), y en la primera línea de su resumen. Si un producto se vuelve a extraer en otro grupo, toma las opciones del grupo nuevo. Los grupos extraídos con versiones anteriores quedan con `No` en ambas.
+*Extraer variantes* se elige **al extraer y no se cambia después** (tampoco en la vista previa, donde *Con variantes* / *Sin variantes* es solo una etiqueta): la extracción depende de ella (con variantes, Amazon verifica familias). Si te equivocaste, elimina el grupo (🗑) y extrae de nuevo. *Guía de tallas* sí se puede cambiar después, desde la **vista previa** (botón en la cabecera de cada grupo; ver *Vista previa del Excel*). Se ven siempre en la lista, debajo del nombre del grupo (*Variaciones: Sí*, *Guía de tallas: No*), y en la primera línea de su resumen. Si un producto se vuelve a extraer en otro grupo, toma las opciones del grupo nuevo. Los grupos extraídos con versiones anteriores quedan con `No` en ambas.
 
 ## Elegir la categoría
 
@@ -148,7 +148,7 @@ Hay dos formas. La extensión recuerda la última que usaste.
 - `zapatillas mujer` → *Calzado / Calzado para Mujer / Zapatillas Deportivas*
 - `CF0101` → todas las de Hogar / Menaje de Cocina
 
-No distingue tildes ni mayúsculas, y las palabras pueden ir en cualquier orden. Usa ↑ ↓ para moverte y **Enter** para elegir. Con el campo vacío aparecen las categorías usadas recientemente.
+No distingue tildes ni mayúsculas, y las palabras pueden ir en cualquier orden. Usa ↑ ↓ para moverte y **Enter** para elegir; **Enter nunca inicia la extracción**, solo el botón **Extraer**. Desde la v1.14.4, en el popup el campo empieza **vacío** (no propone la categoría anterior ni la última usada) y la lista aparece solo al escribir; con el campo vacío, **↓** muestra las categorías usadas recientemente. En la vista previa, con el campo vacío aparecen las usadas recientemente.
 
 **☰ Por niveles:** elige **Principal → Secundaria → Terciaria**. Cada lista muestra solo las opciones del nivel anterior.
 
@@ -166,7 +166,7 @@ Es la **plantilla de scraping del sistema** (`Plantilla_Scraping_General.xlsx`) 
 
 | Columna | Valor |
 |---|---|
-| `ecomerce` | `Amazon`, `Michael Kors`, `Sephora`, `Marc Jacobs` o `Kate Spade`, según el sitio de cada producto |
+| `ecomerce` | `Amazon`, `MichaelKors`, `Sephora`, `MarcJacobs` o `KateSpade`, según el sitio de cada producto (desde la v1.14.4 sin espacios; la vista previa muestra el nombre con espacios, salvo en *Ver datos técnicos*) |
 | `sku` | Solo Amazon: el ASIN. **Vacía en los demás sitios** (desde la v1.13.0): el sistema saca el SKU del link. La vista previa, con *Ver datos técnicos*, muestra como referencia el estilo o el `skuId` |
 | `condicion` | `Reacondicionado` si el título dice *Renewed* / *Refurbished*; si no, `Nuevo`. **Revísala.** |
 | `link` | **Vacía en Amazon** (desde la v1.13.0): el sistema usa el `sku`. Michael Kors: el link del producto, terminado en `/<ID>.html`. Sephora: `…/product/<nombre>-P<ID>?skuId=<SKU>`. Marc Jacobs y Kate Spade: el link del producto (el sistema saca el SKU de aquí) |
@@ -202,7 +202,7 @@ Es la **plantilla de scraping del sistema** (`Plantilla_Scraping_General.xlsx`) 
 
 Desde la v1.12.0 (rediseñada en la v1.14.0 para quien revisa el contenido). **Vista previa** (junto a *Descargar Excel*) abre una pestaña con los productos que tendrá el Excel, calculados igual que el archivo: mismo orden, un producto por familia y sin los productos sin SKU. Desde ahí también se pueden **quitar productos** de la lista (ver abajo). Usa los colores de COMPRAFACIL y se ve igual con el tema claro u oscuro del navegador.
 
-- **Barra superior:** buscador (nombre, marca, SKU o link; también encuentra el ASIN o el color de una variante guardada), filtro por grupo y por sitio (si hay más de uno). Debajo, en azul, el **nombre del archivo** y **Descargar Excel** (la misma descarga que el popup), siempre visibles.
+- **Barra superior:** buscador (nombre, marca, SKU o link; también encuentra el ASIN o el color de una variante guardada), filtro por grupo y por sitio (si hay más de uno). Debajo, en azul, el **nombre del archivo** (campo de ancho fijo; debajo, *Se guardará como*, cortado con … si es largo y completo al pasar el ratón) y **Descargar Excel** (la misma descarga que el popup), siempre visibles.
 - **Resumen:** el **estado** en palabras (*Todo listo para descargar*, o *N productos para revisar*; al pulsarlo se abre esa pestaña), los productos que van al Excel (de cuántos hay en la lista), las **variantes que creará el sistema** (si se conocen todas) y los que **no irán al Excel**. Debajo, en chips, el detalle: familias en el Excel, omitidos al extraer o por familia repetida, sin SKU, familia por verificar o sin verificar, sin categoría, posibles variantes, reacondicionados, SKU con guion (solo los que no son cero).
 - **Pestañas:** *Todos*, *⚠ Para revisar* (solo los productos con avisos) y *No irán al Excel* (solo aparece si hay alguno). Los filtros de la barra valen en las tres. Con un sitio elegido, el filtro de grupos muestra solo los grupos con productos de ese sitio.
 - **Productos por grupo:** cada grupo tiene una cabecera azul con su nombre, sus opciones (*Con variantes* / *Sin variantes*, *Con guía de tallas* / *Sin guía de tallas*; desde la v1.14.3 este último es un botón que activa o desactiva la guía de tallas de todo el grupo: desactivarla pide confirmar, activarla no; cambia `guia_talla` en el Excel y la línea de opciones del resumen del grupo; no se puede mientras se exporta), cuántos productos tiene y cuándo se extrajo. Cada producto es una tarjeta con su imagen, nombre, sitio, marca, precio, condición, categoría (o *Sin categoría*), el estado **✓ Listo** o **⚠ Revisar** y, si tiene, su familia o variantes. Los avisos se explican con lo que conviene hacer (por ejemplo *Falta la categoría. Elígela en la plantilla después de descargar.*; *Mismo nombre que otro producto* nombra cuál: si es otro modelo, se deja). *Ver en Amazon ↗* (o el sitio) abre el producto.

@@ -176,6 +176,13 @@ footer a{color:#6b7280}
   <div class="group-options">
     <span class="field-label">Opciones del grupo</span>
     <label class="check"><input type="checkbox" id="optVariaciones"> Extraer variantes <span class="meta">(variacion = Sí; no se cambia después)</span></label>
+    <div id="variantesConfirm" class="job-confirm" hidden>
+      <p>¿Desactivar las variantes? Las filas de este grupo irán con variacion = No y no se puede cambiar después sin volver a extraer.</p>
+      <div class="row">
+        <button id="variantesOff" class="secondary" type="button">Desactivar</button>
+        <button id="variantesKeep" type="button">Mantener</button>
+      </div>
+    </div>
     <label class="check"><input type="checkbox" id="optGuiaTalla"> Guía de tallas <span class="meta">(guia_talla = Sí; se cambia en la vista previa)</span></label>
     <div id="guiaConfirm" class="job-confirm" hidden>
       <p>¿Desactivar la guía de tallas? Las filas de este grupo irán con guia_talla = No.</p>

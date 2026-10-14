@@ -251,8 +251,9 @@ function fillMapeo(xml, categories) {
  * Los productos sin SKU no tienen fila (el backend los descartaría).
  * @param {object[]} products productos ya preparados (productsForExport + uno por familia)
  * @param {object} config config.xlsx
- * @returns {{ filas: { fila: number, producto: object, celdas: object, ref: object }[], sinSku: object[], resumen: object }}
- *   celdas: columnas que lee el backend ('' = la celda no se escribe); ref: campos de las columnas ref_*.
+ * @returns {{ filas: { fila: number, producto: object, sitio: string, celdas: object, ref: object }[], sinSku: object[], resumen: object }}
+ *   celdas: columnas que lee el backend ('' = la celda no se escribe); ref: campos de las columnas ref_*;
+ *   sitio: nombre del ecommerce para mostrar ("Marc Jacobs"; en la celda va sin espacios).
  */
 export function filasExcel(products, config = {}) {
   const conSku = products.filter(p => (p.asin || '').trim());
@@ -286,8 +287,10 @@ export function filasExcel(products, config = {}) {
     return {
       fila: i + 2,
       producto: p,
+      sitio: ecomerce,
       celdas: {
-        ecomerce,
+        // En el Excel va sin espacios (v1.14.4): "Marc Jacobs" como "MarcJacobs".
+        ecomerce: ecomerce.replace(/\s+/g, ''),
         sku,
         // Opciones del grupo elegidas al extraer ("Sí" / "No"; ver groups.js).
         variacion: p.variacion || '',

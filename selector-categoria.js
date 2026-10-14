@@ -59,10 +59,11 @@ export async function recordarCategoria(ruta) {
 
 // Selector dentro de la página. `actual`: ruta o código a proponer; `recientes` y
 // `modo` (search | browse) vienen de storage.local. `onEnter`: Enter con la lista
-// cerrada (sin él, el Enter sigue su curso y envía el formulario). `onEscape`: Esc
-// con la lista cerrada. El catálogo se entrega con cargar(): mientras no llega,
-// dice "Cargando categorías…".
-export function crearSelector({ actual = '', recientes = [], modo = 'search', onEnter = null, onEscape = null } = {}) {
+// cerrada (sin él, el Enter no hace nada: nunca envía el formulario). `onEscape`: Esc
+// con la lista cerrada. `soloAlEscribir` (popup): con el campo vacío no se abre la
+// lista (ni las recientes) al entrar en él; solo al escribir o con las flechas.
+// El catálogo se entrega con cargar(): mientras no llega, dice "Cargando categorías…".
+export function crearSelector({ actual = '', recientes = [], modo = 'search', onEnter = null, onEscape = null, soloAlEscribir = false } = {}) {
   const id = `sc${++instancias}`;
   let catalogo = null;
   const estado = { modo: modo === 'browse' ? 'browse' : 'search', elegida: null, lista: [], activa: -1, apagado: false, mensaje: null };
@@ -137,9 +138,10 @@ export function crearSelector({ actual = '', recientes = [], modo = 'search', on
     abrirLista(false);
     elegir(c);
   };
-  const pintarLista = () => {
+  const pintarLista = (forzar = false) => {
     if (!catalogo || estado.apagado) return abrirLista(false);
     const { q, grupos, vacio = '' } = entradas();
+    if (soloAlEscribir && !q && !forzar) return abrirLista(false);
     estado.lista = grupos.flatMap(g => g.items);
     const terminos = normalizeText(q).split(' ').filter(t => t && t !== '/');
     const nodos = [];
@@ -173,20 +175,23 @@ export function crearSelector({ actual = '', recientes = [], modo = 'search', on
     else avisar('');
     pintarLista();
   });
-  input.addEventListener('focus', pintarLista);
+  input.addEventListener('focus', () => pintarLista());
   input.addEventListener('blur', () => setTimeout(() => abrirLista(false), 120));
   input.addEventListener('keydown', e => {
     const abierta = !lista.hidden;
     const n = estado.lista.length;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
-      if (!abierta) return pintarLista();
+      if (!abierta) return pintarLista(true);
       if (!n) return;
       const paso = e.key === 'ArrowDown' ? 1 : -1;
       estado.activa = estado.activa < 0 ? (paso > 0 ? 0 : n - 1) : (estado.activa + paso + n) % n;
       marcarActiva();
     } else if (e.key === 'Enter') {
-      if (abierta && estado.activa >= 0) { e.preventDefault(); elegirDeLista(estado.activa); } else if (onEnter) { e.preventDefault(); onEnter(); }
+      // Nunca envía el formulario: la extracción empieza solo con el botón.
+      e.preventDefault();
+      if (abierta && estado.activa >= 0) elegirDeLista(estado.activa);
+      else if (onEnter) onEnter();
     } else if (e.key === 'Escape' && abierta) {
       e.preventDefault();
       e.stopPropagation();

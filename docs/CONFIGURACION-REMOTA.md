@@ -113,7 +113,7 @@ Desde la v1.8.0 la extensión trabaja con varios ecommerce. Cada sitio de `sites
 | `icono` | Desde la v1.12.0. Nombre del icono del sitio (`michaelkors`): la extensión usa `icons/sitios/<icono>-16.png` y `-32.png` **del paquete**, en la barra (por pestaña) y en el popup. Chrome no acepta imágenes remotas: un icono nuevo requiere versión nueva. Solo letras minúsculas, números y `-`. Sin esta clave se usa el `id` del sitio; si el paquete no trae ese archivo, se usa el icono general. Las versiones anteriores la ignoran. |
 | `hosts` | Dominios del sitio; también vale cualquier subdominio (`michaelkors.com` cubre `www.michaelkors.com`). Kate Spade usa `www.katespade.com` para dejar fuera el outlet (`surprise.katespade.com`). |
 | `homeUrl` | Enlace que muestra el popup en la lista de sitios disponibles. |
-| `ecomerce` | Valor de la columna `ecomerce`, **exactamente** como en el desplegable de la plantilla. |
+| `ecomerce` | Nombre del ecommerce (`"Marc Jacobs"`); es el que usan `xlsx.skuOnlyInLink` y `xlsx.linkOmit`. Desde la v1.14.4 la columna `ecomerce` del Excel lo lleva **sin espacios** (`MarcJacobs`), como en el desplegable de la plantilla. |
 | `skuPattern` | Expresión regular que debe cumplir el SKU (por defecto, ASIN de 10 caracteres). |
 | `skuFromLink` | Expresión para sacar el SKU de la **ruta** del link (grupo 1). Michael Kors: `/([^/]+)\.html$`, la misma regla que usa el backend. Con esta clave el link del Excel es el enlace de donde salió el SKU. |
 | `productUrl` | Plantilla del link (`https://www.amazon.com/dp/{asin}`). Vacío = usar el enlace de donde salió el SKU. |

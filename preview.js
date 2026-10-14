@@ -291,13 +291,13 @@ function setOptions(select, opciones, inicial) {
 
 function renderFiltros() {
   const grupoIni = datos.grupos.find(g => g.id === grupoInicial)?.nombre || '';
-  const sitios = [...new Set(datos.filas.map(f => f.celdas.ecomerce))];
+  const sitios = [...new Set(datos.filas.map(f => f.sitio))];
   setOptions($('siteFilter'), [['', 'Todos los sitios'], ...sitios.map(s => [s, s])], '');
   $('siteFilter').hidden = sitios.length < 2;
   // Con un sitio elegido, solo los grupos que tienen productos de ese sitio.
   const sitio = $('siteFilter').value;
   const conSitio = new Set([
-    ...datos.filas.filter(f => f.celdas.ecomerce === sitio).map(f => f.ref.grupo),
+    ...datos.filas.filter(f => f.sitio === sitio).map(f => f.ref.grupo),
     ...datos.fuera.filter(x => (x.p.ecomerce || '') === sitio).map(x => x.p.grupo),
   ]);
   const grupos = datos.grupos.filter(g => !sitio || conSitio.has(g.nombre));
@@ -310,7 +310,7 @@ function visible(f) {
   const q = $('search').value.trim().toLowerCase();
   const p = f.producto;
   if ($('groupFilter').value && f.ref.grupo !== $('groupFilter').value) return false;
-  if ($('siteFilter').value && f.celdas.ecomerce !== $('siteFilter').value) return false;
+  if ($('siteFilter').value && f.sitio !== $('siteFilter').value) return false;
   const deVariantes = (Array.isArray(p.variantes) && tieneVariantes(p) ? p.variantes : []).flatMap(v => [v.sku, ...(v.atributos || [])]);
   return coincide(q, [p.nombre, p.marca, p.asin, p.link, p.variante, ...deVariantes]);
 }
@@ -452,7 +452,7 @@ function tarjetaProducto(f, avisos) {
 
   const info = el('div', { className: 'info' });
   info.append(el('div', { className: 'nombre', textContent: p.nombre || '(sin nombre)' }));
-  const meta = el('div', { className: 'meta' }, sitio(f.celdas.ecomerce));
+  const meta = el('div', { className: 'meta' }, sitio(f.sitio));
   if (p.marca) meta.append(el('span', { textContent: p.marca }));
   if (f.ref.precio !== '') meta.append(el('span', { className: 'precio', textContent: `$${Number(f.ref.precio).toFixed(2)}` }));
   meta.append(el('span', { textContent: f.celdas.condicion }));
@@ -476,7 +476,7 @@ function tarjetaProducto(f, avisos) {
   card.append(info);
 
   const lado = el('div', { className: 'lado' });
-  if (abrir) lado.append(enlace(abrir, `Ver en ${f.celdas.ecomerce} ↗`));
+  if (abrir) lado.append(enlace(abrir, `Ver en ${f.sitio} ↗`));
   lado.append(botonQuitar(p));
   card.append(lado);
 
@@ -968,7 +968,7 @@ function cabeceraGrupo(nombre, filas, revisar, vista, claves) {
   return el('div', { className: 'ghead' },
     check,
     el('h2', { textContent: nombre || '(sin grupo)' }),
-    el('span', { className: `pill${c.variacion === 'Sí' ? ' on' : ''}`, textContent: c.variacion === 'Sí' ? '✓ Con variantes' : 'Sin variantes' }),
+    el('span', { className: `pill${c.variacion === 'Sí' ? ' on' : ''}`, textContent: c.variacion === 'Sí' ? '✓ Con variantes' : 'Sin variantes', title: 'Se elige al extraer. Para cambiarlo, vuelve a extraer la página.' }),
     bGuia,
     bCat,
     revisar ? el('span', { className: 'pill warn', textContent: `⚠ ${revisar} para revisar` }) : null,
@@ -1327,7 +1327,10 @@ function showStatus(msg, cls = '') {
 }
 
 function updateNamePreview() {
-  $('exportNamePreview').textContent = `Se guardará como: ${exportFileName($('exportName').value, config?.xlsx?.filenamePrefix || DEFAULT_PREFIX)}`;
+  const nombre = exportFileName($('exportName').value, config?.xlsx?.filenamePrefix || DEFAULT_PREFIX);
+  $('exportNamePreview').textContent = `Se guardará como: ${nombre}`;
+  // Nombre largo: cortado con "…"; completo al pasar el mouse.
+  $('exportNamePreview').title = nombre;
 }
 
 $('downloadForm').addEventListener('submit', async e => {

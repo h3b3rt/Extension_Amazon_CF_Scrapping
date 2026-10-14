@@ -116,6 +116,20 @@ globalThis.__cfScraper = async function (config, options = {}) {
   // "linkEstilo"/"urlEstilo" (Kate Spade, v1.11.0): lo mismo que linkBase/urlBase, con
   // otro nombre para que las versiones anteriores (sin familias de Kate Spade) no extraigan.
   const FUENTE = { linkEstilo: 'linkBase', urlEstilo: 'urlBase' };
+
+  // Link del modelo abierto cuando no es el de la URL: el de la página (`linkChild`,
+  // atributo `linkChildAttr`; si es JSON, su clave `linkChildKey`) si es de ese modelo;
+  // si no, la URL con el ID cambiado en la ruta (…/<ID>.html).
+  function linkDelModelo(item, layout, modelo) {
+    for (const el of list(layout.linkChild).flatMap(sel => qsa(document, sel))) {
+      let v = el.getAttribute(layout.linkChildAttr || 'value') || '';
+      if (layout.linkChildKey) { try { v = JSON.parse(v)?.[layout.linkChildKey] || ''; } catch { v = ''; } }
+      const url = sinParametros(absolute(String(v)));
+      if (url && skuFromUrl(url, true) === modelo) return url;
+    }
+    const url = sinParametros(location.href).replace(/\/[^/]+\.html$/i, `/${modelo}.html`);
+    return skuFromUrl(url, true) === modelo ? url : '';
+  }
   function findAsin(item, layout) {
     for (const fuente of list(layout.asinFrom || ['attr', 'child', 'csaItemId', 'link'])) {
       const source = FUENTE[fuente] || fuente;
@@ -133,8 +147,20 @@ globalThis.__cfScraper = async function (config, options = {}) {
       }
       if (source === 'urlBase') {
         asin = skuFromUrl(location.href, true);
-        if (asin) return { asin, url: sinParametros(location.href), crudo };
-        continue;
+        if (!asin) continue;
+        url = sinParametros(location.href);
+        // Página que reúne varios modelos (Marc Jacobs: "Scene Large Bucket" muestra
+        // también los colores del Small): al elegir un color del otro modelo la página
+        // cambia sin cambiar la URL. Manda el modelo abierto (skuChild) y su propio link.
+        const v = layout.skuChild ? firstValue(item, layout.skuChild, el => el.getAttribute(layout.skuAttr || 'data-pid')) : '';
+        const abierto = base(v);
+        if (abierto && abierto !== asin) {
+          const original = crudo;
+          const propio = linkDelModelo(item, layout, abierto);
+          crudo = original;
+          if (propio) return { asin: abierto, url: propio, crudo: v.toUpperCase() };
+        }
+        return { asin, url, crudo };
       }
       // Atributo de un elemento del producto (p. ej. data-product-id del botón de favoritos).
       if (source === 'childBase') {

@@ -34,7 +34,7 @@ El popup y el icono toman el nombre y el logo del sitio (*Michael Kors Product S
 ### Extracción
 
 - Límite por **páginas** (desde la página abierta, hasta 10) o por **productos**, recordado por sitio.
-- Opciones del grupo: **Extraer variantes** (fija desde la extracción) y **Guía de tallas** (marcada por defecto; se cambia por grupo en la vista previa).
+- Opciones del grupo: **Extraer variantes** (fija desde la extracción; marcada por defecto salvo en Amazon y Sephora) y **Guía de tallas** (marcada por defecto; se cambia por grupo en la vista previa).
 - Las extracciones siguen **en segundo plano** aunque cierres el popup, se ponen **en cola** si ya hay una en curso y avisan con una notificación al terminar. Se pueden detener guardando lo leído.
 - Cada extracción forma un **grupo** con nombre (renombrable con doble clic), resumen desplegable (con la duración) y 🗑 para eliminarlo. El grupo sale en la columna `ref_grupo` del Excel.
 - Para cada extracción pide la categoría: se puede **buscar** o elegir **por niveles**. Las 410 categorías del sistema se actualizan solas.

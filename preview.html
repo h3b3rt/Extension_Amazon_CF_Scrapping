@@ -29,9 +29,11 @@ button,input,select{font:inherit}
 .band{background:var(--blue);color:#fff}
 .band .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding-top:9px;padding-bottom:9px}
 .band label{font-size:13px;font-weight:600}
-#exportName{padding:8px 11px;border:0;border-radius:7px;font-size:13px;width:240px;color:var(--ink)}
+/* Ancho fijo: el nombre que se escribe no mueve el campo ni el botón. */
+.nombre-archivo{display:flex;flex-direction:column;gap:3px;width:320px}
+#exportName{padding:8px 11px;border:0;border-radius:7px;font-size:13px;width:100%;color:var(--ink)}
 #exportName:focus{outline:3px solid var(--orange)}
-#exportNamePreview{font-size:11px;color:#dbe5fd}
+#exportNamePreview{font-size:11px;color:#dbe5fd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #live{font-size:13px;font-weight:600}
 #live:before{content:"⚡ ";color:var(--orange)}
 button{border:0;border-radius:8px;cursor:pointer;font-weight:700}
@@ -262,7 +264,7 @@ button.primary:hover:not(:disabled){background:var(--navy)}
   .prod.con-sel .tec,.prod.con-sel .vars{grid-column:1 / -1}
   .foto{width:72px;height:72px}
   .lado{grid-column:1 / -1;flex-direction:row;align-items:center;justify-content:flex-end}
-  #search,#exportName{flex:1 1 100%;width:auto}
+  #search,.nombre-archivo{flex:1 1 100%;width:auto}
 }
 </style>
 </head>
@@ -283,8 +285,10 @@ button.primary:hover:not(:disabled){background:var(--navy)}
       <span id="live" hidden></span>
       <div class="grow"></div>
       <label for="exportName">Nombre del archivo</label>
-      <input id="exportName" autocomplete="off" placeholder="Ej: Audifonos_Hyperx">
-      <span id="exportNamePreview"></span>
+      <div class="nombre-archivo">
+        <input id="exportName" autocomplete="off" placeholder="Ej: Audifonos_Hyperx">
+        <span id="exportNamePreview"></span>
+      </div>
       <button type="submit" id="download">⬇ Descargar Excel</button>
     </form>
   </div>

@@ -391,16 +391,16 @@ function hideDuplicate() {
 
 // Pide la categoría antes de cada extracción, con el selector de la vista previa
 // (selector-categoria.js): se busca por cualquier parte de la ruta o por código, o
-// se elige por niveles. Propone la de la extracción anterior de esta página o la
-// última usada.
+// se elige por niveles. Empieza vacío (v1.14.4): ni la anterior de esta página ni la
+// última usada; la lista se abre al escribir y Enter no inicia la extracción.
 async function askCategory() {
   const { recentCategories = [], categoryMode = 'search' } = await chrome.storage.local.get(['recentCategories', 'categoryMode']);
   // Siempre empieza desmarcada: "No llenar categoría" es la excepción, no la regla.
   $('multiCategory').checked = false;
   selector = crearSelector({
-    actual: pending?.previous?.categoria || recentCategories[0] || '',
     recientes: recentCategories,
     modo: categoryMode,
+    soloAlEscribir: true,
     onEscape: hideCategoryForm,
   });
   $('categoryPicker').replaceChildren(selector.nodo);
@@ -417,8 +417,9 @@ async function askCategory() {
   $('groupName').value = defaultGroupName(pending.label, ...groupsToCheck(groups, prefs));
   $('groupHint').textContent = 'Se verá en la columna ref_grupo del Excel.';
   $('groupHint').className = 'hint';
-  // Opciones del grupo: variantes empieza en No; guía de tallas en Sí.
-  $('optVariaciones').checked = false;
+  // Opciones del grupo: variantes empieza en Sí salvo en Amazon y Sephora; guía de tallas en Sí.
+  $('optVariaciones').checked = variantesPorDefecto();
+  $('variantesConfirm').hidden = true;
   $('optGuiaTalla').checked = true;
   $('guiaConfirm').hidden = true;
   updateOptionsHint();
@@ -554,6 +555,10 @@ function updateOptionsHint() {
       ? 'Con variantes: una fila por familia de Amazon (el sistema extrae toda la familia). Verifica la familia de cada producto (más lento).'
       : 'Sin variantes: cada ASIN es un producto aparte; no se verifican familias.';
 }
+
+// "Extraer variantes" empieza marcada en todos los sitios menos estos (ids de config.sites).
+const SIN_VARIANTES_POR_DEFECTO = ['amazon', 'sephora'];
+const variantesPorDefecto = () => !!pending?.site?.id && !SIN_VARIANTES_POR_DEFECTO.includes(pending.site.id);
 
 // Envía la extracción a la cola del service worker: sigue aunque el popup se cierre.
 // `limite`: { modo: 'paginas' | 'productos', valor } o null (página sin límite).
@@ -715,7 +720,18 @@ async function init() {
   }
   chrome.storage.onChanged.addListener(onStorageChanged);
   $('loadLimit').addEventListener('input', () => setLimitHint());
-  $('optVariaciones').addEventListener('change', updateOptionsHint);
+  // Variantes: en los sitios donde empieza marcada, desactivarla pide confirmación.
+  $('optVariaciones').addEventListener('change', () => {
+    if (!$('optVariaciones').checked && variantesPorDefecto()) {
+      $('optVariaciones').checked = true;
+      $('variantesConfirm').hidden = false;
+      return;
+    }
+    $('variantesConfirm').hidden = true;
+    updateOptionsHint();
+  });
+  $('variantesOff').addEventListener('click', () => { $('optVariaciones').checked = false; $('variantesConfirm').hidden = true; updateOptionsHint(); });
+  $('variantesKeep').addEventListener('click', () => { $('variantesConfirm').hidden = true; });
   // Guía de tallas: desactivarla pide confirmación (la casilla sigue marcada hasta confirmar).
   $('optGuiaTalla').addEventListener('change', () => {
     if ($('optGuiaTalla').checked) { $('guiaConfirm').hidden = true; return; }
