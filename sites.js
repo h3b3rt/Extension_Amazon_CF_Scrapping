@@ -3,7 +3,7 @@
 // sobrescribir, usa las generales, que son las de Amazon. Así la configuración de
 // Amazon queda donde estaba y las versiones anteriores la siguen leyendo igual.
 
-export const APP_NAME = 'COMPRAFACIL Scraper';
+const APP_NAME = 'COMPRAFACIL Scraper';
 const DEFAULT_SITES = [{ id: 'amazon', name: 'Amazon', hosts: ['amazon.com'], homeUrl: 'https://www.amazon.com/', ecomerce: 'Amazon' }];
 const list = v => (Array.isArray(v) ? v : v ? [v] : []);
 

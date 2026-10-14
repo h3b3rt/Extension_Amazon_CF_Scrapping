@@ -34,7 +34,7 @@ En GitHub: **Settings → Secrets and variables → Actions → New repository s
 | `CF_EMAIL` | Correo de una cuenta del sistema COMPRAFACIL. Mejor una cuenta dedicada, p. ej. `categorias.bot@…`. |
 | `CF_PASSWORD` | Contraseña de esa cuenta |
 
-> **Estado al 01/10/2026:** los secrets **están configurados** y el workflow descarga la lista de la API en cada ejecución. Si algún día faltan, el workflow termina con un aviso (sin error) y se mantiene la lista actual.
+> Con los secrets configurados, el workflow descarga la lista de la API en cada ejecución y solo hace commit si cambió. Si faltan, termina con un aviso (sin error) y se mantiene la lista actual: revisa el registro de **Actions** para saber en qué caso estás.
 
 GitHub guarda los secrets cifrados. En los registros aparecen como `***`, y el token de sesión también se oculta.
 

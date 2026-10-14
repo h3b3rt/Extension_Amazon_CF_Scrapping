@@ -4,8 +4,7 @@ import {
 import { getHistory, removeHistoryEntry, clearHistory, formatDate } from './history.js';
 import { getPrefs, setPref } from './prefs.js';
 import { getCachedCategories, refreshCategories, sourceLabel } from './categories.js';
-
-const $ = id => document.getElementById(id);
+import { $ } from './dom.js';
 
 function showMsg(text, cls = '') {
   $('msg').className = cls;

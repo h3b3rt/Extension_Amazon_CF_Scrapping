@@ -1,5 +1,5 @@
 // Preferencias de extracción. Activadas por defecto y editables solo desde Opciones.
-export const DEFAULT_PREFS = {
+const DEFAULT_PREFS = {
   autoScroll: true,
   accumulate: true,
 };

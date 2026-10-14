@@ -2,8 +2,8 @@
 //
 // Fuentes:
 //   1. categories.json publicado en GitHub (config.categoriesUrl). Lo mantiene al
-//      día el workflow "Actualizar categorías", que consulta la API del sistema
-//      con un token guardado como secret del repositorio (nunca en la extensión).
+//      día el workflow "Actualizar categorías", que inicia sesión en la API del
+//      sistema con los secrets CF_EMAIL/CF_PASSWORD del repositorio (nunca en la extensión).
 //   2. categories.json incluido en la extensión: respaldo sin conexión.
 // La lista se guarda en caché y se refresca cada hora o con el botón "Actualizar".
 // Si la descarga falla, se sigue usando la última lista válida.

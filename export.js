@@ -15,7 +15,7 @@ function timestamp() {
 }
 
 // "Audífonos HyperX" -> "Audífonos_HyperX". Quita caracteres no válidos en Windows.
-export function sanitizeFileName(name) {
+function sanitizeFileName(name) {
   return (name || '')
     .replace(/[<>:"/\\|?*\x00-\x1f\s]+/g, '_')
     .replace(/_+/g, '_')
@@ -35,7 +35,7 @@ function toBase64(bytes) {
 }
 
 // Genera el xlsx desde plantilla.xlsx con las categorías actuales en Mapeo_categorias.
-export async function downloadXlsx(products, config, categories, name = '') {
+async function downloadXlsx(products, config, categories, name = '') {
   const template = await (await fetch(chrome.runtime.getURL('plantilla.xlsx'))).arrayBuffer();
   const { bytes, summary } = await buildWorkbook(template, products, { config: config.xlsx, categories });
   if (!summary.filas) throw new Error('Ningún producto tiene SKU: no se generó el archivo.');

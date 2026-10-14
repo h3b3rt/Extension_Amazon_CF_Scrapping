@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "revision": 29,
+  "revision": 30,
   "updatedAt": "2026-10-03",
   "remoteConfigUrl": "https://raw.githubusercontent.com/h3b3rt/Extension_Amazon_CF_Scrapping/main/config.json",
   "minExtensionVersion": "1.1.0",
-  "latestVersion": "1.14.4",
+  "latestVersion": "1.14.5",
   "downloadUrl": "https://github.com/h3b3rt/Extension_Amazon_CF_Scrapping/releases/latest",
   "notice": "",
   "appName": "COMPRAFACIL Scraper",

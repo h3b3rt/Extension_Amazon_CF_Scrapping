@@ -1,7 +1,7 @@
 import { getConfig, refreshRemoteConfig } from './config.js';
 import { appName, findSite, siteTitle, siteIcon, DEFAULT_ICON, familiasConfig } from './sites.js';
 import { getPrefs } from './prefs.js';
-import { getJobs, setJobs, guardarResultado, familiasDeLaLista, verificarLista, duracionTxt } from './jobs.js';
+import { getJobs, setJobs, guardarResultado, familiasDeLaLista, verificarLista, duracionTxt, captchaTxt } from './jobs.js';
 import { exportList, exportSummary } from './export.js';
 import { quitarDeLista, restaurarEnLista, asignarCategoria, restaurarCategoria, cambiarGuiaTalla } from './groups.js';
 import { getCachedCategories } from './categories.js';
@@ -240,9 +240,7 @@ const HANDLERS = {
     });
     if (!job) return;
     try {
-      await chrome.notifications.create(`confirm-${job.id}`, {
-        type: 'basic',
-        iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+      await notificar(`confirm-${job.id}`, {
         title: 'Hay familias repetidas',
         message: `${job.nombreGrupo}: se analizaron ${msg.analizados} productos y hay ${msg.familias} familias. ¿Seguir hasta tener ${msg.limite} familias?`,
         buttons: [{ title: 'Seguir' }, { title: 'Detener y guardar' }],
@@ -439,9 +437,7 @@ async function ejecutarExportacion(job) {
     if (v?.total) lineas.push(`Familias verificadas antes de exportar: ${v.verificados} de ${v.total}`);
     if (v?.detenida) lineas.push('⚠ Detenida: el resto se exportó sin verificar.');
     for (const sitio of v?.captchaSitios || []) {
-      lineas.push(sitio === 'Amazon'
-        ? '⚠ Amazon pidió una verificación (CAPTCHA): se dejaron de verificar familias. Ábrela en amazon.com, resuélvela y vuelve a exportar.'
-        : `⚠ ${sitio} bloqueó las descargas: se dejaron de verificar familias. Espera unos minutos y vuelve a exportar.`);
+      lineas.push(captchaTxt(sitio, true));
     }
     salida = { ok: true, mensaje: [`✓ ${exportSummary(r)}`, ...lineas].join('\n') };
   } catch (e) {
@@ -467,14 +463,17 @@ async function terminarExportacion(st, salida) {
   if (!st.cola.length) chrome.alarms.clear(WATCHDOG_ALARM);
   await pintarIcono(st);
   try {
-    await chrome.notifications.create(`job-${job.id}`, {
-      type: 'basic',
-      iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+    await notificar(`job-${job.id}`, {
       title: salida.ok ? 'Excel descargado' : 'No se pudo exportar',
       message: [...salida.mensaje.replace(/^✓ /, '').split('\n').slice(0, 2), tiempo].join(' · '),
     });
   } catch { /* sin notificación */ }
 }
+
+// Notificación de Chrome con el icono de la extensión.
+const notificar = (id, opciones) => chrome.notifications.create(id, {
+  type: 'basic', iconUrl: chrome.runtime.getURL('icons/icon128.png'), ...opciones,
+});
 
 // Notificación de Chrome al terminar; al pulsarla se abre la pestaña de la extracción.
 async function avisar(job, salida, carga, ms) {
@@ -482,9 +481,7 @@ async function avisar(job, salida, carga, ms) {
   const tiempo = ms != null ? ` · ${duracionTxt(ms)}` : '';
   const id = `job-${job.id}`;
   try {
-    await chrome.notifications.create(id, {
-      type: 'basic',
-      iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+    await notificar(id, {
       title: salida.ok ? 'Extracción completada' : 'Extracción sin productos',
       message: salida.ok ? `${job.nombreGrupo} · ${job.site.name}${paginas} · ${salida.productos} productos${tiempo}` : `${job.nombreGrupo} · ${job.site.name}: ${salida.mensaje.split('\n')[0]}${tiempo}`,
     });

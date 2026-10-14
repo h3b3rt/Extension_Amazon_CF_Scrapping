@@ -3,6 +3,8 @@
 // dos ASIN de una misma familia crean la familia dos veces. Kate Spade: una familia
 // reúne varios estilos (KN974, KO585…) que el backend crearía como productos
 // aparte. En ambos casos se envía solo uno por familia.
+// Además lee las variantes de un producto desde su página (Sephora, Michael Kors,
+// Marc Jacobs y Kate Spade) para la vista previa (leeVariantes, descargarVariantes).
 //
 // La familia está en la página de cada producto:
 // - Amazon (tipo "amazon", por defecto): parentAsin y dimensionToAsinMap de /dp/.
@@ -572,7 +574,6 @@
 
   // Producto de Amazon (los de versiones anteriores no guardaban el ecommerce).
   const ecomerceDe = p => p.ecomerce || 'Amazon';
-  const esAmazon = p => ecomerceDe(p) === 'Amazon';
 
   /**
    * Familias por ecommerce según la configuración: { [ecomerce]: { F, siempre } }.
@@ -617,5 +618,5 @@
     return { productos, omitidos };
   }
 
-  globalThis.__cfFamilias = { DEFAULTS, pausa, leer, descargar, unoPorFamilia, porEcomerce, agrupa, esAmazon, ecomerceDe, estilo, variantesSephora, variantesMk, variantesKs, leerPaginaMj, variantesMj, leeVariantes, descargarVariantes, AVISO: 'Familia sin verificar' };
+  globalThis.__cfFamilias = { pausa, leer, descargar, unoPorFamilia, porEcomerce, agrupa, ecomerceDe, leeVariantes, descargarVariantes, AVISO: 'Familia sin verificar' };
 })();

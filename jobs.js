@@ -53,9 +53,17 @@ function paginasTxt(c, job, conFamilias) {
 }
 
 // Aviso de verificación (CAPTCHA o bloqueo) del sitio que cortó la verificación de familias.
-export const captchaTxt = (sitio = 'Amazon') => (sitio === 'Amazon'
-  ? '⚠ Amazon pidió una verificación (CAPTCHA): se dejaron de verificar familias. Ábrela en amazon.com y resuélvela antes de exportar.'
-  : `⚠ ${sitio} bloqueó las descargas (verificación del sitio): se dejaron de verificar familias. Abre la página de ${sitio}, espera unos minutos y vuelve a exportar (se verifican al exportar).`);
+// alExportar: el corte ocurrió al exportar (el Excel ya salió sin verificar el resto).
+export const captchaTxt = (sitio = 'Amazon', alExportar = false) => {
+  if (alExportar) {
+    return sitio === 'Amazon'
+      ? '⚠ Amazon pidió una verificación (CAPTCHA): se dejaron de verificar familias. Ábrela en amazon.com, resuélvela y vuelve a exportar.'
+      : `⚠ ${sitio} bloqueó las descargas: se dejaron de verificar familias. Espera unos minutos y vuelve a exportar.`;
+  }
+  return sitio === 'Amazon'
+    ? '⚠ Amazon pidió una verificación (CAPTCHA): se dejaron de verificar familias. Ábrela en amazon.com y resuélvela antes de exportar.'
+    : `⚠ ${sitio} bloqueó las descargas (verificación del sitio): se dejaron de verificar familias. Abre la página de ${sitio}, espera unos minutos y vuelve a exportar (se verifican al exportar).`;
+};
 
 // Resumen de la verificación de familias (un producto por familia).
 function familiasTxt(F, sitio) {

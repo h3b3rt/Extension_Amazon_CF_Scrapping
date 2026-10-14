@@ -16,9 +16,9 @@ Guía para cualquier persona del equipo. No se necesitan conocimientos técnicos
 4. En Chrome escribe en la barra de direcciones: `chrome://extensions`
 5. Activa **Modo de desarrollador** (interruptor arriba a la derecha).
 6. Pulsa **Cargar descomprimida** y elige la carpeta del paso 3. Debe quedar la carpeta que contiene `manifest.json`.
-7. Fija el icono: pulsa el puzzle 🧩 junto a la barra de direcciones y luego el pin 📌 de **COMPRAFACIL Scraper** (hasta la v1.7.0 se llamaba *Amazon Product Scraper*).
+7. Fija el icono: pulsa el puzzle 🧩 junto a la barra de direcciones y luego el pin 📌 de **COMPRAFACIL Scraper**.
 
-Listo. Abre una búsqueda de Amazon.com, Michael Kors, Sephora, Marc Jacobs o Kate Spade y pulsa el icono naranja de la bolsa.
+Listo. Abre una búsqueda de Amazon.com, Michael Kors, Sephora, Marc Jacobs o Kate Spade y pulsa el icono de la extensión. En un sitio disponible, el icono muestra el logo de ese sitio dentro de un marco naranja; en cualquier otra página, la bolsa naranja.
 
 ## Actualizar a una versión nueva
 
@@ -30,11 +30,7 @@ Cuando haya una versión nueva, el popup de la extensión muestra: *"Hay una nue
 
 Tu lista en curso y tu historial se conservan.
 
-> **v1.8.0:** la extensión cambia de nombre a **COMPRAFACIL Scraper** y pide permiso para `michaelkors.com`. Si Chrome muestra un aviso de permisos nuevos, acéptalo.
->
-> **v1.9.0:** pide permiso para `sephora.com` y para mostrar **notificaciones** (aviso al terminar una extracción). Si Chrome muestra un aviso de permisos nuevos, acéptalo. El límite de productos que tenías guardado no se usa: el popup empieza en **Páginas = 1**.
->
-> **v1.11.0:** pide permiso para `www.katespade.com`. Si Chrome muestra un aviso de permisos nuevos, acéptalo.
+> **Permisos:** la extensión pide acceso a `amazon.com`, `michaelkors.com`, `sephora.com`, `marcjacobs.com` y `www.katespade.com` (para leer sus páginas), a `raw.githubusercontent.com` (configuración y categorías), a mostrar **notificaciones** (aviso al terminar una extracción) y a las **descargas** (el Excel). Si al actualizar Chrome muestra un aviso de permisos nuevos, acéptalo. Qué cambió en cada versión: [historial de versiones](../CHANGELOG.md).
 
 > **Alternativa con script:** desde PowerShell, en la carpeta de la extensión:
 > ```powershell
@@ -54,8 +50,8 @@ Tu lista en curso y tu historial se conservan.
 | "Abre una página de un sitio disponible" | La pestaña activa debe ser de `amazon.com` (no .es, .mx, etc.) , de `michaelkors.com`, de `sephora.com`, de `marcjacobs.com/us-en/` o de `www.katespade.com` (el outlet `surprise.katespade.com` no). El popup muestra los sitios disponibles con su enlace. En una Sephora, Marc Jacobs o Kate Spade de otra región ofrece abrir la versión de EE. UU. |
 | "Kate Spade bloqueó las descargas" | Kate Spade dejó de responder a las descargas de las páginas de producto (*Access Denied*). Se guarda lo leído, con *Familia sin verificar* en los que faltan. Espera unos minutos y descarga el Excel: esos productos se verifican antes. |
 | "No se encontraron productos compatibles" | El resumen dice qué tipo de página encontró. Avisa al administrador con el enlace de la página: puede ser un diseño nuevo del sitio. |
-| "Load More dejó de responder" | El botón de Michael Kors no cargó más productos en 15 segundos (conexión lenta o fin de la lista). Se extrae lo cargado; vuelve a intentar con **Reemplazar datos anteriores** si faltan productos. |
-| "Show More Products no cargó la página siguiente" / "La página cambió o se recargó durante la carga" | Sephora no pasó de página, o la recargó entera. En el primer caso se extrae lo leído; en el segundo no se guarda nada. Vuelve a intentar, o extrae cada página (`?currentPage=2`, `3`…) por separado con **Páginas = 1**. Mientras trabaja, no toques la página. |
+| "No se pudo cargar la página N" / "La página N no trajo productos nuevos" | La página siguiente no se pudo descargar (conexión, o el sitio pidió verificar que no eres un robot) o ya no había más productos. Se extrae lo leído y el resumen lo avisa. Si faltan productos, resuelve la verificación en el sitio y vuelve a intentar con **Reemplazar datos anteriores**. |
+| "Show More Products no cargó la página siguiente" / "La pestaña cambió de página o se recargó" | En una búsqueda de Sephora, la página no avanzó, o la pestaña se recargó o cambió de página durante la extracción. En ambos casos se guarda lo leído hasta ese momento. Si faltan productos, vuelve a intentar o extrae cada página (`?currentPage=2`, `3`…) por separado con **Páginas = 1**. Mientras trabaja, no toques la página. |
 | No aparecen categorías en el buscador | Pulsa **↻ Actualizar**. Si falla, revisa tu conexión o avisa al administrador. |
 | La extensión desapareció tras reiniciar | Comprueba que la carpeta sigue en su sitio y que el **Modo de desarrollador** sigue activo. |
 | Chrome muestra "Desactivar extensiones en modo de desarrollador" | Es un aviso normal para extensiones instaladas desde carpeta. Pulsa la **X** (no "Desactivar"). |

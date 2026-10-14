@@ -10,21 +10,15 @@ import { getConfig, extensionVersion } from './config.js';
 import { getHistory } from './history.js';
 import { syncGroups, sortedGroups, productsForExport } from './groups.js';
 import { filasExcel } from './xlsx.js';
-import { getJobs, sinFamilia } from './jobs.js';
+import { sinFamilia } from './jobs.js';
 import { getCachedCategories } from './categories.js';
 import { sitesOf, siteIcon, DEFAULT_ICON } from './sites.js';
 import { exportSummary, exportFileName, DEFAULT_PREFIX } from './export.js';
 import { descargarLista, encoladaTxt } from './descarga.js';
 import { elegirCategoria } from './selector-categoria.js';
+import { $, el, plural, showStatus } from './dom.js';
 import './familias.js';
 
-const $ = id => document.getElementById(id);
-const el = (tag, props = {}, ...children) => {
-  const e = Object.assign(document.createElement(tag), props);
-  e.append(...children.filter(c => c != null && c !== ''));
-  return e;
-};
-const plural = (n, uno, varios = `${uno}s`) => `${n} ${n === 1 ? uno : varios}`;
 const esHttps = u => /^https:\/\//i.test(u || '');
 
 // Grupo pedido desde el popup ("Ver sus productos en la vista previa").
@@ -1319,12 +1313,6 @@ $('selectAll').addEventListener('change', () => {
 });
 
 // ---------- descarga ----------
-
-function showStatus(msg, cls = '') {
-  $('status').hidden = false;
-  $('status').className = cls;
-  $('status').textContent = msg;
-}
 
 function updateNamePreview() {
   const nombre = exportFileName($('exportName').value, config?.xlsx?.filenamePrefix || DEFAULT_PREFIX);

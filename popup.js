@@ -10,10 +10,10 @@ import {
 import { getCachedCategories, getCategories } from './categories.js';
 import { crearSelector, recordarCategoria } from './selector-categoria.js';
 import {
-  appName, sitesOf, findSite, siteConfig, siteTitle, siteIcon, DEFAULT_ICON, productKey, pageLabel, pageTypeByUrl, regionRedirect,
+  appName, sitesOf, findSite, siteConfig, siteTitle, siteIcon, DEFAULT_ICON, pageLabel, pageTypeByUrl, regionRedirect,
 } from './sites.js';
+import { $, plural, showStatus } from './dom.js';
 
-const $ = id => document.getElementById(id);
 const STALE_MS = 30 * 60 * 1000;
 const DEFAULT_LOAD_LIMIT = 50;
 const MAX_LOAD_LIMIT = 500;
@@ -29,13 +29,6 @@ let updateExportNamePreview = () => {};
 // Categorías del sistema (caché o lista incluida) y el selector del formulario.
 let catalogCache = null;
 let selector = null;
-
-function showStatus(message, type = '') {
-  const status = $('status');
-  status.hidden = false;
-  status.className = type;
-  status.textContent = message;
-}
 
 // Lista actual y sus grupos. Los productos de versiones anteriores (sin grupo)
 // reciben uno por página de origen la primera vez que se abre el popup.
@@ -86,7 +79,7 @@ function renderSources(collected, groups) {
     li.append(name);
     const info = document.createElement('span');
     info.className = 'meta';
-    info.textContent = ` · ${n} producto${n === 1 ? '' : 's'}`;
+    info.textContent = ` · ${plural(n, 'producto')}`;
     li.append(info);
     if (/^https:\/\//i.test(g.origen || '')) {
       const a = document.createElement('a');
@@ -136,7 +129,7 @@ function openPreview(grupo = '') {
 // Eliminar un grupo: pide confirmación en el mismo lugar. Quita sus productos y su
 // página del historial (para poder extraerla de nuevo sin aviso).
 function confirmDelete(li, g, n) {
-  const p = Object.assign(document.createElement('span'), { className: 'confirm-text', textContent: `¿Eliminar «${g.nombre}» y sus ${n} producto${n === 1 ? '' : 's'}? ` });
+  const p = Object.assign(document.createElement('span'), { className: 'confirm-text', textContent: `¿Eliminar «${g.nombre}» y sus ${plural(n, 'producto')}? ` });
   const si = Object.assign(document.createElement('button'), { type: 'button', className: 'mini danger', textContent: 'Eliminar' });
   const no = Object.assign(document.createElement('button'), { type: 'button', className: 'mini', textContent: 'Cancelar' });
   no.addEventListener('click', renderCollection);
@@ -149,7 +142,7 @@ function confirmDelete(li, g, n) {
     await chrome.storage.local.set({ collected, groups });
     // Si otro grupo viene de la misma página, el historial se conserva.
     if (origen && !Object.values(groups).some(x => x.origen === origen)) await removeHistoryEntry(origen);
-    showStatus(`Grupo «${g.nombre}» eliminado (${n} producto${n === 1 ? '' : 's'}).`);
+    showStatus(`Grupo «${g.nombre}» eliminado (${plural(n, 'producto')}).`);
     renderCollection();
   });
   li.replaceChildren(p, si, ' ', no);
@@ -586,7 +579,7 @@ async function enqueue(cat, nombreGrupo, limite = null) {
 }
 
 const limiteTxt = l => (!l ? 'toda la página'
-  : l.modo === 'paginas' ? `${l.valor} página${l.valor === 1 ? '' : 's'}` : `${l.valor} productos`);
+  : l.modo === 'paginas' ? plural(l.valor, 'página') : `${l.valor} productos`);
 
 // Extracción en curso y cola (las ejecuta el service worker). Se actualiza sola
 // mientras el popup está abierto (storage.onChanged).

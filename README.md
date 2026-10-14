@@ -23,7 +23,7 @@ En todos los sitios se extraen búsquedas, listados y la página de un producto 
 
 | Sitio | Páginas | Páginas siguientes | Notas |
 | --- | --- | --- | --- |
-| **Amazon** | Búsquedas, tiendas de marca, portadas de categoría (`/b?node=…`), producto (`/dp/…`) | Descarga en segundo plano, por páginas o por productos | Un producto por familia (variantes de color o talla): el sistema descarga la familia completa de cada ASIN. |
+| **Amazon** | Búsquedas, tiendas de marca, portadas de categoría (`/b?node=…`), producto (`/dp/…`) | Descarga en segundo plano, por páginas o por productos | Con **Extraer variantes** marcada (por defecto desmarcada en Amazon), un producto por familia (variantes de color o talla), porque el sistema descarga la familia completa de cada ASIN. Sin ella, entran todos los ASIN. |
 | **Michael Kors** | Búsquedas, categorías, producto | Descarga en segundo plano los tramos de **Load More** | El SKU sale del link `/<ID>.html`, igual que en el sistema. |
 | **Sephora** | Búsquedas, categorías, marcas, producto | Categorías y marcas: datos de la página (`?currentPage=N`). Búsquedas: lee mientras baja y pasa con **Show More Products** | El sistema saca el `skuId` y el ID `P…` del link. Desde otra región ofrece abrir la versión de EE. UU. |
 | **Marc Jacobs** (solo `/us-en/`) | Categorías, búsquedas, producto | Descarga en segundo plano los tramos del scroll | Una fila por modelo base (`H004L01PF21`). Con la búsqueda abierta en el panel, ofrece abrirla como página. Desde otra región ofrece EE. UU. |
@@ -42,12 +42,8 @@ El popup y el icono toman el nombre y el logo del sitio (*Michael Kors Product S
 
 ### Vista previa
 
-Pestaña con los mismos productos del Excel, pensada para quien revisa el contenido:
-
-- Tarjetas por grupo con imagen, precio, categoría y estado *Listo* / *Revisar* (con los avisos explicados). Grupos comprimidos, resumidos o completos.
-- Pestañas *Todos*, *Para revisar* y *No irán al Excel*. *Ver datos técnicos* muestra la fila del Excel.
-- Variantes de cada familia en miniaturas (con *Extraer variantes*), con tallas resumidas por color.
-- Quitar productos y asignar la categoría por grupo, producto o selección, con Deshacer. Descarga del Excel desde la misma pestaña.
+Pestaña con los mismos productos del Excel, para revisarlos antes de descargar: avisos explicados, variantes de cada familia, quitar productos y asignar la categoría.
+Detalle en la [guía de uso](docs/GUIA-DE-USO.md#vista-previa-del-excel).
 
 ### Se actualiza a distancia
 
@@ -59,10 +55,12 @@ Los selectores de los sitios, los ajustes del Excel y las categorías se corrige
 | --- | --- | --- |
 | [INSTALACION.md](docs/INSTALACION.md) | Cualquier usuario | Instalar, actualizar y desinstalar |
 | [GUIA-DE-USO.md](docs/GUIA-DE-USO.md) | Cualquier usuario | Cómo extraer, elegir categorías, revisar la vista previa, descargar el Excel y usar el historial |
+| [CHANGELOG.md](CHANGELOG.md) | Todos | Historial de versiones: qué cambió en cada una |
 | [CATEGORIAS.md](docs/CATEGORIAS.md) | Administrador | De dónde salen las categorías, cómo se actualizan y qué configurar |
 | [CONFIGURACION-REMOTA.md](docs/CONFIGURACION-REMOTA.md) | Administrador | Corregir selectores o añadir tipos de página sin publicar una versión |
+| [BACKEND.md](docs/BACKEND.md) | Administrador / quien programa | Cómo lee el sistema el Excel de cada sitio (`sku`, `link`, filas que descarta) |
 | [DESARROLLO.md](docs/DESARROLLO.md) | Quien programa | Preparar otra PC, arquitectura, pruebas y cómo publicar versiones |
-| [PENDIENTES.md](docs/PENDIENTES.md) | Todos | Versiones publicadas, tareas abiertas y próximos pasos |
+| [PENDIENTES.md](docs/PENDIENTES.md) | Todos | Versión publicada, tareas abiertas y próximos pasos |
 
 ## Estructura del repositorio
 
@@ -92,6 +90,7 @@ Los selectores de los sitios, los ajustes del Excel y las categorías se corrige
 ├── icons/                     Iconos de la extensión (icons/sitios: uno por sitio)
 ├── tools/                     Scripts para empaquetar, actualizar y generar los iconos por sitio
 ├── docs/                      Documentación
+├── CHANGELOG.md               Historial de versiones
 ├── CLAUDE.md                  Notas para el asistente de programación
 └── .github/workflows/
     ├── release.yml            Publica el .zip al crear una etiqueta vX.Y.Z

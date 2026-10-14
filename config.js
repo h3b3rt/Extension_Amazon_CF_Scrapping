@@ -3,7 +3,7 @@
 // sobrescribir con una remota. La remota solo contiene DATOS (selectores,
 // columnas, avisos): Manifest V3 no permite ejecutar código descargado.
 
-export const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 1;
 const REMOTE_KEY = 'remoteConfig';
 const META_KEY = 'configMeta';
 const SETTINGS_KEY = 'settings';
@@ -21,7 +21,7 @@ export function compareVersions(a = '0', b = '0') {
 }
 
 // Devuelve '' si la configuración es utilizable, o el motivo del rechazo.
-export function validateConfig(cfg) {
+function validateConfig(cfg) {
   if (!cfg || typeof cfg !== 'object') return 'No es un objeto JSON.';
   if (cfg.schemaVersion !== SCHEMA_VERSION) return `schemaVersion ${cfg.schemaVersion} no soportado (se esperaba ${SCHEMA_VERSION}).`;
   if (cfg.minExtensionVersion && compareVersions(extensionVersion(), cfg.minExtensionVersion) < 0) {
@@ -44,7 +44,7 @@ export function validateConfig(cfg) {
 }
 
 let defaultConfig;
-export function getDefaultConfig() {
+function getDefaultConfig() {
   defaultConfig ??= fetch(chrome.runtime.getURL('config.default.json')).then(r => r.json());
   return defaultConfig;
 }

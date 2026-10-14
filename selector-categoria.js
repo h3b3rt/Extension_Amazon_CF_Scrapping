@@ -9,16 +9,12 @@
 // catálogo (con código): sin código el Excel no la usaría.
 // Todo se arma con textContent.
 import { getCategories, refreshCategories, searchCategories, categoryLabel, findCategory, normalizeText, sourceLabel } from './categories.js';
+import { el } from './dom.js';
 
 const MAX_RECIENTES = 15;
 let instancias = 0;
-const el = (tag, props = {}, ...hijos) => {
-  const e = Object.assign(document.createElement(tag), props);
-  e.append(...hijos.filter(h => h != null && h !== ''));
-  return e;
-};
 
-export const catDe = c => ({ principal: c.primaria, secundaria: c.secundaria, terciaria: c.terciaria, codigo: c.codigo, ruta: categoryLabel(c) });
+const catDe = c => ({ principal: c.primaria, secundaria: c.secundaria, terciaria: c.terciaria, codigo: c.codigo, ruta: categoryLabel(c) });
 
 // Resalta (con <mark>) las partes del texto que coinciden, ignorando tildes.
 function resaltar(texto, terminos) {

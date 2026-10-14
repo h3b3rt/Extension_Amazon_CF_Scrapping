@@ -128,7 +128,7 @@ const esc = s => String(s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const unesc = s => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
 
-export function colName(n) {
+function colName(n) {
   let s = '';
   for (; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s;
   return s;
@@ -181,7 +181,7 @@ function condicionDe(nombre, cfg) {
 }
 
 // Misma ruta que usa la hoja Mapeo_categorias: "Principal > Secundaria > Terciaria".
-export const rutaMapeo = c => [c.primaria, c.secundaria, c.terciaria].filter(Boolean).join(' > ');
+const rutaMapeo = c => [c.primaria, c.secundaria, c.terciaria].filter(Boolean).join(' > ');
 
 // Filas con el mismo nombre o la misma imagen: posibles variantes de un mismo padre.
 function duplicados(products, firstRow) {
