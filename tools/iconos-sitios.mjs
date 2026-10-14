@@ -1,4 +1,4 @@
-// Genera los iconos por sitio (icons/sitios/<id>-16.png y -32.png): el favicon del
+// Genera los iconos por sitio (assets/icons/sitios/<id>-16.png y -32.png): el favicon del
 // sitio dentro de un marco naranja redondeado (el color del icono general).
 // Solo para desarrollo; la extensión usa los PNG ya generados.
 //
@@ -12,7 +12,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 const REPO = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, '$1')), '..');
-const SALIDA = path.join(REPO, 'icons', 'sitios');
+const SALIDA = path.join(REPO, 'assets', 'icons', 'sitios');
 const TAMANOS = [16, 32];
 const NAVEGADORES = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
@@ -77,6 +77,6 @@ const res = JSON.parse(json.replace(/&quot;/g, '"').replace(/&amp;/g, '&'));
 fs.mkdirSync(SALIDA, { recursive: true });
 for (const [nombre, url] of Object.entries(res)) {
   fs.writeFileSync(path.join(SALIDA, `${nombre}.png`), Buffer.from(url.split(',')[1], 'base64'));
-  console.log(`icons/sitios/${nombre}.png`);
+  console.log(`assets/icons/sitios/${nombre}.png`);
 }
 fs.rmSync(tmp, { recursive: true, force: true });

@@ -1,18 +1,18 @@
-import { getConfig, getConfigMeta, refreshRemoteConfig, compareVersions, extensionVersion } from './config.js';
-import { normalizeUrl, getHistory, removeHistoryEntry, formatDate } from './history.js';
-import { getPrefs } from './prefs.js';
-import { exportSummary, exportFileName, DEFAULT_PREFIX } from './export.js';
-import { descargarLista, encoladaTxt } from './descarga.js';
-import { getJobs, jobForUrl } from './jobs.js';
+import { getConfig, getConfigMeta, refreshRemoteConfig, compareVersions, extensionVersion } from '../comun/config.js';
+import { normalizeUrl, getHistory, removeHistoryEntry, formatDate } from '../comun/history.js';
+import { getPrefs } from '../comun/prefs.js';
+import { exportSummary, exportFileName, DEFAULT_PREFIX } from '../comun/export.js';
+import { descargarLista, encoladaTxt } from '../comun/descarga.js';
+import { getJobs, jobForUrl } from '../comun/jobs.js';
 import {
   MAX_GROUP_NAME, cleanGroupName, nameTaken, defaultGroupName, syncGroups, sortedGroups, opcionesDe, siNo, quitadosTxt,
-} from './groups.js';
-import { getCachedCategories, getCategories } from './categories.js';
-import { crearSelector, recordarCategoria } from './selector-categoria.js';
+} from '../comun/groups.js';
+import { getCachedCategories, getCategories } from '../comun/categories.js';
+import { crearSelector, recordarCategoria } from '../comun/selector-categoria.js';
 import {
   appName, sitesOf, findSite, siteConfig, siteTitle, siteIcon, DEFAULT_ICON, pageLabel, pageTypeByUrl, regionRedirect,
-} from './sites.js';
-import { $, plural, showStatus } from './dom.js';
+} from '../comun/sites.js';
+import { $, plural, showStatus } from '../comun/dom.js';
 
 const STALE_MS = 30 * 60 * 1000;
 const DEFAULT_LOAD_LIMIT = 50;
@@ -122,7 +122,7 @@ function renderSources(collected, groups) {
 
 // Vista previa del Excel en una pestaña (preview.html), opcionalmente de un solo grupo.
 function openPreview(grupo = '') {
-  const url = chrome.runtime.getURL(`preview.html${grupo ? `?grupo=${encodeURIComponent(grupo)}` : ''}`);
+  const url = chrome.runtime.getURL(`src/preview/preview.html${grupo ? `?grupo=${encodeURIComponent(grupo)}` : ''}`);
   chrome.tabs.create({ url });
 }
 

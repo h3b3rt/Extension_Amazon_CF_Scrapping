@@ -78,15 +78,16 @@ export function familiasConfig(config) {
 
 export const siteTitle =site => site.title || `${site.name} Product Scraper`;
 
-// Icono del sitio: uno de los PNG del paquete, icons/sitios/<nombre>-16.png y -32.png.
+// Icono del sitio: uno de los PNG del paquete, assets/icons/sitios/<nombre>-16.png y -32.png.
+// Rutas absolutas ("/assets/..."): valen igual desde cualquier página y en chrome.action.setIcon.
 // El nombre es config.sites[].icono o, sin esa clave, el id del sitio (así funciona
 // aunque la configuración remota aún no traiga `icono`). Chrome no acepta imágenes
 // remotas: si el paquete no trae ese PNG, quien lo usa vuelve al icono general.
-export const DEFAULT_ICON = { 16: 'icons/icon16.png', 32: 'icons/icon32.png' };
+export const DEFAULT_ICON = { 16: '/assets/icons/icon16.png', 32: '/assets/icons/icon32.png' };
 export function siteIcon(site) {
   const id = site?.icono ?? site?.id;
   return typeof id === 'string' && /^[a-z0-9-]{1,40}$/.test(id)
-    ? { 16: `icons/sitios/${id}-16.png`, 32: `icons/sitios/${id}-32.png` }
+    ? { 16: `/assets/icons/sitios/${id}-16.png`, 32: `/assets/icons/sitios/${id}-32.png` }
     : null;
 }
 

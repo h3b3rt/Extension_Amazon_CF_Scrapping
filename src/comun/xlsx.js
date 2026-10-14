@@ -1,4 +1,4 @@
-// Genera el Excel de carga a partir de plantilla.xlsx (la plantilla de scraping
+// Genera el Excel de carga a partir de assets/plantilla.xlsx (la plantilla de scraping
 // del sistema). No usa librerías: el xlsx es un zip de XML, se abre con
 // DecompressionStream, se insertan las filas y se vuelve a comprimir.
 //

@@ -2,8 +2,7 @@
 
 Estado al **14/10/2026**.
 
-- **Publicada: v1.14.4** (14/10/2026).
-- **En preparación: v1.14.5** (documentación y limpieza de código).
+- **Publicada: v1.14.5** (14/10/2026).
 
 Lo ya hecho y probado, versión por versión, está en el [historial de versiones](../CHANGELOG.md). Aquí solo quedan las tareas abiertas.
 
@@ -20,9 +19,9 @@ Lo ya hecho y probado, versión por versión, está en el [historial de versione
 Instalación con un clic y actualizaciones automáticas, sin modo de desarrollador.
 
 - [ ] Cuenta de desarrollador de Google (5 USD, pago único).
-- [ ] Ficha: descripción, capturas 1280×800, icono de 128 px (ya existe en `icons/`).
+- [ ] Ficha: descripción, capturas 1280×800, icono de 128 px (ya existe en `assets/icons/`).
 - [ ] Política de privacidad breve y justificación de cada permiso.
-- [ ] Revisar si los logos de las marcas del icono por sitio (`icons/sitios`, v1.12.0) chocan con la política de suplantación de la tienda; en ese caso, volver a un distintivo de texto.
+- [ ] Revisar si los logos de las marcas del icono por sitio (`assets/icons/sitios`, v1.12.0) chocan con la política de suplantación de la tienda; en ese caso, volver a un distintivo de texto.
 - [ ] Publicar como **No listada** y compartir el enlace con el equipo.
 
 ## 4. Historial en servidor, por cuenta (pospuesto)

@@ -11,10 +11,13 @@ New-Item -ItemType Directory -Force $dist | Out-Null
 $zip = Join-Path $dist "amazon-product-scraper-$version.zip"
 if (Test-Path $zip) { Remove-Item $zip -Confirm:$false }
 
-# config.json es la configuración remota (se sirve desde GitHub), no va en el paquete.
-$files = @(Get-ChildItem $root -File | Where-Object { $_.Extension -in '.json', '.js', '.html', '.xlsx' -and $_.Name -ne 'config.json' })
-# Iconos generales e iconos por sitio (icons\sitios).
-$files += Get-ChildItem (Join-Path $root 'icons') -File -Filter '*.png' -Recurse
+# Raíz: manifest, configuración incluida y categorías. config.json es la configuración
+# remota (se sirve desde GitHub), no va en el paquete.
+$files = @('manifest.json', 'config.default.json', 'categories.json' | ForEach-Object { Get-Item (Join-Path $root $_) })
+# Código (src) y recursos (assets: plantilla, iconos generales e iconos por sitio).
+$files += Get-ChildItem (Join-Path $root 'src') -File -Recurse | Where-Object { $_.Extension -in '.js', '.html' }
+$files += Get-Item (Join-Path $root 'assets\plantilla.xlsx')
+$files += Get-ChildItem (Join-Path $root 'assets\icons') -File -Filter '*.png' -Recurse
 
 # Se arma el zip a mano porque Compress-Archive (PowerShell 5.1) guarda rutas con "\",
 # y Chrome Web Store espera "/".

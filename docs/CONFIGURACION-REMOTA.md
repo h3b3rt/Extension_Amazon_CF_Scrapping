@@ -158,7 +158,7 @@ La extensión trabaja con varios ecommerce. Cada sitio de `sites[]` **sobrescrib
 |---|---|
 | `id` / `name` | Identificador interno y nombre visible (`michaelkors` / `Michael Kors`). |
 | `title` | Título del popup y del icono en ese sitio (`Michael Kors Product Scraper`). |
-| `icono` | Nombre del icono del sitio (`michaelkors`): la extensión usa `icons/sitios/<icono>-16.png` y `-32.png` **del paquete**, en la barra (por pestaña) y en el popup. Chrome no acepta imágenes remotas: un icono nuevo requiere versión nueva. Solo letras minúsculas, números y `-`. Sin esta clave se usa el `id` del sitio; si el paquete no trae ese archivo, se usa el icono general. |
+| `icono` | Nombre del icono del sitio (`michaelkors`): la extensión usa `assets/icons/sitios/<icono>-16.png` y `-32.png` **del paquete**, en la barra (por pestaña) y en el popup. Chrome no acepta imágenes remotas: un icono nuevo requiere versión nueva. Solo letras minúsculas, números y `-`. Sin esta clave se usa el `id` del sitio; si el paquete no trae ese archivo, se usa el icono general. |
 | `hosts` | Dominios del sitio; también vale cualquier subdominio (`michaelkors.com` cubre `www.michaelkors.com`). Kate Spade usa `www.katespade.com` para dejar fuera el outlet (`surprise.katespade.com`). |
 | `homeUrl` | Enlace que muestra el popup en la lista de sitios disponibles. |
 | `ecomerce` | Nombre del ecommerce (`"Marc Jacobs"`); es el que usan `xlsx.skuOnlyInLink` y `xlsx.linkOmit`. La columna `ecomerce` del Excel lo lleva **sin espacios** (`MarcJacobs`), como en el desplegable de la plantilla. |
@@ -263,7 +263,7 @@ Una versión que no conoce un sitio igual lo ve en `sites` (la configuración es
 
 ## Salida Excel (`xlsx`)
 
-El archivo se genera desde `plantilla.xlsx`, una copia de la plantilla de scraping del sistema incluida en la extensión. Las columnas se buscan **por nombre** en la fila 1, no por posición. La hoja `Mapeo_categorias` se llena con las categorías actuales. Cómo lee el backend cada columna: [BACKEND.md](BACKEND.md).
+El archivo se genera desde `assets/plantilla.xlsx`, una copia de la plantilla de scraping del sistema incluida en la extensión. Las columnas se buscan **por nombre** en la fila 1, no por posición. La hoja `Mapeo_categorias` se llena con las categorías actuales. Cómo lee el backend cada columna: [BACKEND.md](BACKEND.md).
 
 ```json
 "xlsx": {
@@ -295,7 +295,7 @@ El archivo se genera desde `plantilla.xlsx`, una copia de la plantilla de scrapi
 
 **Nombres prohibidos en `refColumns`:** el sistema lee estas columnas y las tomaría como datos fijos, así que la extensión las descarta aunque estén en la configuración: `ecomerce`, `sku`, `link`, `variacion`, `condicion`, `marca`, `nombre`, `categoria_general`, `codigo_categoria`, `color`, `talla`, `seguimiento`, `guia_talla`, `cantidad_imagen`, `peso`, `precio`, `stock`, `created_code`, `variant_id`, `parent_sku`, `base_sku`. Usa el prefijo `ref_`.
 
-Si cambia la plantilla del sistema, reemplaza `plantilla.xlsx` (requiere versión nueva). La incluida tiene otro orden que la del sistema: `ecomerce`, `sku`, `variacion`, `guia_talla`, `condicion`, `link`, `Buscar categoria`, `codigo_categoria`, `seguimiento` y luego `marca`…`precio` (con sus desplegables, el formato condicional, la validación de datos y la fórmula de `codigo_categoria` ajustados). Al reemplazarla hay que reordenarla igual y volver a poner el formato condicional y la validación en `xl/worksheets/sheet1.xml`. Debe conservar `Plantilla` como primera hoja y las columnas `ecomerce`, `sku`, `condicion`, `link` y `seguimiento`.
+Si cambia la plantilla del sistema, reemplaza `assets/plantilla.xlsx` (requiere versión nueva). La incluida tiene otro orden que la del sistema: `ecomerce`, `sku`, `variacion`, `guia_talla`, `condicion`, `link`, `Buscar categoria`, `codigo_categoria`, `seguimiento` y luego `marca`…`precio` (con sus desplegables, el formato condicional, la validación de datos y la fórmula de `codigo_categoria` ajustados). Al reemplazarla hay que reordenarla igual y volver a poner el formato condicional y la validación en `xl/worksheets/sheet1.xml`. Debe conservar `Plantilla` como primera hoja y las columnas `ecomerce`, `sku`, `condicion`, `link` y `seguimiento`.
 
 ## `config.default.json`
 

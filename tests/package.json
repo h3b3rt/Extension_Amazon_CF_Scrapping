@@ -1,0 +1,13 @@
+{
+  "name": "comprafacil-scraper-tests",
+  "private": true,
+  "description": "Pruebas de la extensión (jsdom + chrome falso). Solo para desarrollo: no va en el paquete.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "30.1.1",
+    "xlsx": "0.18.5"
+  }
+}

@@ -16,42 +16,58 @@ Otros documentos: el historial de versiones está en [CHANGELOG.md](../CHANGELOG
    git config user.name "<tu usuario de GitHub>"
    git config user.email "<tu correo>"
    ```
-4. En Chrome: `chrome://extensions` → **Modo de desarrollador** → **Cargar descomprimida** → elige la carpeta clonada.
+4. En Chrome: `chrome://extensions` → **Modo de desarrollador** → **Cargar descomprimida** → elige la carpeta clonada (la raíz del repo, donde está `manifest.json`; no `src/`).
 5. Tras cada cambio en el código, pulsa ↻ en `chrome://extensions` y vuelve a abrir el popup.
 6. El primer `git push` abre el navegador para iniciar sesión en GitHub. Complétalo sin cerrar la ventana. Desde VS Code también puedes usar **Source Control → Sync Changes**.
 
 ## Arquitectura
 
+### Carpetas (desde la v1.14.5)
+
+| Carpeta | Contenido |
+|---|---|
+| Raíz | `manifest.json`, `config.json`, `config.default.json`, `categories.json`. **No se mueven:** las extensiones instaladas leen `config.json` y `categories.json` de una URL fija de `main`, y Chrome carga la carpeta que tiene `manifest.json`. |
+| `src/background/` | `background.js` (service worker). |
+| `src/inyectados/` | `scraper.js` y `familias.js`: scripts clásicos que se inyectan en la pestaña con `executeScript` (`files: ['src/inyectados/familias.js', 'src/inyectados/scraper.js']`). `familias.js` también lo importan los módulos (`import '../inyectados/familias.js'`). |
+| `src/popup/`, `src/preview/`, `src/options/` | Cada página con su `.html` y su `.js`. |
+| `src/comun/` | Módulos compartidos: `config.js`, `sites.js`, `groups.js`, `history.js`, `categories.js`, `prefs.js`, `export.js`, `xlsx.js`, `descarga.js`, `selector-categoria.js`, `dom.js`, `jobs.js`. |
+| `assets/` | `plantilla.xlsx` y `icons/` (`icon16/32/48/128.png`, `icon.svg` como dibujo original, `sitios/<id>-16.png` y `-32.png`). |
+| `tests/` | Pruebas automáticas (ver [Probar](#probar)). No van en el paquete. |
+| `tools/` | `empaquetar.ps1`, `actualizar.ps1`, `iconos-sitios.mjs`. |
+
+**Rutas de iconos:** en el código son **absolutas** desde la raíz del paquete (`/assets/icons/icon32.png`, `/assets/icons/sitios/<id>-16.png`), así valen igual desde cualquier página (`src/popup/…`, `src/preview/…`) y en `chrome.action.setIcon`. `chrome.runtime.getURL` recibe la ruta desde la raíz (`assets/plantilla.xlsx`, `assets/icons/icon128.png`).
+
 ```
-popup.js ──"enqueue"──▶ background.js (service worker: cola de extracciones)
-   │  (muestra avance,          │  executeScript
-   │   cola y resultado)        ▼
-   │                         scraper.js (en la pestaña del sitio)
+src/popup/popup.js ──"enqueue"──▶ src/background/background.js (service worker: cola de extracciones)
+   │  (muestra avance,                    │  executeScript
+   │   cola y resultado)                  ▼
+   │                         src/inyectados/familias.js + scraper.js (en la pestaña del sitio)
    │                            └─ scrapeProgress / scrapePartial / scrapeDone / scrapeConfirm ──▶ background.js
    │                                                     └─ jobs.js: guarda lista, grupo (con resumen) e historial
-   ├─ config.js      ◀── config.json (GitHub) / config.default.json
-   ├─ categories.js  ◀── categories.json (GitHub) / copia incluida
+   │  módulos de src/comun/:
+   ├─ config.js      ◀── config.json (GitHub) / config.default.json (raíz)
+   ├─ categories.js  ◀── categories.json (GitHub) / copia incluida (raíz)
    ├─ selector-categoria.js (selector de categoría, el mismo en el popup y la vista previa)
    ├─ history.js     ──▶ chrome.storage.sync (historial personal)
    ├─ groups.js      (grupos de la lista: nombres, migración, orden del Excel, quitar y categoría)
    ├─ sites.js       (sitios: cuál es la pestaña, su configuración, su título y su icono)
-   ├─ export.js      (descarga del Excel, también desde el service worker; usa xlsx.js)
+   ├─ export.js      (descarga del Excel, también desde el service worker; usa xlsx.js y assets/plantilla.xlsx)
    ├─ descarga.js    ("Descargar Excel" del popup y de la vista previa: directo o encolado)
-   ├─ familias.js    (familias y variantes; también se inyecta en la pestaña)
    ├─ dom.js         (ayudas de DOM compartidas)
    └─ prefs.js
+   y src/inyectados/familias.js (familias y variantes; también se inyecta en la pestaña)
 background.js: además refresca la configuración al iniciar y cada 3 h (chrome.alarms)
                y pone el título y la imagen del icono según el sitio de la pestaña
-preview.html / preview.js: vista previa del Excel en una pestaña (lee storage.local,
+src/preview/preview.html / preview.js: vista previa del Excel en una pestaña (lee storage.local,
                escribe la lista solo con mensajes al service worker)
 ```
 
 ### Módulos
 
-- **Módulos ES:** `popup.js`, `preview.js`, `options.js` y `background.js` (`"type": "module"`) importan `config.js`, `categories.js`, `history.js` y `prefs.js` según lo que necesiten. El popup importa `export.js` (resumen y nombre del archivo) y `descarga.js` (botón "Descargar Excel"); **no** importa `xlsx.js`. `xlsx.js` lo usan `export.js` (`buildWorkbook`) y `preview.js` (`filasExcel`). `xlsx.js` genera el Excel desde `plantilla.xlsx` sin librerías (zip con `DecompressionStream`/`CompressionStream`).
+- **Módulos ES:** `popup.js`, `preview.js`, `options.js` y `background.js` (`"type": "module"`) importan desde `src/comun/` `config.js`, `categories.js`, `history.js` y `prefs.js` según lo que necesiten. El popup importa `export.js` (resumen y nombre del archivo) y `descarga.js` (botón "Descargar Excel"); **no** importa `xlsx.js`. `xlsx.js` lo usan `export.js` (`buildWorkbook`) y `preview.js` (`filasExcel`). `xlsx.js` genera el Excel desde `assets/plantilla.xlsx` sin librerías (zip con `DecompressionStream`/`CompressionStream`).
 - **`dom.js`:** ayudas de DOM compartidas por las páginas de la extensión: `el` (crear un elemento con propiedades e hijos), `$` (`getElementById`), `plural` y `showStatus`.
-- Los estilos del selector de categoría (`.sc-*`) están en cada página (`popup.html` y `preview.html`): cada una usa su propio tema (naranja en el popup, azul en la vista previa).
-- **`scraper.js`** define `globalThis.__cfScraper(siteConfig, opts)`. El service worker lo llama con `chrome.scripting.executeScript`, sin esperar el resultado, pasando la configuración del sitio (`siteConfig` de `sites.js`) y en `opts` el límite (`limit` o `pages`), `jobId`, `autoScroll` y `familiasLista`. El SKU se guarda en el campo `asin` por compatibilidad. Todo lo específico de cada tipo de página está en `config.layouts`, no en el código. `config.pageTypes` reserva layouts para un tipo de página (p. ej. `detalle` para la página de producto): en esa página solo corren esos, y en las demás no corren.
+- Los estilos del selector de categoría (`.sc-*`) están en cada página (`src/popup/popup.html` y `src/preview/preview.html`): cada una usa su propio tema (naranja en el popup, azul en la vista previa).
+- **`scraper.js`** (`src/inyectados/`) define `globalThis.__cfScraper(siteConfig, opts)`. El service worker lo llama con `chrome.scripting.executeScript`, sin esperar el resultado, pasando la configuración del sitio (`siteConfig` de `sites.js`) y en `opts` el límite (`limit` o `pages`), `jobId`, `autoScroll` y `familiasLista`. El SKU se guarda en el campo `asin` por compatibilidad. Todo lo específico de cada tipo de página está en `config.layouts`, no en el código. `config.pageTypes` reserva layouts para un tipo de página (p. ej. `detalle` para la página de producto): en esa página solo corren esos, y en las demás no corren.
 - **Sin código remoto:** todo lo que viene de GitHub son datos (JSON). El HTML nunca se construye con `innerHTML` a partir de datos remotos; se usa `textContent`.
 
 ### Extracciones
@@ -96,12 +112,12 @@ Los mensajes de la vista previa cambian la lista dentro de `conLock` (`cambiarLi
 
 ### Familias
 
-- **Amazon:** `familias.js` es un script clásico (sin `import`/`export`) que deja sus funciones en `globalThis.__cfFamilias`: se inyecta en la pestaña antes de `scraper.js` y los módulos lo cargan con `import './familias.js'`. Con `config.familias` (sitio Amazon), el scraper pasa lo leído por una cola `pendientes` y `verificar()` descarga la `/dp/` de cada ASIN (pausa al azar, sin descargar los hermanos ya conocidos) para quedarse con el primero de cada familia; en modo productos el límite cuenta familias y, al analizar tantos productos como el límite, pregunta con `scrapeConfirm` (el service worker guarda `actual.confirmacion`, muestra una notificación con botones y responde con `globalThis.__cfResponder("seguir" | "detener")`). El service worker pasa `opts.familiasLista` (familias ya en la lista) para omitir los de una familia ya extraída. Al exportar, si hay productos de Amazon sin `familia`, `descarga.js` (popup o vista previa) encola un trabajo `{ tipo: 'exportar' }` que verifica (`verificarLista` en `jobs.js`) y descarga con `exportList` (un producto por familia). Sin *Extraer variantes* el popup envía la extracción con `familias = null` (salvo los sitios con `familias.siempre`) y la exportación no verifica ni agrupa esos productos.
+- **Amazon:** `src/inyectados/familias.js` es un script clásico (sin `import`/`export`) que deja sus funciones en `globalThis.__cfFamilias`: se inyecta en la pestaña antes de `scraper.js` y los módulos lo cargan con `import '../inyectados/familias.js'`. Con `config.familias` (sitio Amazon), el scraper pasa lo leído por una cola `pendientes` y `verificar()` descarga la `/dp/` de cada ASIN (pausa al azar, sin descargar los hermanos ya conocidos) para quedarse con el primero de cada familia; en modo productos el límite cuenta familias y, al analizar tantos productos como el límite, pregunta con `scrapeConfirm` (el service worker guarda `actual.confirmacion`, muestra una notificación con botones y responde con `globalThis.__cfResponder("seguir" | "detener")`). El service worker pasa `opts.familiasLista` (familias ya en la lista) para omitir los de una familia ya extraída. Al exportar, si hay productos de Amazon sin `familia`, `descarga.js` (popup o vista previa) encola un trabajo `{ tipo: 'exportar' }` que verifica (`verificarLista` en `jobs.js`) y descarga con `exportList` (un producto por familia). Sin *Extraer variantes* el popup envía la extracción con `familias = null` (salvo los sitios con `familias.siempre`) y la exportación no verifica ni agrupa esos productos.
 - **Kate Spade:** el mismo mecanismo con `familias.tipo: "jsonld"`: la familia sale del `ProductGroup` del JSON-LD de la página del producto (se descarga su link). `productGroupID` es el estilo de la página abierta, así que dos páginas de una familia dan nombres distintos: el scraper y `verificarLista` usan la familia ya conocida de cualquier hermano. `familias.siempre` agrupa aunque el grupo no tenga variantes (`porEcomerce` y `agrupa` en `familias.js` deciden qué productos se agrupan por ecommerce); `guardarHermanos` guarda `hermanos` en cada producto, que `familiasDeLaLista` pasa como `familiasLista.hermanos`. `verificarLista(config)` verifica cada producto con la configuración de familias de su sitio.
 
 ### Iconos por sitio
 
-`config.sites[].icono` (sin la clave, el `id` del sitio) elige `icons/sitios/<icono>-16.png` y `-32.png`, incluidos en el paquete (Chrome no acepta imágenes remotas). `background.js` los fija por pestaña con `chrome.action.setIcon` junto al título; fuera de un sitio, o si el archivo no existe, vuelve a `DEFAULT_ICON`. Los PNG se generan con `node tools/iconos-sitios.mjs <carpeta>` (favicon de cada sitio dentro del marco naranja; usa Chrome, Edge o Brave sin interfaz). La carpeta tiene un archivo por `id` (`amazon.png`, `michaelkors.jpg`…); el favicon se puede bajar de `https://www.google.com/s2/favicons?domain=<dominio>&sz=128`.
+`config.sites[].icono` (sin la clave, el `id` del sitio) elige `/assets/icons/sitios/<icono>-16.png` y `-32.png` (ruta absoluta, ver [Carpetas](#carpetas-desde-la-v1145)), incluidos en el paquete (Chrome no acepta imágenes remotas). `background.js` los fija por pestaña con `chrome.action.setIcon` junto al título; fuera de un sitio, o si el archivo no existe, vuelve a `DEFAULT_ICON`. Los PNG se generan en `assets/icons/sitios/` con `node tools/iconos-sitios.mjs <carpeta>` (favicon de cada sitio dentro del marco naranja; usa Chrome, Edge o Brave sin interfaz). La carpeta tiene un archivo por `id` (`amazon.png`, `michaelkors.jpg`…); el favicon se puede bajar de `https://www.google.com/s2/favicons?domain=<dominio>&sz=128`.
 
 ### Selector de categoría
 
@@ -109,7 +125,7 @@ Los mensajes de la vista previa cambian la lista dentro de `conLock` (`cambiarLi
 
 ### Plantilla
 
-`plantilla.xlsx` es la plantilla del sistema reordenada (ver [CONFIGURACION-REMOTA.md](CONFIGURACION-REMOTA.md#salida-excel-xlsx)). El formato condicional (rojo en `sku` y `link` según la regla de [BACKEND.md](BACKEND.md)) y la validación de datos con mensaje en esas columnas se editan en `xl/worksheets/sheet1.xml` **dentro** de `plantilla.xlsx`. `xlsx.js` no los crea: solo corre y extiende sus rangos (`sqref`) al insertar las columnas `ref_*` y al llenar filas.
+`assets/plantilla.xlsx` es la plantilla del sistema reordenada (ver [CONFIGURACION-REMOTA.md](CONFIGURACION-REMOTA.md#salida-excel-xlsx)). El formato condicional (rojo en `sku` y `link` según la regla de [BACKEND.md](BACKEND.md)) y la validación de datos con mensaje en esas columnas se editan en `xl/worksheets/sheet1.xml` **dentro** de `assets/plantilla.xlsx`. `xlsx.js` no los crea: solo corre y extiende sus rangos (`sqref`) al insertar las columnas `ref_*` y al llenar filas.
 
 ### Almacenamiento
 
@@ -150,40 +166,73 @@ Los mensajes de la vista previa cambian la lista dentro de `conLock` (`cambiarLi
    ```
 4. El workflow [`release.yml`](../.github/workflows/release.yml):
    - comprueba que la etiqueta coincida con `manifest.json`,
-   - genera `amazon-product-scraper-1.9.0.zip` (con `categories.json`, `plantilla.xlsx` e `icons/sitios/*.png` incluidos),
+   - genera `amazon-product-scraper-1.9.0.zip` con los archivos de la raíz que necesita la extensión (`manifest.json`, `config.default.json`, `categories.json`; no `config.json`), `src/*/*.js` y `src/*/*.html`, `assets/plantilla.xlsx` y los PNG de `assets/icons/` y `assets/icons/sitios/`,
    - lo publica en **Releases**.
 5. Las extensiones instaladas muestran el aviso de versión nueva.
 
 > Si solo cambian selectores o las columnas de ayuda del Excel, **no hace falta versión nueva**: basta con editar `config.json` y subir `revision`. Ver [CONFIGURACION-REMOTA.md](CONFIGURACION-REMOTA.md).
 
-`tools/empaquetar.ps1` genera el mismo zip en `dist/` para subirlo a mano, por ejemplo a Chrome Web Store.
+`tools/empaquetar.ps1` genera el mismo zip en `dist/` para subirlo a mano, por ejemplo a Chrome Web Store. Ni `tests/` ni `tools/` van en el paquete.
 
 ## Probar
 
-No hay suite de pruebas automáticas en el repo. Durante el desarrollo se probó así:
+### Pruebas automáticas (`tests/`)
 
-- **Sintaxis:** `node --check popup.js`, y lo mismo con cada módulo. Si está bien no muestra nada. En PowerShell, todos a la vez:
+Usan el ejecutor de pruebas que trae Node (`node --test`). Hace falta **Node.js 22** o más reciente. Desde la raíz del repo:
+
+```powershell
+cd tests
+npm install    # solo la primera vez: instala jsdom y xlsx en tests/node_modules
+npm test
+```
+
+`tests/package.json` declara `jsdom` y `xlsx` (SheetJS, la misma librería que usa el backend) como `devDependencies` **solo para las pruebas**: no van en el paquete y la extensión sigue sin dependencias ni build.
+
+| Archivo | Qué comprueba |
+|---|---|
+| `rutas.test.mjs` | Cada ruta existe: service worker, páginas e iconos del `manifest.json`, `getURL` y `executeScript`, los iconos de `sites.js` (rutas absolutas), `src` y `href` locales de los HTML y cada `import` (el archivo existe, el nombre se exporta y se usa). Además, que `release.yml` empaqueta `src/`, `assets/` y los archivos de la raíz necesarios, sin `config.json`. |
+| `excel.test.mjs` | El Excel leído con `XLSX.utils.sheet_to_json` **sin opciones**, como el backend: ninguna celda `''`, ninguna columna del backend llena, Amazon solo con `sku`, los demás solo con `link`, `ecomerce` sin espacios (ver [BACKEND.md](BACKEND.md)). |
+| `popup.test.mjs` | Popup en jsdom en una página de Michael Kors: icono del sitio, elegir categoría con el buscador y **Extraer** encola el trabajo con esa categoría. |
+| `vista-previa.test.mjs` | Vista previa en jsdom sobre la lista de prueba: sitios, columnas técnicas y nombre del archivo. |
+| `background.test.mjs` | El service worker carga con un `chrome` falso (todos sus `import` resuelven) y los avisos de CAPTCHA mantienen sus textos. |
+
+Apoyo: `tests/apoyo/chrome-falso.mjs` pone un `chrome` falso y jsdom como globales; `montar('src/popup/popup.html', { local, tab, onMessage })` arma la página sin su `<script type="module">` y la prueba importa después el `.js` de la página. `tests/apoyo/lista.mjs` es una lista inventada con grupos y productos de los 5 sitios.
+
+**HTML guardado de las tiendas:** va en `tests/html/`, que está en `.gitignore` (el repo es público: no se suben páginas de las tiendas). Se guarda desde Chrome real con `copy(document.documentElement.outerHTML)` y con los bloqueadores de anuncios apagados.
+
+Otras comprobaciones útiles a mano:
+
+- **Sintaxis:** `node --check src/popup/popup.js`, y lo mismo con cada módulo. Si está bien no muestra nada. En PowerShell, todos a la vez:
   ```powershell
-  Get-ChildItem *.js | ForEach-Object { node --check $_.FullName; if ($?) { "OK  $($_.Name)" } }
+  Get-ChildItem src -Recurse -Include *.js | ForEach-Object { node --check $_.FullName; if ($?) { "OK  $($_.Name)" } }
   ```
   Sin nombre de archivo, `node --check` se queda esperando código por teclado (salir con Ctrl+C).
-- **Excel:** generar el archivo con `buildWorkbook` en Node y leerlo con `XLSX.utils.sheet_to_json` **sin opciones**, como el backend. Comprobar que `sku` (solo Amazon), `link` (solo los demás), `codigo_categoria` y `seguimiento` llegan bien y que ninguna celda llega como `''` (ver [BACKEND.md](BACKEND.md)).
-- **Scraper:** cargar `scraper.js` en **jsdom** con el HTML guardado del sitio y llamar a `globalThis.__cfScraper(siteConfig, opts)` (con `chrome.runtime.sendMessage` falso para recibir `scrapeDone`).
-- **Popup:** ejecutar `popup.html` + módulos en jsdom con un `chrome` falso (`storage.local`/`sync`, `tabs`, `scripting`, `downloads`, `runtime.sendMessage`) y simular clics.
-- **Vista previa:** lo mismo con `preview.html`, y comparar sus filas con el Excel que descarga (mismo número de filas y mismos `sku`/`link`).
-- **Visual:** abrir el popup con datos de prueba en Chrome sin interfaz:
+- **Scraper:** cargar `src/inyectados/scraper.js` en **jsdom** con un HTML guardado de `tests/html/` y llamar a `globalThis.__cfScraper(siteConfig, opts)` (con `chrome.runtime.sendMessage` falso para recibir `scrapeDone`).
+- **Visual:** abrir una página con datos de prueba en Chrome sin interfaz:
   ```powershell
-  chrome --headless=new --screenshot=shot.png --window-size=420,560 file:///ruta/preview.html
+  chrome --headless=new --screenshot=shot.png --window-size=420,560 file:///ruta/src/preview/preview.html
   ```
-- **Siempre**, antes de publicar, probar en Chrome real:
-  - Amazon: una búsqueda, una tienda de marca y una página de producto (`/dp/…`).
-  - Michael Kors: un listado y un producto.
-  - Sephora: un listado con más de 60 productos (paso de página) y un producto.
-  - Marc Jacobs: una categoría con más de 18 productos (tramos), su búsqueda como página y un producto.
-  - Kate Spade: una categoría con más de 16 productos (páginas siguientes y familias) y un producto.
-  - Elegir categoría al extraer.
-  - Vista previa: quitar productos y Deshacer, **asignar categoría** (y quitarla), cambiar la **guía de tallas** de un grupo y abrir **▸ Ver variantes**.
-  - Descargar el Excel, abrirlo en Google Sheets (vista previa de imágenes, desplegable de categorías y **formato condicional** en rojo de `sku`/`link`) y comprobar que el sistema lo acepta.
+
+### Pruebas en Chrome real
+
+Las pruebas automáticas no sustituyen a Chrome. **Siempre**, antes de publicar (y siempre tras mover archivos), cargar la carpeta del repo con **Cargar descomprimida** y comprobar:
+
+- `chrome://extensions` sin errores (ni en **Errores** ni en el service worker).
+- Se abren el **popup**, la **vista previa** y las **Opciones**; el icono muestra el **logo del sitio** en cada tienda y la bolsa naranja fuera de ellas.
+- Una extracción por sitio y la **notificación** al terminar.
+- El **Excel**: descarga directa y con **verificación de familias** (productos de Amazon sin familia: trabajo `exportar`).
+- **Actualizar** desde la versión anterior conserva la lista, los grupos y el historial.
+
+Y, por sitio y función:
+
+- Amazon: una búsqueda, una tienda de marca y una página de producto (`/dp/…`).
+- Michael Kors: un listado y un producto.
+- Sephora: un listado con más de 60 productos (paso de página) y un producto.
+- Marc Jacobs: una categoría con más de 18 productos (tramos), su búsqueda como página y un producto.
+- Kate Spade: una categoría con más de 16 productos (páginas siguientes y familias) y un producto.
+- Elegir categoría al extraer.
+- Vista previa: quitar productos y Deshacer, **asignar categoría** (y quitarla), cambiar la **guía de tallas** de un grupo y abrir **▸ Ver variantes**.
+- Descargar el Excel, abrirlo en Google Sheets (vista previa de imágenes, desplegable de categorías y **formato condicional** en rojo de `sku`/`link`) y comprobar que el sistema lo acepta.
 
 ## Convenciones
 

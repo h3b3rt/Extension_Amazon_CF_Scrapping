@@ -30,13 +30,22 @@ Cuando haya una versión nueva, el popup de la extensión muestra: *"Hay una nue
 
 Tu lista en curso y tu historial se conservan.
 
+> **Al pasar a la v1.14.5 (o desde una versión anterior a ella):** desde esa versión los archivos van en carpetas (`src\`, `assets\`), y al descomprimir encima quedarían los archivos sueltos de la versión anterior. Lo recomendado:
+>
+> 1. Cierra el popup y la vista previa de la extensión.
+> 2. Borra **todo el contenido** de la carpeta de la extensión (no la carpeta).
+> 3. Descomprime el zip nuevo **en esa misma carpeta**. Debe quedar `manifest.json` directamente dentro de ella (no en una subcarpeta).
+> 4. En `chrome://extensions`, pulsa **↻** en la extensión.
+>
+> Usar **la misma carpeta** mantiene el ID de la extensión, y con él la lista, los grupos y el historial. Si la cargas desde otra carpeta, Chrome la trata como otra extensión y empieza vacía. También puedes usar el script de abajo (`tools\actualizar.ps1`), que ya borra los archivos de la estructura anterior.
+
 > **Permisos:** la extensión pide acceso a `amazon.com`, `michaelkors.com`, `sephora.com`, `marcjacobs.com` y `www.katespade.com` (para leer sus páginas), a `raw.githubusercontent.com` (configuración y categorías), a mostrar **notificaciones** (aviso al terminar una extracción) y a las **descargas** (el Excel). Si al actualizar Chrome muestra un aviso de permisos nuevos, acéptalo. Qué cambió en cada versión: [historial de versiones](../CHANGELOG.md).
 
 > **Alternativa con script:** desde PowerShell, en la carpeta de la extensión:
 > ```powershell
 > powershell -ExecutionPolicy Bypass -File tools\actualizar.ps1 -Url <enlace-del-zip>
 > ```
-> Luego pulsa ↻ en `chrome://extensions`.
+> Descomprime el zip en la carpeta y, desde la v1.14.5, borra los archivos de la estructura anterior que ya no se usan. Luego pulsa ↻ en `chrome://extensions`.
 
 ## Lo que se actualiza solo, sin reinstalar
 

@@ -59,40 +59,47 @@ Los selectores de los sitios, los ajustes del Excel y las categorías se corrige
 | [CATEGORIAS.md](docs/CATEGORIAS.md) | Administrador | De dónde salen las categorías, cómo se actualizan y qué configurar |
 | [CONFIGURACION-REMOTA.md](docs/CONFIGURACION-REMOTA.md) | Administrador | Corregir selectores o añadir tipos de página sin publicar una versión |
 | [BACKEND.md](docs/BACKEND.md) | Administrador / quien programa | Cómo lee el sistema el Excel de cada sitio (`sku`, `link`, filas que descarta) |
-| [DESARROLLO.md](docs/DESARROLLO.md) | Quien programa | Preparar otra PC, arquitectura, pruebas y cómo publicar versiones |
+| [DESARROLLO.md](docs/DESARROLLO.md) | Quien programa | Preparar otra PC, arquitectura, pruebas (`tests/`) y cómo publicar versiones |
 | [PENDIENTES.md](docs/PENDIENTES.md) | Todos | Versión publicada, tareas abiertas y próximos pasos |
 
 ## Estructura del repositorio
 
 ```text
-├── manifest.json              Definición de la extensión (versión, permisos)
-├── background.js              Service worker: cola de extracciones, aviso al terminar, icono por pestaña
-├── scraper.js                 Se inyecta en la pestaña del sitio y extrae los productos
-├── popup.html / popup.js      Ventana principal (extraer, categoría, lista, Excel)
-├── preview.html / preview.js  Vista previa del Excel (en una pestaña)
-├── selector-categoria.js      Selector de categoría (popup y vista previa)
-├── options.html / options.js  Página de Opciones (configuración, estado, categorías, historial)
-├── xlsx.js                    Genera el Excel desde plantilla.xlsx (y las filas de la vista previa)
-├── plantilla.xlsx             Plantilla de scraping del sistema
-├── export.js                  Descarga del Excel (popup y service worker)
-├── descarga.js                Botón "Descargar Excel" del popup y de la vista previa
-├── jobs.js                    Cola de extracciones y guardado de su resultado
-├── groups.js                  Grupos de la lista (nombre, migración, orden del Excel)
-├── familias.js                Familias de Amazon y Kate Spade (un producto por familia) y sus variantes
-├── sites.js                   Sitios disponibles: detección, configuración, título e icono
-├── config.js                  Carga y validación de la configuración remota
-├── categories.js              Lista de categorías: GitHub, caché y copia incluida
-├── history.js                 Historial de páginas (chrome.storage.sync)
-├── prefs.js                   Preferencias de extracción
-├── config.default.json        Configuración incluida en la extensión
-├── config.json                Configuración remota (la leen todas las extensiones)
-├── categories.json            Lista de categorías (la mantiene un workflow)
-├── icons/                     Iconos de la extensión (icons/sitios: uno por sitio)
-├── tools/                     Scripts para empaquetar, actualizar y generar los iconos por sitio
-├── docs/                      Documentación
-├── CHANGELOG.md               Historial de versiones
-├── CLAUDE.md                  Notas para el asistente de programación
+├── manifest.json                  Definición de la extensión (versión, permisos); su carpeta es la que se carga en Chrome
+├── config.json                    Configuración remota (todas las extensiones la leen de esta ruta: no se mueve)
+├── config.default.json            Configuración incluida en la extensión
+├── categories.json                Lista de categorías (la mantiene un workflow; también se lee de esta ruta)
+├── src/
+│   ├── background/
+│   │   └── background.js          Service worker: cola de extracciones, aviso al terminar, icono por pestaña
+│   ├── inyectados/                Scripts clásicos que se inyectan en la pestaña del sitio
+│   │   ├── scraper.js             Extrae los productos
+│   │   └── familias.js            Familias de Amazon y Kate Spade y sus variantes (también lo importan los módulos)
+│   ├── popup/                     popup.html / popup.js: ventana principal (extraer, categoría, lista, Excel)
+│   ├── preview/                   preview.html / preview.js: vista previa del Excel (en una pestaña)
+│   ├── options/                   options.html / options.js: Opciones (configuración, estado, categorías, historial)
+│   └── comun/                     Módulos compartidos
+│       ├── config.js              Carga y validación de la configuración remota
+│       ├── sites.js               Sitios disponibles: detección, configuración, título e icono
+│       ├── jobs.js                Cola de extracciones y guardado de su resultado
+│       ├── groups.js              Grupos de la lista (nombre, migración, orden del Excel)
+│       ├── history.js             Historial de páginas (chrome.storage.sync)
+│       ├── categories.js          Lista de categorías: GitHub, caché y copia incluida
+│       ├── selector-categoria.js  Selector de categoría (popup y vista previa)
+│       ├── prefs.js               Preferencias de extracción
+│       ├── xlsx.js                Genera el Excel desde assets/plantilla.xlsx (y las filas de la vista previa)
+│       ├── export.js              Descarga del Excel (popup y service worker)
+│       ├── descarga.js            Botón "Descargar Excel" del popup y de la vista previa
+│       └── dom.js                 Ayudas de DOM compartidas
+├── assets/
+│   ├── plantilla.xlsx             Plantilla de scraping del sistema
+│   └── icons/                     Iconos de la extensión (icon.svg: dibujo original; sitios/: uno por sitio)
+├── tests/                         Pruebas automáticas (Node + jsdom); no van en el paquete
+├── tools/                         Scripts para empaquetar, actualizar y generar los iconos por sitio
+├── docs/                          Documentación
+├── CHANGELOG.md                   Historial de versiones
+├── CLAUDE.md                      Notas para el asistente de programación
 └── .github/workflows/
-    ├── release.yml            Publica el .zip al crear una etiqueta vX.Y.Z
-    └── categorias.yml         Actualiza categories.json desde la API cada 3 horas
+    ├── release.yml                Publica el .zip al crear una etiqueta vX.Y.Z
+    └── categorias.yml             Actualiza categories.json desde la API cada 3 horas
 ```

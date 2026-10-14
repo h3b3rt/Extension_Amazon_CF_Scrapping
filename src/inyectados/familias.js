@@ -15,7 +15,7 @@
 // Los listados no la traen: hay que descargar esa página.
 //
 // Script clásico, sin import/export: se inyecta en la pestaña antes de scraper.js
-// y los módulos (service worker, popup) lo cargan con `import './familias.js'`.
+// y los módulos (service worker, popup) lo cargan con `import '../inyectados/familias.js'`.
 // En ambos casos deja las funciones en globalThis.__cfFamilias.
 (() => {
   // Valores por defecto (Amazon); config.familias del sitio (remota) puede cambiarlos.

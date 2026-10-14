@@ -1,10 +1,10 @@
-import { getConfig, refreshRemoteConfig } from './config.js';
-import { appName, findSite, siteTitle, siteIcon, DEFAULT_ICON, familiasConfig } from './sites.js';
-import { getPrefs } from './prefs.js';
-import { getJobs, setJobs, guardarResultado, familiasDeLaLista, verificarLista, duracionTxt, captchaTxt } from './jobs.js';
-import { exportList, exportSummary } from './export.js';
-import { quitarDeLista, restaurarEnLista, asignarCategoria, restaurarCategoria, cambiarGuiaTalla } from './groups.js';
-import { getCachedCategories } from './categories.js';
+import { getConfig, refreshRemoteConfig } from '../comun/config.js';
+import { appName, findSite, siteTitle, siteIcon, DEFAULT_ICON, familiasConfig } from '../comun/sites.js';
+import { getPrefs } from '../comun/prefs.js';
+import { getJobs, setJobs, guardarResultado, familiasDeLaLista, verificarLista, duracionTxt, captchaTxt } from '../comun/jobs.js';
+import { exportList, exportSummary } from '../comun/export.js';
+import { quitarDeLista, restaurarEnLista, asignarCategoria, restaurarCategoria, cambiarGuiaTalla } from '../comun/groups.js';
+import { getCachedCategories } from '../comun/categories.js';
 
 const SYNC_ALARM = 'config-sync';
 const SYNC_MINUTES = 180;
@@ -322,7 +322,7 @@ async function ejecutar(job) {
     const tabId = await asegurarPestana(job);
     const prefs = await getPrefs();
     // familias.js antes que scraper.js: verificación de familias de Amazon.
-    await chrome.scripting.executeScript({ target: { tabId }, files: ['familias.js', 'scraper.js'] });
+    await chrome.scripting.executeScript({ target: { tabId }, files: ['src/inyectados/familias.js', 'src/inyectados/scraper.js'] });
     const opts = {
       autoScroll: prefs.autoScroll,
       limit: job.limite && job.limite.modo !== 'paginas' ? job.limite.valor : 0,
@@ -472,7 +472,7 @@ async function terminarExportacion(st, salida) {
 
 // Notificación de Chrome con el icono de la extensión.
 const notificar = (id, opciones) => chrome.notifications.create(id, {
-  type: 'basic', iconUrl: chrome.runtime.getURL('icons/icon128.png'), ...opciones,
+  type: 'basic', iconUrl: chrome.runtime.getURL('assets/icons/icon128.png'), ...opciones,
 });
 
 // Notificación de Chrome al terminar; al pulsarla se abre la pestaña de la extracción.

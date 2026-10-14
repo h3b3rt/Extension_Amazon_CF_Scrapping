@@ -4,12 +4,16 @@ Cada versión se publica como GitHub Release (zip para instalar): <https://githu
 
 "Probada en Chrome real" se indica solo cuando la documentación lo registra; el resto se probó en simulación (jsdom) y con capturas de un navegador sin interfaz.
 
-## v1.14.5 — en preparación
+## v1.14.5 — 2026-10-14
 
 ### Cambiado
 
 - Documentación reorganizada: CHANGELOG nuevo, `docs/BACKEND.md`, PENDIENTES solo con tareas abiertas, correcciones de reglas `sku`/`link` desactualizadas.
 - Limpieza de código: imports y exports sin uso, ayudas de DOM compartidas (`dom.js`: `$`, `el`, `plural`, `showStatus`), un solo `notificar` en el service worker y un solo texto de aviso de CAPTCHA (`captchaTxt`).
+- Estructura de carpetas: código en `src/` (`background`, `inyectados`, `popup`, `preview`, `options`, `comun`), plantilla e iconos en `assets/`. En la raíz quedan `manifest.json`, `config.json`, `config.default.json` y `categories.json`. Sin cambios de funcionamiento. Para actualizar, borra el contenido de la carpeta y descomprime el nuevo zip en la misma carpeta (se conservan la lista, los grupos y el historial), o usa `tools\actualizar.ps1`, que quita los archivos de la estructura anterior.
+- Pruebas automáticas en `tests/` (`npm test`): rutas del paquete, Excel leído como el backend, popup, vista previa y service worker.
+
+Probada en Chrome real el 14/10/2026 (todas las funciones con la estructura nueva).
 
 ## v1.14.4 — 2026-10-14
 

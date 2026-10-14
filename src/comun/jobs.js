@@ -9,7 +9,7 @@ import { productKey } from './sites.js';
 import { getConfig } from './config.js';
 import { getCachedCategories } from './categories.js';
 import { exportList, exportSummary } from './export.js';
-import './familias.js';
+import '../inyectados/familias.js';
 
 export async function getJobs() {
   const { jobs } = await chrome.storage.local.get('jobs');

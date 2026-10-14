@@ -3,7 +3,7 @@
 // exportación que antes verifica las familias de Amazon y Kate Spade).
 import { buildWorkbook } from './xlsx.js';
 import { productsForExport } from './groups.js';
-import './familias.js';
+import '../inyectados/familias.js';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 export const DEFAULT_PREFIX = 'Plantilla_Scraping';
@@ -36,7 +36,7 @@ function toBase64(bytes) {
 
 // Genera el xlsx desde plantilla.xlsx con las categorías actuales en Mapeo_categorias.
 async function downloadXlsx(products, config, categories, name = '') {
-  const template = await (await fetch(chrome.runtime.getURL('plantilla.xlsx'))).arrayBuffer();
+  const template = await (await fetch(chrome.runtime.getURL('assets/plantilla.xlsx'))).arrayBuffer();
   const { bytes, summary } = await buildWorkbook(template, products, { config: config.xlsx, categories });
   if (!summary.filas) throw new Error('Ningún producto tiene SKU: no se generó el archivo.');
   const url = `data:${XLSX_MIME};base64,${toBase64(bytes)}`;

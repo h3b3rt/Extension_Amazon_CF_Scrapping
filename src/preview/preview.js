@@ -6,18 +6,18 @@
 // el service worker (quitarProductos).
 // Se actualiza sola cuando cambia la lista (por ejemplo, durante una extracción).
 // Todo el contenido se arma con textContent: los datos vienen de páginas externas.
-import { getConfig, extensionVersion } from './config.js';
-import { getHistory } from './history.js';
-import { syncGroups, sortedGroups, productsForExport } from './groups.js';
-import { filasExcel } from './xlsx.js';
-import { sinFamilia } from './jobs.js';
-import { getCachedCategories } from './categories.js';
-import { sitesOf, siteIcon, DEFAULT_ICON } from './sites.js';
-import { exportSummary, exportFileName, DEFAULT_PREFIX } from './export.js';
-import { descargarLista, encoladaTxt } from './descarga.js';
-import { elegirCategoria } from './selector-categoria.js';
-import { $, el, plural, showStatus } from './dom.js';
-import './familias.js';
+import { getConfig, extensionVersion } from '../comun/config.js';
+import { getHistory } from '../comun/history.js';
+import { syncGroups, sortedGroups, productsForExport } from '../comun/groups.js';
+import { filasExcel } from '../comun/xlsx.js';
+import { sinFamilia } from '../comun/jobs.js';
+import { getCachedCategories } from '../comun/categories.js';
+import { sitesOf, siteIcon, DEFAULT_ICON } from '../comun/sites.js';
+import { exportSummary, exportFileName, DEFAULT_PREFIX } from '../comun/export.js';
+import { descargarLista, encoladaTxt } from '../comun/descarga.js';
+import { elegirCategoria } from '../comun/selector-categoria.js';
+import { $, el, plural, showStatus } from '../comun/dom.js';
+import '../inyectados/familias.js';
 
 const esHttps = u => /^https:\/\//i.test(u || '');
 

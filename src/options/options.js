@@ -1,10 +1,10 @@
 import {
   getConfig, getConfigMeta, getSettings, saveSettings, refreshRemoteConfig, resetRemoteConfig, extensionVersion,
-} from './config.js';
-import { getHistory, removeHistoryEntry, clearHistory, formatDate } from './history.js';
-import { getPrefs, setPref } from './prefs.js';
-import { getCachedCategories, refreshCategories, sourceLabel } from './categories.js';
-import { $ } from './dom.js';
+} from '../comun/config.js';
+import { getHistory, removeHistoryEntry, clearHistory, formatDate } from '../comun/history.js';
+import { getPrefs, setPref } from '../comun/prefs.js';
+import { getCachedCategories, refreshCategories, sourceLabel } from '../comun/categories.js';
+import { $ } from '../comun/dom.js';
 
 function showMsg(text, cls = '') {
   $('msg').className = cls;
