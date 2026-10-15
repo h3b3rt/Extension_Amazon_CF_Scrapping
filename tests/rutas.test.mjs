@@ -62,7 +62,8 @@ test('imports: el archivo existe, el nombre se exporta y se usa', () => {
       for (const raw of (m[1] || '').split(',').map(x => x.trim()).filter(Boolean)) {
         const [orig, local = orig] = raw.split(/\s+as\s+/);
         assert.ok(exportados(destino).has(orig), `${f}: ${orig} no se exporta en ${destino}`);
-        const usos = s.split(new RegExp(`(?<![\\w$.])${local.replace('$', '\\$')}(?![\\w$])`)).length - 1;
+        // "...nombre" (spread) es un uso; "x.nombre" no.
+        const usos = s.replace(/\.\.\./g, '   ').split(new RegExp(`(?<![\\w$.])${local.replace('$', '\\$')}(?![\\w$])`)).length - 1;
         assert.ok(usos >= 2, `${f}: ${local} se importa y no se usa`);
       }
     }

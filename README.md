@@ -76,7 +76,8 @@ Los selectores de los sitios, los ajustes del Excel y las categorías se corrige
 │   │   ├── scraper.js             Extrae los productos
 │   │   └── familias.js            Familias de Amazon y Kate Spade (también lo importan los módulos)
 │   ├── popup/                     popup.html / popup.js: ventana principal (extraer, categoría, lista, Excel)
-│   ├── preview/                   preview.html / preview.js: vista previa del Excel (en una pestaña)
+│   ├── preview/                   Vista previa del Excel (en una pestaña): preview.html / preview.js,
+│   │                              estado.js, panel-variantes.js (variantes) y acciones.js (quitar, categoría, Deshacer)
 │   ├── options/                   options.html / options.js: Opciones (configuración, estado, categorías, historial)
 │   └── comun/                     Módulos compartidos
 │       ├── config.js              Carga y validación de la configuración remota

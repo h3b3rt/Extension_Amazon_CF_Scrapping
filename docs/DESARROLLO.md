@@ -29,7 +29,7 @@ Otros documentos: el historial de versiones está en [CHANGELOG.md](../CHANGELOG
 | Raíz | `manifest.json`, `config.json`, `config.default.json`, `categories.json`. **No se mueven:** las extensiones instaladas leen `config.json` y `categories.json` de una URL fija de `main`, y Chrome carga la carpeta que tiene `manifest.json`. |
 | `src/background/` | `background.js` (service worker). |
 | `src/inyectados/` | `scraper.js` y `familias.js`: scripts clásicos que se inyectan en la pestaña con `executeScript` (`files: ['src/inyectados/familias.js', 'src/inyectados/scraper.js']`). `familias.js` también lo importan los módulos (`import '../inyectados/familias.js'`). |
-| `src/popup/`, `src/preview/`, `src/options/` | Cada página con su `.html` y su `.js`. |
+| `src/popup/`, `src/preview/`, `src/options/` | Cada página con su `.html` y su `.js`. La vista previa se reparte en `preview.js` (carga, resumen, filtros, tarjetas, descarga), `estado.js` (estado compartido: `datos`, `config`, `seleccion`, `tecnico`; la foto de cada producto), `panel-variantes.js` (etiquetas de variantes, desplegable y búsqueda automática con su caché) y `acciones.js` (quitar, categoría, guía de tallas, Deshacer). Los módulos no importan `preview.js`: `preview.js` les pasa sus funciones de dibujado con `conectar({ render, renderFilas, renderResumen })`. |
 | `src/comun/` | Módulos compartidos: `config.js`, `sites.js`, `groups.js`, `history.js`, `categories.js`, `prefs.js`, `export.js`, `xlsx.js`, `descarga.js`, `selector-categoria.js`, `dom.js`, `jobs.js`, `lectores-variantes.js` (variantes de Sephora, Michael Kors, Marc Jacobs y Kate Spade para la vista previa; no se inyecta). |
 | `assets/` | `plantilla.xlsx` y `icons/` (`icon16/32/48/128.png`, `icon.svg` como dibujo original, `sitios/<id>-16.png` y `-32.png`). |
 | `tests/` | Pruebas automáticas (ver [Probar](#probar)). No van en el paquete. |
@@ -108,7 +108,7 @@ Los mensajes de la vista previa cambian la lista dentro de `conLock` (`cambiarLi
   - Marc Jacobs: los colores del `input[name="colorSelector"]` (sin los de otro estilo) y la página de cada color para sus tallas.
   - Kate Spade: `hasVariant` del JSON-LD.
 
-  Lo leído se guarda en `storage.local.variantesLeidas` 7 días, con la versión `VERSION_LEIDAS` de `preview.js`: al cambiar cómo se leen se sube y lo anterior se vuelve a buscar.
+  Lo leído se guarda en `storage.local.variantesLeidas` 7 días, con la versión `VERSION_LEIDAS` de `src/preview/panel-variantes.js`: al cambiar cómo se leen se sube y lo anterior se vuelve a buscar.
 - Se redibuja con `storage.onChanged` (`collected`, `groups`, y `jobs` solo cuando empieza o termina una extracción). `?grupo=<id>` abre la vista filtrada por ese grupo.
 
 ### Familias
@@ -195,6 +195,7 @@ npm test
 | `excel.test.mjs` | El Excel leído con `XLSX.utils.sheet_to_json` **sin opciones**, como el backend: ninguna celda `''`, ninguna columna del backend llena, Amazon solo con `sku`, los demás solo con `link`, `ecomerce` sin espacios (ver [BACKEND.md](BACKEND.md)). |
 | `popup.test.mjs` | Popup en jsdom en una página de Michael Kors: icono del sitio, elegir categoría con el buscador y **Extraer** encola el trabajo con esa categoría. |
 | `vista-previa.test.mjs` | Vista previa en jsdom sobre la lista de prueba: sitios, columnas técnicas y nombre del archivo. |
+| `vista-previa-acciones.test.mjs` | Vista previa con un service worker falso que usa las funciones reales de `groups.js`: desplegable de variantes desde la caché `variantesLeidas`, quitar un producto y **Deshacer**, desactivar la guía de tallas de un grupo (con confirmación). |
 | `background.test.mjs` | El service worker carga con un `chrome` falso (todos sus `import` resuelven) y los avisos de CAPTCHA mantienen sus textos. |
 | `extraccion.test.mjs` | **Red de seguridad del scraper.** Para cada página de `tests/casos.json` (archivo guardado + URL que tenía la pestaña) ejecuta `familias.js` y `scraper.js` como el service worker, sin red, y compara el resultado con su **foto** (`tests/html/fotos/`). En páginas de producto también extrae con *Extraer variantes* (familias) y lee las variantes como la vista previa (`lectores-variantes.js`, con la propia página como respuesta). Sin las páginas guardadas, se omite. |
 
