@@ -195,10 +195,13 @@ npm test
 | `popup.test.mjs` | Popup en jsdom en una página de Michael Kors: icono del sitio, elegir categoría con el buscador y **Extraer** encola el trabajo con esa categoría. |
 | `vista-previa.test.mjs` | Vista previa en jsdom sobre la lista de prueba: sitios, columnas técnicas y nombre del archivo. |
 | `background.test.mjs` | El service worker carga con un `chrome` falso (todos sus `import` resuelven) y los avisos de CAPTCHA mantienen sus textos. |
+| `extraccion.test.mjs` | **Red de seguridad del scraper.** Para cada página de `tests/casos.json` (archivo guardado + URL que tenía la pestaña) ejecuta `familias.js` y `scraper.js` como el service worker, sin red, y compara el resultado con su **foto** (`tests/html/fotos/`). En páginas de producto también extrae con *Extraer variantes* (familias) y lee las variantes como la vista previa (`descargarVariantes`, con la propia página como respuesta). Sin las páginas guardadas, se omite. |
 
-Apoyo: `tests/apoyo/chrome-falso.mjs` pone un `chrome` falso y jsdom como globales; `montar('src/popup/popup.html', { local, tab, onMessage })` arma la página sin su `<script type="module">` y la prueba importa después el `.js` de la página. `tests/apoyo/lista.mjs` es una lista inventada con grupos y productos de los 5 sitios.
+Apoyo: `tests/apoyo/extraer.mjs` monta una página guardada en jsdom con su URL, inyecta los scripts y llama a `__cfScraper` con la configuración del sitio (`config.default.json` + `sites.js`, como la arma el popup); las esperas se acortan. `tests/apoyo/chrome-falso.mjs` pone un `chrome` falso y jsdom como globales; `montar('src/popup/popup.html', { local, tab, onMessage })` arma la página sin su `<script type="module">` y la prueba importa después el `.js` de la página. `tests/apoyo/lista.mjs` es una lista inventada con grupos y productos de los 5 sitios.
 
 **HTML guardado de las tiendas:** va en `tests/html/`, que está en `.gitignore` (el repo es público: no se suben páginas de las tiendas). Se guarda desde Chrome real con `copy(document.documentElement.outerHTML)` y con los bloqueadores de anuncios apagados.
+
+**Fotos de la extracción:** la primera vez que corre `extraccion.test.mjs` sobre una página, guarda su resultado como foto; después exige el mismo resultado. Un cambio que **no** debe cambiar lo que se extrae (reorganizar código) tiene que pasar sin tocar las fotos. Si el cambio de resultado es a propósito (un selector nuevo), revisa la diferencia y acepta las fotos nuevas con `ACTUALIZAR_FOTOS=1 npm test` (PowerShell: `$env:ACTUALIZAR_FOTOS='1'; npm test`). Para sumar una página: guárdala en `tests/html/<sitio>/` y agrégala con su URL a `tests/casos.json`. Las páginas de la PC de desarrollo vienen de `Documents\Prueba`; en otra PC hay que copiarlas a mano (no están en el repo).
 
 Otras comprobaciones útiles a mano:
 
@@ -207,7 +210,7 @@ Otras comprobaciones útiles a mano:
   Get-ChildItem src -Recurse -Include *.js | ForEach-Object { node --check $_.FullName; if ($?) { "OK  $($_.Name)" } }
   ```
   Sin nombre de archivo, `node --check` se queda esperando código por teclado (salir con Ctrl+C).
-- **Scraper:** cargar `src/inyectados/scraper.js` en **jsdom** con un HTML guardado de `tests/html/` y llamar a `globalThis.__cfScraper(siteConfig, opts)` (con `chrome.runtime.sendMessage` falso para recibir `scrapeDone`).
+- **Scraper sobre una página suelta:** `extraer(archivo, url)` de `tests/apoyo/extraer.mjs` devuelve el resultado de `__cfScraper` (productos, layouts, excluidos…).
 - **Visual:** abrir una página con datos de prueba en Chrome sin interfaz:
   ```powershell
   chrome --headless=new --screenshot=shot.png --window-size=420,560 file:///ruta/src/preview/preview.html
