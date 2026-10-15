@@ -30,7 +30,7 @@ Otros documentos: el historial de versiones está en [CHANGELOG.md](../CHANGELOG
 | `src/background/` | `background.js` (service worker). |
 | `src/inyectados/` | `scraper.js` y `familias.js`: scripts clásicos que se inyectan en la pestaña con `executeScript` (`files: ['src/inyectados/familias.js', 'src/inyectados/scraper.js']`). `familias.js` también lo importan los módulos (`import '../inyectados/familias.js'`). |
 | `src/popup/`, `src/preview/`, `src/options/` | Cada página con su `.html` y su `.js`. |
-| `src/comun/` | Módulos compartidos: `config.js`, `sites.js`, `groups.js`, `history.js`, `categories.js`, `prefs.js`, `export.js`, `xlsx.js`, `descarga.js`, `selector-categoria.js`, `dom.js`, `jobs.js`. |
+| `src/comun/` | Módulos compartidos: `config.js`, `sites.js`, `groups.js`, `history.js`, `categories.js`, `prefs.js`, `export.js`, `xlsx.js`, `descarga.js`, `selector-categoria.js`, `dom.js`, `jobs.js`, `lectores-variantes.js` (variantes de Sephora, Michael Kors, Marc Jacobs y Kate Spade para la vista previa; no se inyecta). |
 | `assets/` | `plantilla.xlsx` y `icons/` (`icon16/32/48/128.png`, `icon.svg` como dibujo original, `sitios/<id>-16.png` y `-32.png`). |
 | `tests/` | Pruebas automáticas (ver [Probar](#probar)). No van en el paquete. |
 | `tools/` | `empaquetar.ps1`, `actualizar.ps1`, `iconos-sitios.mjs`. |
@@ -55,7 +55,8 @@ src/popup/popup.js ──"enqueue"──▶ src/background/background.js (servic
    ├─ descarga.js    ("Descargar Excel" del popup y de la vista previa: directo o encolado)
    ├─ dom.js         (ayudas de DOM compartidas)
    └─ prefs.js
-   y src/inyectados/familias.js (familias y variantes; también se inyecta en la pestaña)
+   y src/inyectados/familias.js (familias y variantes de Amazon; también se inyecta en la pestaña)
+   y src/comun/lectores-variantes.js (variantes de los demás sitios; solo la vista previa)
 background.js: además refresca la configuración al iniciar y cada 3 h (chrome.alarms)
                y pone el título y la imagen del icono según el sitio de la pestaña
 src/preview/preview.html / preview.js: vista previa del Excel en una pestaña (lee storage.local,
@@ -101,7 +102,7 @@ Los mensajes de la vista previa cambian la lista dentro de `conLock` (`cambiarLi
 - **Quitar productos:** `quitarDeLista`/`restaurarEnLista` (`groups.js`) guardan la posición (`despues`) para devolver cada producto a su lugar, porque el orden decide qué producto representa a una familia; el grupo cuenta `quitados` y `syncGroups` no borra un grupo vacío con `quitados`. `productsForExport` añade `clave` (no es columna del Excel).
 - **Asignar categoría:** `asignarCategoria`/`restaurarCategoria` (`groups.js`) escriben los campos de categoría del producto y recalculan la categoría del grupo (la de sus productos si todos comparten una; si no, *Varias categorías*) y la línea `Categoría:` de su resumen. La categoría se elige con `elegirCategoria` de `selector-categoria.js`.
 - **Guía de tallas** editable por grupo desde la cabecera del grupo (`cambiarGuiaTalla`). *Extraer variantes* no se cambia después de extraer, ni en la vista previa.
-- **Variantes:** el desplegable **▸ Ver variantes** usa las que guardó la extracción (campo `variantes`, Amazon y Kate Spade) y, si el producto no las trae, las busca en la página del producto con `descargarVariantes` de `familias.js`, una a una y detenida tras un bloqueo:
+- **Variantes:** el desplegable **▸ Ver variantes** usa las que guardó la extracción (campo `variantes`, Amazon y Kate Spade) y, si el producto no las trae, las busca en la página del producto con `descargarVariantes` de `src/comun/lectores-variantes.js` (un módulo aparte: no se inyecta en la pestaña), una a una y detenida tras un bloqueo:
   - Sephora: `regularChildSkus` del `script#linkStore` de una descarga fresca (exige que `productId` sea el pedido).
   - Michael Kors: `ProductGroup.hasVariant` del JSON-LD, limitado a lo que muestra la página (swatches de color y tallas con precio).
   - Marc Jacobs: los colores del `input[name="colorSelector"]` (sin los de otro estilo) y la página de cada color para sus tallas.
@@ -195,7 +196,7 @@ npm test
 | `popup.test.mjs` | Popup en jsdom en una página de Michael Kors: icono del sitio, elegir categoría con el buscador y **Extraer** encola el trabajo con esa categoría. |
 | `vista-previa.test.mjs` | Vista previa en jsdom sobre la lista de prueba: sitios, columnas técnicas y nombre del archivo. |
 | `background.test.mjs` | El service worker carga con un `chrome` falso (todos sus `import` resuelven) y los avisos de CAPTCHA mantienen sus textos. |
-| `extraccion.test.mjs` | **Red de seguridad del scraper.** Para cada página de `tests/casos.json` (archivo guardado + URL que tenía la pestaña) ejecuta `familias.js` y `scraper.js` como el service worker, sin red, y compara el resultado con su **foto** (`tests/html/fotos/`). En páginas de producto también extrae con *Extraer variantes* (familias) y lee las variantes como la vista previa (`descargarVariantes`, con la propia página como respuesta). Sin las páginas guardadas, se omite. |
+| `extraccion.test.mjs` | **Red de seguridad del scraper.** Para cada página de `tests/casos.json` (archivo guardado + URL que tenía la pestaña) ejecuta `familias.js` y `scraper.js` como el service worker, sin red, y compara el resultado con su **foto** (`tests/html/fotos/`). En páginas de producto también extrae con *Extraer variantes* (familias) y lee las variantes como la vista previa (`lectores-variantes.js`, con la propia página como respuesta). Sin las páginas guardadas, se omite. |
 
 Apoyo: `tests/apoyo/extraer.mjs` monta una página guardada en jsdom con su URL, inyecta los scripts y llama a `__cfScraper` con la configuración del sitio (`config.default.json` + `sites.js`, como la arma el popup); las esperas se acortan. `tests/apoyo/chrome-falso.mjs` pone un `chrome` falso y jsdom como globales; `montar('src/popup/popup.html', { local, tab, onMessage })` arma la página sin su `<script type="module">` y la prueba importa después el `.js` de la página. `tests/apoyo/lista.mjs` es una lista inventada con grupos y productos de los 5 sitios.
 

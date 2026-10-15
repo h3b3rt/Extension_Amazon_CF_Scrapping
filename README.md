@@ -74,7 +74,7 @@ Los selectores de los sitios, los ajustes del Excel y las categorías se corrige
 │   │   └── background.js          Service worker: cola de extracciones, aviso al terminar, icono por pestaña
 │   ├── inyectados/                Scripts clásicos que se inyectan en la pestaña del sitio
 │   │   ├── scraper.js             Extrae los productos
-│   │   └── familias.js            Familias de Amazon y Kate Spade y sus variantes (también lo importan los módulos)
+│   │   └── familias.js            Familias de Amazon y Kate Spade (también lo importan los módulos)
 │   ├── popup/                     popup.html / popup.js: ventana principal (extraer, categoría, lista, Excel)
 │   ├── preview/                   preview.html / preview.js: vista previa del Excel (en una pestaña)
 │   ├── options/                   options.html / options.js: Opciones (configuración, estado, categorías, historial)
@@ -90,7 +90,8 @@ Los selectores de los sitios, los ajustes del Excel y las categorías se corrige
 │       ├── xlsx.js                Genera el Excel desde assets/plantilla.xlsx (y las filas de la vista previa)
 │       ├── export.js              Descarga del Excel (popup y service worker)
 │       ├── descarga.js            Botón "Descargar Excel" del popup y de la vista previa
-│       └── dom.js                 Ayudas de DOM compartidas
+│       ├── dom.js                 Ayudas de DOM compartidas
+│       └── lectores-variantes.js  Variantes de Sephora, Michael Kors, Marc Jacobs y Kate Spade (vista previa)
 ├── assets/
 │   ├── plantilla.xlsx             Plantilla de scraping del sistema
 │   └── icons/                     Iconos de la extensión (icon.svg: dibujo original; sitios/: uno por sitio)

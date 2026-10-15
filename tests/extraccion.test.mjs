@@ -8,32 +8,36 @@
 // - Para aceptar un cambio de resultado a propósito: ACTUALIZAR_FOTOS=1 npm test.
 //
 // Por página: extracción sin "Extraer variantes"; en páginas de producto, también con
-// variantes (familias) y las variantes que lee la vista previa (descargarVariantes,
+// variantes (familias) y las variantes que lee la vista previa (lectores-variantes.js,
 // con la misma página como respuesta y sin red para el resto).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { REPO } from './apoyo/chrome-falso.mjs';
-import { extraer, foto, montarPagina, configDe } from './apoyo/extraer.mjs';
+import { REPO, modulo } from './apoyo/chrome-falso.mjs';
+import { extraer, foto, configDe } from './apoyo/extraer.mjs';
 
 const HTML = path.join(REPO, 'tests', 'html');
 const FOTOS = path.join(HTML, 'fotos');
 const ACTUALIZAR = process.env.ACTUALIZAR_FOTOS === '1';
 const { paginas } = JSON.parse(fs.readFileSync(path.join(REPO, 'tests', 'casos.json'), 'utf8'));
-const FAMILIAS = fs.readFileSync(path.join(REPO, 'src', 'inyectados', 'familias.js'), 'utf8');
+const { leeVariantes, descargarVariantes } = await import(modulo('src/comun/lectores-variantes.js'));
 
 // Variantes que la vista previa leería del producto: la descarga de su link devuelve
 // la página guardada; cualquier otra URL (otros colores de Marc Jacobs) da 404.
-async function variantesDe(html, url, p) {
-  const w = montarPagina('<!doctype html><html><body></body></html>', url);
-  w.eval(FAMILIAS);
+// Sin pausa entre descargas (Marc Jacobs baja una página por color).
+async function variantesDe(html, p) {
   const limpia = u => String(u).split('#')[0];
-  w.fetch = async u => (limpia(u) === limpia(p.link) ? new Response(html, { status: 200 }) : new Response('', { status: 404 }));
-  const Fam = w.__cfFamilias;
-  const r = Fam.leeVariantes(p) ? await Fam.descargarVariantes(p) : null;
-  w.close();
-  return JSON.parse(JSON.stringify(r));
+  const { fetch: fetchReal } = globalThis;
+  const pausaReal = globalThis.__cfFamilias.pausa;
+  globalThis.fetch = async u => (limpia(u) === limpia(p.link) ? new Response(html, { status: 200 }) : new Response('', { status: 404 }));
+  globalThis.__cfFamilias.pausa = () => 0;
+  try {
+    return JSON.parse(JSON.stringify(leeVariantes(p) ? await descargarVariantes(p) : null));
+  } finally {
+    globalThis.fetch = fetchReal;
+    globalThis.__cfFamilias.pausa = pausaReal;
+  }
 }
 
 function comparar(t, archivo, actual) {
@@ -57,7 +61,7 @@ for (const { archivo, url } of paginas) {
     if (sin.tipoPagina) {
       actual.conVariantes = foto(await extraer(ruta, url, { variaciones: true }));
       const p = sin.productos[0];
-      if (p) actual.variantes = await variantesDe(fs.readFileSync(ruta, 'utf8'), url, { ...p, ecomerce: configDe(url).site.name });
+      if (p) actual.variantes = await variantesDe(fs.readFileSync(ruta, 'utf8'), { ...p, ecomerce: configDe(url).site.name });
     }
     comparar(t, archivo, actual);
   });

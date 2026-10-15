@@ -18,6 +18,7 @@ import { descargarLista, encoladaTxt } from '../comun/descarga.js';
 import { elegirCategoria } from '../comun/selector-categoria.js';
 import { $, el, plural, showStatus } from '../comun/dom.js';
 import '../inyectados/familias.js';
+import { leeVariantes, descargarVariantes } from '../comun/lectores-variantes.js';
 
 const esHttps = u => /^https:\/\//i.test(u || '');
 
@@ -486,7 +487,7 @@ function tarjetaProducto(f, avisos) {
 // Sephora y Michael Kors no tienen familias: con *Extraer variantes* en el grupo el
 // sistema crea todas las variantes del producto (tonos; colores y tallas), que se
 // buscan solas al abrir la vista previa.
-const buscaVariantes = p => !!p.conVariaciones && globalThis.__cfFamilias.leeVariantes(p);
+const buscaVariantes = p => !!p.conVariaciones && leeVariantes(p);
 const tieneVariantes = p => (buscaVariantes(p)
   ? cargadas.get(p.clave)?.variantes?.length > 1
   : representaFamilia(p) && (p.variantes?.length > 1 || p.familiaTam !== 1));
@@ -518,7 +519,7 @@ async function cargarVariantes(p) {
   const F = Fam.porEcomerce(config)[Fam.ecomerceDe(p)]?.F;
   cargadas.set(p.clave, { cargando: true });
   renderFilas();
-  const r = Fam.leeVariantes(p) ? await Fam.descargarVariantes(p)
+  const r = leeVariantes(p) ? await descargarVariantes(p)
     : F ? await Fam.descargar(p.asin, F, undefined, p.link) : { error: 'el sitio no tiene familias' };
   const ok = !!(r.familia || r.variantes);
   const dato = ok
