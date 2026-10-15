@@ -4,6 +4,13 @@ Cada versión se publica como GitHub Release (zip para instalar): <https://githu
 
 "Probada en Chrome real" se indica solo cuando la documentación lo registra; el resto se probó en simulación (jsdom) y con capturas de un navegador sin interfaz.
 
+## Próxima versión — en preparación
+
+### Cambiado
+
+- Código interno reorganizado, sin cambios de funcionamiento: los lectores de variantes de la vista previa salen de `familias.js` (`src/comun/lectores-variantes.js`, ya no se inyectan en la pestaña); la vista previa se reparte en `preview.js`, `estado.js`, `panel-variantes.js` y `acciones.js`; el scraper se parte en `lector.js` (lectura de cada producto) y `scraper.js` (flujo de la extracción).
+- Pruebas: extracción sobre 39 páginas guardadas de los 5 sitios y paginación simulada, comparadas con su resultado anterior (`tests/extraccion.test.mjs`); acciones de la vista previa (`tests/vista-previa-acciones.test.mjs`).
+
 ## v1.14.5 — 2026-10-14
 
 ### Cambiado

@@ -321,8 +321,8 @@ async function ejecutar(job) {
   try {
     const tabId = await asegurarPestana(job);
     const prefs = await getPrefs();
-    // familias.js antes que scraper.js: verificación de familias de Amazon.
-    await chrome.scripting.executeScript({ target: { tabId }, files: ['src/inyectados/familias.js', 'src/inyectados/scraper.js'] });
+    // familias.js (verificación de familias) y lector.js (lectura de cada producto) antes que scraper.js.
+    await chrome.scripting.executeScript({ target: { tabId }, files: ['src/inyectados/familias.js', 'src/inyectados/lector.js', 'src/inyectados/scraper.js'] });
     const opts = {
       autoScroll: prefs.autoScroll,
       limit: job.limite && job.limite.modo !== 'paginas' ? job.limite.valor : 0,

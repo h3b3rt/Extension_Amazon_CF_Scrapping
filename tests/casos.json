@@ -40,5 +40,14 @@
     { "archivo": "katespade/producto-oferta.html", "url": "https://www.katespade.com/products/deco-small-flap-wallet/KO585-200.html" },
     { "archivo": "katespade/producto-vestido.html", "url": "https://www.katespade.com/products/embellished-strap-mini-dress/KP145.html" },
     { "archivo": "katespade/producto-chaqueta.html", "url": "https://www.katespade.com/products/faux-fur-hooded-blouson-jacket/KP126-500.html" }
+  ],
+  "_paginacion": "Paginación simulada sin red: cada descarga de una página siguiente recibe la página guardada en siguiente (otra del mismo sitio).",
+  "paginacion": [
+    { "archivo": "amazon/busqueda-anuncios.html", "url": "https://www.amazon.com/s?k=carteras", "siguiente": "amazon/busqueda.html", "opciones": { "pages": 2 } },
+    { "archivo": "amazon/busqueda-anuncios.html", "url": "https://www.amazon.com/s?k=carteras", "siguiente": "amazon/busqueda.html", "opciones": { "limit": 60 } },
+    { "archivo": "michaelkors/categoria.html", "url": "https://www.michaelkors.com/women/handbags/", "siguiente": "michaelkors/categoria-sneakers.html", "opciones": { "pages": 2 } },
+    { "archivo": "sephora/categoria.html", "url": "https://www.sephora.com/shop/fragrance", "siguiente": "sephora/marca.html", "opciones": { "pages": 2 } },
+    { "archivo": "marcjacobs/categoria.html", "url": "https://www.marcjacobs.com/us-en/the-marc-jacobs/bags/view-all/", "siguiente": "marcjacobs/categoria-mini-bags.html", "opciones": { "pages": 2 } },
+    { "archivo": "katespade/categoria-joyeria.html", "url": "https://www.katespade.com/shop/jewelry/view-all", "siguiente": "katespade/categoria-ropa.html", "opciones": { "limit": 40 } }
   ]
 }

@@ -66,3 +66,17 @@ for (const { archivo, url } of paginas) {
     comparar(t, archivo, actual);
   });
 }
+
+// Paginación sin red: la página abierta y las siguientes (otra página guardada del mismo
+// sitio) con el límite del caso; la foto incluye las URL que se pidieron.
+const { paginacion = [] } = JSON.parse(fs.readFileSync(path.join(REPO, 'tests', 'casos.json'), 'utf8'));
+for (const { archivo, url, siguiente, opciones } of paginacion) {
+  const ruta = path.join(HTML, archivo);
+  const otra = path.join(HTML, siguiente);
+  const nombre = `paginacion/${archivo.replace(/\.html$/, '')}-${Object.entries(opciones).map(([k, v]) => `${k}${v}`).join('-')}`;
+  test(`paginación: ${archivo} (${JSON.stringify(opciones)})`, { skip: !(fs.existsSync(ruta) && fs.existsSync(otra)) && 'sin las páginas guardadas (tests/html/)' }, async t => {
+    const r = await extraer(ruta, url, { opciones, siguiente: otra });
+    assert.ok(!r.error, r.error);
+    comparar(t, nombre, { url, siguiente, opciones, resultado: foto(r) });
+  });
+}

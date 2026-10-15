@@ -73,7 +73,8 @@ Los selectores de los sitios, los ajustes del Excel y las categorías se corrige
 │   ├── background/
 │   │   └── background.js          Service worker: cola de extracciones, aviso al terminar, icono por pestaña
 │   ├── inyectados/                Scripts clásicos que se inyectan en la pestaña del sitio
-│   │   ├── scraper.js             Extrae los productos
+│   │   ├── lector.js              Lee cada producto (SKU, link, precio, imagen, marca)
+│   │   ├── scraper.js             Flujo de la extracción (límites, páginas siguientes, familias)
 │   │   └── familias.js            Familias de Amazon y Kate Spade (también lo importan los módulos)
 │   ├── popup/                     popup.html / popup.js: ventana principal (extraer, categoría, lista, Excel)
 │   ├── preview/                   Vista previa del Excel (en una pestaña): preview.html / preview.js,
